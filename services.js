@@ -21,16 +21,40 @@
       <small>${u.cats.map(c => esc(c.nom)).join(' · ')}</small><em>Découvrir →</em></a>`).join('')}</div>`;
   if (BIENTOT.length) h += `<p class="bientot"><span class="soon">Bientôt</span> ${BIENTOT.map(esc).join(' · ')}</p>`;
 
+  // vitrine d'une catégorie : titre, accroche, « ce que vous obtenez », étiquettes de prix, bouton ; à droite un exemple illustré
+  const vitrine = c => {
+    const v = (typeof VITRINES !== 'undefined' && VITRINES[c.id]) || { obtenez: [], puces: [] };
+    const ss = c.services.map(svc);
+    const moins = ss.filter(x => x.base).sort((a, b) => a.base - b.base)[0];
+    const pk = PACKS.find(x => Object.keys(x.items).some(id => c.services.includes(id)));
+    const second = pk ? `Formule « ${esc(pk.nom)} » · ${eur(pk.prix)}` : ss[1] ? `${esc(ss[1].nom)} · dès ${eur(ss[1].base)}${ss[1].mensuel ? '/mois' : ''}` : 'Devis gratuit, sans engagement';
+    const seo = typeof PAGES_SEO !== 'undefined' && PAGES_SEO[c.id];
+    return `<article class="vitrine" id="cat-${c.id}" style="--t:${c.couleur}">
+      <div class="v-gauche">
+        <div class="v-titre"><span class="v-etoile">${ico(c.icon)}</span><h3>${esc(c.nom)}</h3>${c.nouveau ? '<span class="neuf-tag">Nouveau</span>' : ''}</div>
+        <p class="v-accroche">${esc(c.accroche)}</p>
+        <p class="v-desc">${ss.map(x => esc(x.nom)).join(' · ')}</p>
+        <p class="v-label mono">Ce que vous obtenez</p>
+        <ul class="v-obtenez">${v.obtenez.map(([i, t]) => `<li><span>${ico(i)}</span>${esc(t)}</li>`).join('')}</ul>
+        <div class="v-prix"><div class="v-prix-2">${second}</div>
+          <div class="v-prix-1"><small>À partir de</small><b>${moins ? eur(moins.base) : 'Sur devis'}</b>${moins && moins.mensuel ? '<em>/mois</em>' : ''}</div></div>
+        <div class="v-actions"><a class="v-cta" href="index.html?cat=${c.id}">Prendre rendez-vous <span aria-hidden="true">↗</span></a>
+          ${seo ? `<a class="v-plus" href="${seo.url}">En savoir plus →</a>` : ''}</div>
+      </div>
+      <div class="v-droite"><div class="v-panneau">
+        <div class="v-scene">${scene(c)}</div>${photoCat(c, 'v-photo')}
+        ${v.puces.map((x, i) => `<span class="v-puce p${i}">${ico('sparkles')}${esc(x)}</span>`).join('')}
+      </div><p class="v-legende">Exemple illustratif</p></div>
+    </article>`;
+  };
+
   // 2. Le détail de chaque pôle
   h += poles.map(u => `
     <section class="pole-section" id="pole-${u.id}" style="--t:${u.couleur}">
       <h2 class="pole-titre">${ico(u.icon)} ${esc(u.nom)}</h2>
       <p>${esc(u.desc)}</p>
       <div class="actions left"><a class="btn btn-primary" href="index.html?pole=${u.id}">Rendez-vous ou devis : ${esc(u.nom)}</a></div>
-      ${u.cats.map(c => `<h3 class="cat-title" style="--t:${c.couleur}">${illustration(c, 'mini')} ${esc(c.nom)}</h3>
-        <div class="cat-scene${photoCat(c) ? ' double' : ''}" style="--t:${c.couleur}">${photoCat(c, 'grand')}${scene(c)}<div><p class="cat-accroche">${esc(c.accroche)}</p>
-          <ul class="cat-inclus">${c.services.map(id => `<li>${ico(svc(id).icon)} <b>${esc(svc(id).nom)}</b> <span>${esc(svc(id).desc)}</span></li>`).join('')}</ul>
-          ${typeof PAGES_SEO !== 'undefined' && PAGES_SEO[c.id] ? `<a class="cat-plus" href="${PAGES_SEO[c.id].url}">En savoir plus : ${esc(PAGES_SEO[c.id].titre)} →</a>` : ''}</div></div>
+      ${u.cats.map(c => vitrine(c) + `
         <div class="svc-list">${c.services.map(id => block(svc(id), c)).join('')}</div>`).join('')}
     </section>`).join('');
 

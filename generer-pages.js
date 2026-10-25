@@ -421,6 +421,22 @@ const PAGES = [
       ['Faut-il changer de logiciel ?', 'Rarement : nous relions d’abord ce que vous utilisez déjà (tableur, agenda, emails, logiciel de facturation).'],
       ['Que se passe-t-il si une automatisation tombe en panne ?', 'Vous êtes prévenu, et nous intervenons. Chaque automatisation est documentée et peut être arrêtée à tout moment.'],
       ['Combien coûte une automatisation ?', 'L’accompagnement IA commence à {iapro} ; chaque automatisation est chiffrée avant, selon sa complexité.']
+    ] },
+  { slug: 'photo-video-immobilier-martinique', cat: 'immo', scene: 'immo', services: ['immobilier', 'drone', 'domotique'], nouveau: true,
+    titre: 'Photo, vidéo et drone pour l’immobilier en Martinique | IloTech',
+    desc: 'Photos immobilières, vidéo de visite, vue drone et page web du bien en Martinique, pour agences, propriétaires et locations saisonnières. Serrure connectée, Wi-Fi et livret d’accueil pour les gîtes.',
+    h1: 'Photo, vidéo et drone pour l’immobilier',
+    accroche: 'Vendre ou louer plus vite : des photos qui donnent envie, une vue du ciel, une vidéo de visite et une annonce prête à publier.',
+    intro: [
+      'Sur une annonce, ce sont les premières photos qui décident d’une visite. Des pièces lumineuses et bien cadrées, la vue mer depuis le ciel, l’accès et le terrain : l’acheteur ou le voyageur comprend le bien en quelques secondes.',
+      'Nous réalisons les photos intérieures, les vues aériennes par drone et une courte vidéo de visite, puis une page web dédiée au bien à partager sur les réseaux et par WhatsApp. Pour les locations saisonnières, nous équipons aussi le logement : serrure connectée, Wi-Fi ou Starlink pour les voyageurs, livret d’accueil numérique.'
+    ],
+    exemple: { titre: 'Exemple : une villa en location au Diamant', avant: ['Photos prises au téléphone, sombres', 'La vue mer ne se voyait pas', 'Remise des clés compliquée'], apres: ['15 photos lumineuses + vue drone', 'Vidéo de visite de 60 s', 'Serrure connectée et livret d’accueil'] },
+    pourquoi: ['Photos, drone et vidéo par la même équipe', 'Livré sous 48 h, prêt pour les annonces', 'Page web du bien à partager', 'Équipement des locations saisonnières'],
+    faq: [
+      ['Pour qui est le pack immobilier ?', 'Agences immobilières, propriétaires qui vendent seuls, et loueurs de gîtes, villas et appartements saisonniers.'],
+      ['Peut-on faire voler le drone partout ?', 'Non : certaines zones sont interdites ou réglementées (aéroport, sites protégés). Nous vérifions avant de confirmer la séance.'],
+      ['Combien coûte le pack immobilier ?', 'Le pack commence à {immobilier} pour les photos intérieures et la vue aérienne ; vidéo, page web du bien et équipement des locations sont en option.']
     ] }
 ];
 
@@ -505,7 +521,7 @@ const remplir = t => t.replace(/\{(\w+)\}/g, (m, id) => svc(id) ? prixDe(svc(id)
 const catDe = id => CATEGORIES.find(c => c.id === id);
 const lien = p => p.slug + '.html';
 // photos réalistes (illustrations) : img/photos/<nom>.jpg, affichées seulement si le fichier existe
-const PHOTOS = {"installation-starlink-martinique": "starlink", "starlink-gite-entreprise-bateau-martinique": "starlink", "guide-starlink-martinique": "starlink", "depannage-informatique-martinique": "reparation", "reparation-ordinateur-portable-martinique": "reparation", "installation-camera-surveillance-martinique": "camera", "intelligence-artificielle-ia-martinique": "ia", "assistant-ia-chatbot-entreprise-martinique": "ia", "guide-ia-entreprise-martinique": "ia", "automatisation-entreprise-ia-martinique": "ia", "drone-photo-video-martinique": "drone", "agence-reseaux-sociaux-contenu-ia-martinique": "studio", "marketing-digital-reseaux-sociaux-martinique": "reseaux", "cours-informatique-seniors-martinique": "seniors"};
+const PHOTOS = {"installation-starlink-martinique": "starlink", "starlink-gite-entreprise-bateau-martinique": "starlink", "guide-starlink-martinique": "starlink", "depannage-informatique-martinique": "reparation", "reparation-ordinateur-portable-martinique": "reparation", "installation-camera-surveillance-martinique": "camera", "intelligence-artificielle-ia-martinique": "ia", "assistant-ia-chatbot-entreprise-martinique": "ia", "guide-ia-entreprise-martinique": "ia", "automatisation-entreprise-ia-martinique": "ia", "drone-photo-video-martinique": "drone", "photo-video-immobilier-martinique": "drone", "agence-reseaux-sociaux-contenu-ia-martinique": "studio", "marketing-digital-reseaux-sociaux-martinique": "reseaux", "cours-informatique-seniors-martinique": "seniors"};
 const ALT_PHOTOS = {"starlink": "Installation d’une antenne Starlink sur un toit en Martinique", "reparation": "Technicien qui répare un ordinateur portable en atelier", "camera": "Caméra de surveillance installée sur une maison créole", "ia": "Commerçante qui utilise un assistant d’intelligence artificielle", "drone": "Vue aérienne d’une baie de Martinique prise par drone", "reseaux": "Création de vidéos courtes pour les réseaux sociaux", "seniors": "Cours de tablette à domicile pour une personne âgée", "studio": "Studio de création de contenus pour les réseaux sociaux"};
 const DIMS = fs.existsSync(path.join(dir, 'img/photos/dimensions.json')) ? JSON.parse(fs.readFileSync(path.join(dir, 'img/photos/dimensions.json'), 'utf8')) : {};
 const photoDe = slug => { const n = PHOTOS[slug]; return n && fs.existsSync(path.join(dir, 'img/photos', n + '.jpg')) ? n : ''; };
@@ -580,6 +596,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
       <img class="logo" src="img/logo-ilo.png" alt="IloTech" width="64" height="38">
       <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">IT</em></b><span class="mono">Ducos · Le Robert — Martinique</span></span>
     </a>
+    <a class="studio-badge" href="https://ilotech97x.github.io/agence-marketing/" title="IloTech Studio : notre agence marketing et IA"><img src="img/studio-logo.svg" alt="" width="28" height="28"><span><b>IloTech Studio</b><small>Agence marketing &amp; IA</small></span></a>
     <div class="top-actions"><a class="btn btn-head" href="index.html?cat=${p.cat}">Prendre rendez-vous</a></div>
   </header>
 
@@ -685,6 +702,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
       <img class="logo" src="img/logo-ilo.png" alt="IloTech" width="64" height="38">
       <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">IT</em></b><span class="mono">Ducos · Le Robert — Martinique</span></span>
     </a>
+    <a class="studio-badge" href="https://ilotech97x.github.io/agence-marketing/" title="IloTech Studio : notre agence marketing et IA"><img src="img/studio-logo.svg" alt="" width="28" height="28"><span><b>IloTech Studio</b><small>Agence marketing &amp; IA</small></span></a>
     <div class="top-actions"><a class="btn btn-head" href="conseils.html">Conseils</a><a class="btn btn-head" href="index.html">Prendre rendez-vous</a></div>
   </header>
 `;

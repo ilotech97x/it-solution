@@ -147,6 +147,15 @@
       r(54, 88, 200, 62, '#ffffff', 10, ' stroke="#e2e8f0"') + t(64, 104, 'Bonjour Madame Joseph,', { s: 10 }) + t(64, 119, 'merci pour votre demande. Votre', { s: 10 }) + t(64, 134, 'devis est prêt, le voici…', { s: 10 }) +
       ok(36, 168) + t(48, 172, 'On vous apprend à l’utiliser, sans risque', { s: 9.5, c: '#475569' }))
   });
+  S.immo = c => fenetre(14, 16, 196, 168, 'Annonce · Le Diamant', c,
+      `<defs><linearGradient id="sc-mer" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7dd3fc"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>` +
+      r(24, 44, 176, 78, 'url(#sc-mer)', 8) + `<path d="M24 104 Q70 90 112 100 T200 96 V122 H24 Z" fill="#16a34a" opacity=".8"/>` +
+      `<path d="M74 104 l26 -18 l26 18 v14 h-52 z" fill="#f8fafc"/><path d="M70 106 l30 -22 l30 22" fill="none" stroke="#b91c1c" stroke-width="4" stroke-linejoin="round"/>` +
+      r(30, 50, 46, 16, '#000', 4, ' opacity=".45"') + t(36, 62, '◉ Drone', { s: 8.5, c: '#fff', b: 1 }) +
+      t(26, 140, 'Villa vue mer', { s: 12, b: 1 }) + t(26, 156, '4 chambres · piscine', { s: 9.5, c: '#475569' }) +
+      r(26, 164, 70, 14, c, 7) + t(61, 174, 'Visite vidéo', { s: 8, a: 'middle', c: '#fff', b: 1 })) +
+    r(220, 40, 88, 130, '#ffffff', 12) + t(264, 62, 'Livré', { s: 11, b: 1, a: 'middle' }) +
+    [['15 photos', 82], ['Vue drone', 104], ['Vidéo', 126], ['Annonce', 148]].map(([l, y]) => ok(234, y - 4) + t(244, y, l, { s: 9.5 })).join('');
   const POLE = { info: 'ordi', maison: 'camera', web: 'web', pro: 'pro', crea: 'drone' };
 
   window.scene = function (o, cls = '') {

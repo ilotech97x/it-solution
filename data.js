@@ -212,6 +212,13 @@ const SERVICES = [
     compris: ['Objet jusqu’à 10 cm', 'Matière et couleur au choix (PLA ou PETG)', 'Retrait en agence'],
     pasCompris: ['Création du modèle 3D au-delà de 15 min (49 € de l’heure)'],
     options: [['fichier', 'Impression d’un fichier existant', 0, 'Inclus'], ['adapt', 'Adaptation simple d’un modèle', 25], ['piece', 'Pièce de remplacement (mesure et modèle)', 35], ['serie', 'Petite série (5 pièces ou plus)', 0, 'Sur devis']] },
+  // --- Immobilier
+  { id: 'immobilier', icon: 'home', nom: 'Pack immobilier', desc: 'Photos, vidéo et drone pour vendre ou louer', base: 199, modes: ['site'],
+    note: 'Pour agences, propriétaires et locations saisonnières : des images qui donnent envie de visiter, prêtes pour les annonces et les réseaux.',
+    compris: ['15 photos intérieures retouchées', 'Photos aériennes par drone (selon la zone de vol)', 'Livraison en ligne sous 48 h', 'Formats prêts pour les annonces et les réseaux'],
+    pasCompris: ['Visite virtuelle 360° (sur devis)', 'Home staging et ménage avant les photos'],
+    options: [['video', 'Vidéo de visite montée (60 à 90 s)', 149], ['page', 'Page web dédiée au bien (lien à partager)', 149], ['reseaux', 'Publication et publicité sur les réseaux (hors budget)', 99],
+      ['serrure', 'Location saisonnière : serrure connectée posée et réglée', 89], ['wifi', 'Location saisonnière : Wi-Fi ou Starlink pour les voyageurs', 79], ['guide', 'Livret d’accueil numérique avec QR code', 59]] },
   // --- Programmation
   { id: 'devsurmesure', icon: 'code', nom: 'Programmation sur mesure', desc: 'Automatisation, outils, logiciels', base: 190, modes: ['distance', 'site', 'atelier'],
     note: 'Devis après un premier échange gratuit : nous partons de votre besoin réel, et le programme vous appartient.',
@@ -265,7 +272,7 @@ const UNIVERS = [
   { id: 'maison', nom: 'Maison connectée', icon: 'home',      badge: 'wifi',     couleur: '#22c55e', desc: 'Caméras, alarme, domotique et Wi-Fi dans toute la maison.' },
   { id: 'web',    nom: 'Web, IA & marketing',  icon: 'globe',     badge: 'trending', couleur: '#6366f1', desc: 'Sites web, intelligence artificielle, boutiques en ligne, applications et stratégie pour trouver des clients.' },
   { id: 'pro',    nom: 'Entreprises',      icon: 'briefcase', badge: 'shield',   couleur: '#8b5cf6', desc: 'Maintenance informatique, cybersécurité et caisse pour les commerces et les bureaux.' },
-  { id: 'crea',   nom: 'Drone',       icon: 'drone',     badge: 'camera',   couleur: '#38bdf8', desc: 'Photos et vidéos aériennes, inspection de toiture, suivi de chantier.' }
+  { id: 'crea',   nom: 'Drone & immobilier',       icon: 'drone',     badge: 'camera',   couleur: '#38bdf8', desc: 'Photos et vidéos aériennes, inspection de toiture, et tout pour vendre ou louer un bien.' }
 ];
 
 // accroche : la phrase qui parle au client ; badge : petit pictogramme de l'illustration
@@ -316,13 +323,43 @@ const CATEGORIES = [
     accroche: 'Une caisse simple, rapide et fiable pour votre commerce.' },
   { id: 'drone',     univers: 'crea',   nom: 'Drone',         icon: 'drone',      badge: 'camera',     couleur: '#38bdf8', services: ['drone'],
     accroche: 'Votre maison, votre commerce ou votre événement vus du ciel.' },
+  { id: 'immo',      univers: 'crea',   nom: 'Immobilier',    icon: 'home',       badge: 'camera',     couleur: '#f97316', services: ['immobilier'], nouveau: true,
+    accroche: 'Vendre ou louer plus vite : photos, vidéo, drone et annonce prêts à publier.' },
   { id: 'print3d',   univers: 'crea',   bientot: true,   nom: 'Impression 3D', icon: 'box',        badge: 'tools',      couleur: '#10b981', services: ['impression3d'],
     accroche: 'Un objet, un support, une pièce : on l’imprime en 3D.' }
 ];
 
 // Annoncés sous les onglets (« Bientôt ») — retirez une ligne quand le service est lancé.
 // photos (illustrations) par onglet : img/photos/<nom>.jpg — affichées à la place du dessin quand elles existent
-const PHOTOS_CAT = { starlink: 'starlink-carre', ordi: 'reparation', camera: 'camera', ia: 'ia', drone: 'drone', marketing: 'reseaux', aide: 'seniors' };
+const PHOTOS_CAT = { starlink: 'starlink-carre', ordi: 'reparation', camera: 'camera', ia: 'ia', drone: 'drone', marketing: 'reseaux', aide: 'seniors', immo: 'drone' };
+
+// Vitrines (page Services) : « ce que vous obtenez » (icône, texte) et 3 pastilles d'exemple par onglet
+const VITRINES = {
+  ordi:      { obtenez: [['search', 'Diagnostic de la panne'], ['doc', 'Prix annoncé avant'], ['database', 'Fichiers préservés'], ['pin', 'Chez vous, en agence ou à distance']], puces: ['Démarrage en 14 s', 'Écran remplacé', 'PC silencieux'] },
+  securite:  { obtenez: [['shield', 'Virus supprimés'], ['lock', 'Comptes récupérés'], ['phone', 'Double sécurité activée'], ['help', 'Conseils anti-arnaques']], puces: ['12 virus supprimés', 'Compte récupéré', 'Navigateur sain'] },
+  donnees:   { obtenez: [['search', 'Diagnostic du support'], ['database', 'Fichiers récupérés'], ['cloud', 'Sauvegarde automatique'], ['repeat', 'Restauration testée']], puces: ['1 284 photos sauvées', 'Sauvegarde chaque nuit', 'Copie en ligne'] },
+  install:   { obtenez: [['laptop', 'PC prêt à l’emploi'], ['drive', 'Fichiers transférés'], ['printer', 'Imprimante connectée'], ['battery', 'Protection des coupures']], puces: ['Office installé', 'Imprimante OK', 'Onduleur posé'] },
+  mobile:    { obtenez: [['smartphone', 'Écran et batterie'], ['repeat', 'Transfert complet'], ['chat', 'WhatsApp sauvegardé'], ['users', 'Réglages simples']], puces: ['Stockage libéré', 'Photos transférées', 'Texte agrandi'] },
+  gaming:    { obtenez: [['gamepad', 'Console nettoyée'], ['monitor', 'PC gamer sur mesure'], ['zap', 'Jeux optimisés'], ['joystick', 'Rétro-gaming']], puces: ['144 images/s', 'Console silencieuse', 'Budget respecté'] },
+  aide:      { obtenez: [['users', 'Cours à votre rythme'], ['home', 'À domicile ou à distance'], ['doc', 'Fiche mémo laissée'], ['shield', 'Repérer les arnaques']], puces: ['Appels vidéo', 'Démarches en ligne', 'Découverte de l’IA'] },
+  starlink:  { obtenez: [['search', 'Emplacement sans obstacle'], ['tools', 'Fixation anti-vent'], ['wifi', 'Wi-Fi dans toute la maison'], ['zap', 'Test de débit devant vous']], puces: ['En ligne partout', 'Même dans les mornes', 'Secours de la box'] },
+  camera:    { obtenez: [['camera', 'Caméras installées'], ['smartphone', 'Vue sur le téléphone'], ['bell', 'Alerte en cas de mouvement'], ['database', 'Enregistrement']], puces: ['Vision de nuit', 'Alerte portail', 'Caméra solaire 4G'] },
+  domo:      { obtenez: [['home', 'Maison connectée'], ['smartphone', 'Tout sur une application'], ['zap', 'Clim et lumières programmées'], ['lock', 'Serrure et portail']], puces: ['Clim à distance', 'Volets programmés', 'Économies'] },
+  wifi:      { obtenez: [['search', 'Signal mesuré partout'], ['wifi', 'Bornes Wi-Fi mesh'], ['network', 'Box bien réglée'], ['home', 'Un seul réseau']], puces: ['Wi-Fi à l’étage', 'Jusqu’à la terrasse', 'Télétravail OK'] },
+  multimedia:{ obtenez: [['tv', 'TV installée'], ['remote', 'Box et chaînes'], ['smartphone', 'Téléphone sur la TV'], ['tools', 'Câbles rangés']], puces: ['Une télécommande', 'Son puissant', 'Netflix prêt'] },
+  web:       { obtenez: [['globe', 'Site adapté au téléphone'], ['search', 'Visible sur Google'], ['chat', 'Bouton WhatsApp'], ['lock', 'Le site vous appartient']], puces: ['Commande en ligne', 'Prise de rendez-vous', 'Paiement en 3 fois'] },
+  appli:     { obtenez: [['smartphone', 'Parcours en quelques écrans'], ['users', 'Espace client'], ['calendar', 'Réservation'], ['doc', 'Code remis']], puces: ['Maquette à tester', 'Installable sur mobile', 'Rappels automatiques'] },
+  prog:      { obtenez: [['code', 'Outil sur mesure'], ['repeat', 'Tâches automatisées'], ['network', 'Outils reliés'], ['doc', 'Programme à vous']], puces: ['3 h gagnées / semaine', 'Export Excel', 'Factures triées'] },
+  ia:        { obtenez: [['sparkles', 'Formation avec vos exemples'], ['chat', 'Assistant pour vos clients'], ['repeat', 'Automatisations'], ['lock', 'Données protégées']], puces: ['Réponses 7 j/7', 'Devis préparés', 'Emails triés'] },
+  marketing: { obtenez: [['instagram', 'Tous vos réseaux'], ['sparkles', 'Vidéos créées avec l’IA'], ['calendar', 'Publication automatique'], ['trending', 'Bilan mensuel']], puces: ['Reels et stories', 'Plusieurs comptes', 'Fiche Google'] },
+  pro:       { obtenez: [['tools', 'Postes suivis'], ['cloud', 'Sauvegardes vérifiées'], ['shield', 'Antivirus'], ['phone', 'Assistance rapide']], puces: ['8/8 postes à jour', 'Sauvegarde 02:00', 'Rapport mensuel'] },
+  reseau:    { obtenez: [['network', 'Câblage propre'], ['wifi', 'Wi-Fi pro'], ['lock', 'Accès sécurisés'], ['drive', 'Fichiers partagés']], puces: ['Wi-Fi invités', 'Télétravail (VPN)', 'Baie rangée'] },
+  cloud:     { obtenez: [['mail', 'Emails à votre nom'], ['cloud', 'Microsoft 365 / Google'], ['calendar', 'Agendas partagés'], ['smartphone', 'Sur tous les appareils']], puces: ['contact@votre-nom', 'Anciens emails repris', 'Fichiers partagés'] },
+  cyber:     { obtenez: [['search', 'Contrôle express'], ['doc', 'Rapport clair'], ['shield', 'Corrections ciblées'], ['repeat', 'Contre-vérification']], puces: ['4/5 vérifiés', 'Emails protégés', 'Priorités claires'] },
+  caisse:    { obtenez: [['receipt', 'Caisse tactile'], ['printer', 'Tickets imprimés'], ['store', 'Stock suivi'], ['battery', 'Pas d’arrêt aux coupures']], puces: ['Paiement CB relié', 'Équipe formée', 'Ventes du jour'] },
+  drone:     { obtenez: [['drone', '30 min de vol'], ['camera', 'Photos HD retouchées'], ['home', 'Toiture vue de près'], ['zap', 'Livré sous 48 h']], puces: ['Vue mer', 'Inspection toiture', 'Clip 4K'] },
+  immo:      { obtenez: [['camera', 'Photos intérieures'], ['drone', 'Vue aérienne du bien'], ['globe', 'Page du bien à partager'], ['lock', 'Location saisonnière équipée']], puces: ['Annonce prête', 'Visite en vidéo', 'Serrure connectée'] },
+};
 const BIENTOT = ['Vente d’accessoires', 'Impression 3D'];
 
 // Type d'appareil demandé à l'étape « Situation » (pré-rempli selon les services choisis)
@@ -398,6 +435,7 @@ const SYMPTOMES = [
   { id: 'ia',      label: 'Je veux apprendre à utiliser l’IA (ChatGPT)', items: { cours: ['ia'] } },
   { id: 'iapro',   label: 'Je veux utiliser l’IA dans mon entreprise', pack: 'ia' },
   { id: 'chatbot', label: 'Je veux un assistant qui répond à mes clients', items: { iapro: ['assistant'] } },
+  { id: 'immo',    label: 'Je vends ou je loue un bien (photos, vidéo, annonce)', items: { immobilier: [] } },
   { id: 'posts',   label: 'Je veux publier sur tous mes réseaux sans y passer du temps', items: { reseaux: [], contenuia: [] } },
   { id: 'cam4g',   label: 'Je veux une caméra sans Wi-Fi (terrain, chantier)', items: { camera: ['solaire'] } },
   { id: 'net',     label: "Je n'ai plus internet",                    items: { network: ['router'] } },
