@@ -630,6 +630,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
       </div>
     </section>
 
+    ${p.cat === 'immo' ? '<p class="seo-guide">Formules, exemples et prix détaillés sur notre site dédié : <a href="https://ilotech97x.github.io/immobilier/">IloTech Immobilier →</a></p>' : ''}
     <h2>Pourquoi choisir IloTech</h2>
     <ul class="seo-atouts">${p.pourquoi.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
 
@@ -706,7 +707,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
     <div class="top-actions"><a class="btn btn-head" href="conseils.html">Conseils</a><a class="btn btn-head" href="index.html">Prendre rendez-vous</a></div>
   </header>
 `;
-const pied = () => `  <footer class="seo-pied">${reseauxHtml()}<p>IloTech — entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="https://ilotech97x.github.io/agence-marketing/">IloTech Studio, agence marketing</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
+const pied = () => `  <footer class="seo-pied">${reseauxHtml()}<p>IloTech — entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="https://ilotech97x.github.io/agence-marketing/">IloTech Studio, agence marketing</a> · <a href="https://ilotech97x.github.io/immobilier/">IloTech Immobilier</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
   <script src="data.js?v=${V}"></script>
   <script src="outils.js?v=${V}"></script>
 </body>

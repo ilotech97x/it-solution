@@ -409,6 +409,10 @@ const PACKS = [
   { id: 'secupro', univers: 'pro', icon: 'shield',    pour: 'Entreprise', nom: 'Protéger mon entreprise', prix: 390,
     inclus: ['Audit des accès et emails', 'Sauvegarde automatique', 'Rapport clair'], items: { cyber: ['email', 'acces'], sauvegarde: ['auto', 'cloud'] } },
   // Drone & 3D
+  { id: 'vendre',  univers: 'crea', icon: 'home', pour: 'Immobilier', nom: 'Vendre mon bien', prix: 399,
+    inclus: ['15 photos + vue drone', 'Vidéo de visite', 'Page web du bien'], items: { immobilier: ['video', 'page'] } },
+  { id: 'saison',  univers: 'crea', icon: 'lock', pour: 'Immobilier', nom: 'Louer en saisonnier', prix: 349,
+    inclus: ['Photos + vue drone', 'Serrure connectée et Wi-Fi', 'Livret d’accueil QR code'], items: { immobilier: ['serrure', 'wifi', 'guide'] } },
   { id: 'aerien',  univers: 'crea', icon: 'drone',    pour: 'Drone', nom: 'Vue aérienne de mon bien', prix: 229,
     inclus: ['Photos aériennes HD', 'Vidéo montée', 'Idéal location, vente, commerce'], items: { drone: ['photo', 'video'] } }
 ];
