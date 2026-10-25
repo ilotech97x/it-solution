@@ -27,7 +27,7 @@
       <p>${esc(u.desc)}</p>
       <div class="actions left"><a class="btn btn-primary" href="index.html?pole=${u.id}">Rendez-vous ou devis : ${esc(u.nom)}</a></div>
       ${u.cats.map(c => `<h3 class="cat-title" style="--t:${c.couleur}">${illustration(c, 'mini')} ${esc(c.nom)}</h3>
-        <div class="cat-scene" style="--t:${c.couleur}">${scene(c)}<div><p class="cat-accroche">${esc(c.accroche)}</p>
+        <div class="cat-scene" style="--t:${c.couleur}">${visuel(c)}<div><p class="cat-accroche">${esc(c.accroche)}</p>
           <ul class="cat-inclus">${c.services.map(id => `<li>${ico(svc(id).icon)} <b>${esc(svc(id).nom)}</b> <span>${esc(svc(id).desc)}</span></li>`).join('')}</ul>
           ${typeof PAGES_SEO !== 'undefined' && PAGES_SEO[c.id] ? `<a class="cat-plus" href="${PAGES_SEO[c.id].url}">En savoir plus : ${esc(PAGES_SEO[c.id].titre)} →</a>` : ''}</div></div>
         <div class="svc-list">${c.services.map(id => block(svc(id), c)).join('')}</div>`).join('')}

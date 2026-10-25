@@ -748,3 +748,9 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 .seo-photo.petite img{aspect-ratio:auto}
 @media (max-width:700px){.seo-photo.petite{float:none;width:100%;margin:14px 0}}
 .seo-exemple,.seo-atouts,.svc-list,.seo-cta{clear:both}
+/* Photos (illustrations) à la place des dessins */
+.illu.photo{object-fit:cover;aspect-ratio:16/10;height:auto;background:#0b1324}
+.cat-hero .illu.photo{width:128px;border-radius:10px}
+.cat-scene .illu.photo{width:100%;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);border:1px solid color-mix(in srgb,var(--t) 40%,var(--line))}
+@media (max-height:780px){.cat-hero .illu.photo{width:96px}}
+@media (max-width:600px){.cat-hero .illu.photo{width:104px}}

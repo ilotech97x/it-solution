@@ -404,7 +404,7 @@ const VIEWS = {
         const n = c.services.filter(id => state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
         return `<button type="button" role="tab" style="--t:${c.couleur}" aria-selected="${state.cat === c.id}" onclick="setCat('${c.id}')">${ico(c.icon)}<span>${c.nom}</span>${n ? `<em class="count">${n}</em>` : c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</button>`;
       }).join('')}</div>
-      ${(c => `<div class="cat-hero" style="--t:${c.couleur}">${scene(c)}<div><b>${esc(c.accroche)}</b><small>${c.services.map(id => esc(svc(id).nom)).join(' · ')}</small></div></div>`)(CATEGORIES.find(c => c.id === state.cat))}
+      ${(c => `<div class="cat-hero" style="--t:${c.couleur}">${visuel(c)}<div><b>${esc(c.accroche)}</b><small>${c.services.map(id => esc(svc(id).nom)).join(' · ')}</small></div></div>`)(CATEGORIES.find(c => c.id === state.cat))}
       <div class="grid g5 services" role="tabpanel">${CATEGORIES.find(c => c.id === state.cat).services.map(id => {
           const x = svc(id);
           const inPack = packValid() && pack(state.pack).items[x.id];

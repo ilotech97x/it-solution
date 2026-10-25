@@ -321,6 +321,8 @@ const CATEGORIES = [
 ];
 
 // Annoncés sous les onglets (« Bientôt ») — retirez une ligne quand le service est lancé.
+// photos (illustrations) par onglet : img/photos/<nom>.jpg — affichées à la place du dessin quand elles existent
+const PHOTOS_CAT = { starlink: 'starlink-carre', ordi: 'reparation', camera: 'camera', ia: 'ia', drone: 'drone', marketing: 'reseaux', aide: 'seniors' };
 const BIENTOT = ['Vente d’accessoires', 'Impression 3D'];
 
 // Type d'appareil demandé à l'étape « Situation » (pré-rempli selon les services choisis)
