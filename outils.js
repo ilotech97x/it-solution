@@ -72,6 +72,26 @@ function stat(e, detail) {
       a: innerWidth <= 900 ? 'mobile' : 'ordinateur', s: (q.get('src') || q.get('utm_source') || ref || 'direct').slice(0, 40) }));
   } catch (x) {}
 }
+// thème clair / sombre : le bouton est ajouté dans l'en-tête de chaque page publique
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem('itTheme', t); } catch (e) {}
+  const b = $('themeBtn');
+  if (!b) return;
+  const clair = t === 'light';
+  b.setAttribute('aria-pressed', clair);
+  b.title = b.ariaLabel = clair ? 'Passer en mode sombre' : 'Passer en mode clair';
+  b.innerHTML = `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${clair ? '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
+    : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'}</svg>`;
+}
+try {
+  const zone = document.querySelector('.top .top-actions');
+  if (zone && !document.body.classList.contains('gestion-page')) {
+    zone.insertAdjacentHTML('afterbegin', '<button type="button" class="btn btn-head btn-theme" id="themeBtn" onclick="setTheme(document.documentElement.dataset.theme === \'light\' ? \'dark\' : \'light\')"></button>');
+    setTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+  }
+} catch (e) {}
+
 (() => {
   try { if (!sessionStorage.getItem('itVisite')) { sessionStorage.setItem('itVisite', '1'); stat('visite'); } } catch (x) {}
   stat('vue');

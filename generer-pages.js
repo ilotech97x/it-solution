@@ -459,7 +459,7 @@ const GUIDES = [
       ['Faut-il des compétences techniques ?', 'Non. Il faut surtout savoir bien formuler sa demande, ce qui s’apprend en une séance.'],
       ['Combien coûte l’IA ?', 'Beaucoup d’outils ont une version gratuite. Les versions professionnelles coûtent quelques dizaines d’euros par mois et par personne selon l’outil.']
     ] },
-  { slug: 'guide-starlink-martinique', scene: 'starlink', couleur: '#cbd5e1', service: 'installation-starlink-martinique', cat: 'starlink',
+  { slug: 'guide-starlink-martinique', scene: 'starlink', couleur: '#94a3b8', service: 'installation-starlink-martinique', cat: 'starlink',
     titre: 'Starlink en Martinique : le guide avant d’installer | IloTech',
     desc: 'Starlink en Martinique : comment ça marche, pour qui, comment choisir l’emplacement, résister aux cyclones, garder internet pendant les coupures et avoir du Wi-Fi partout.',
     h1: 'Starlink en Martinique : le guide complet avant d’installer',
@@ -587,6 +587,7 @@ function page(p) {
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+  <script>try{if(localStorage.getItem('itTheme')==='light')document.documentElement.dataset.theme='light'}catch(e){}</script>
   <link rel="stylesheet" href="style.css?v=${V}">
 ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script>`).join('\n')}
 </head>
@@ -694,6 +695,7 @@ const enTete = (titre, desc, url, ld, ogTitre, ogDesc, robots = 'index,follow,ma
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+  <script>try{if(localStorage.getItem('itTheme')==='light')document.documentElement.dataset.theme='light'}catch(e){}</script>
   <link rel="stylesheet" href="style.css?v=${V}">
 ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script>`).join('\n')}
 </head>

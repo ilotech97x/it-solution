@@ -291,7 +291,7 @@ const CATEGORIES = [
     accroche: 'Console qui chauffe, PC gamer à monter, jeux rétro : on règle tout.' },
   { id: 'aide',      univers: 'info',   nom: 'Aide & suivi',  icon: 'users',      badge: 'chat',       couleur: '#f59e0b', services: ['cours', 'abonnement'],
     accroche: 'Apprenez à votre rythme, avec quelqu’un de patient, chez vous.' },
-  { id: 'starlink',  univers: 'maison', nom: 'Starlink',      icon: 'satellite',  badge: 'wifi',       couleur: '#cbd5e1', services: ['starlink'], nouveau: true,
+  { id: 'starlink',  univers: 'maison', nom: 'Starlink',      icon: 'satellite',  badge: 'wifi',       couleur: '#94a3b8', services: ['starlink'], nouveau: true,
     accroche: 'Internet rapide partout, même dans les mornes : on installe votre Starlink.' },
   { id: 'camera',    univers: 'maison', nom: 'Caméras',       icon: 'camera',     badge: 'shield',     couleur: '#fb923c', services: ['camera', 'alarme'],
     accroche: 'Surveillez votre maison depuis votre téléphone, de jour comme de nuit.' },

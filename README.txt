@@ -187,4 +187,4 @@ PROSPECTION (prospection.html) — entreprises uniquement
   Les autres sites (dossiers voisins, créés par ..\sites\construire.py — ne pas modifier leur index.html à la main) :
   ..gence-marketing   IloTech Studio      https://ilotech97x.github.io/agence-marketing/
   ..\immobilier         IloTech Immobilier  https://ilotech97x.github.io/immobilier/
-  Numéro de version (?v=81) : il est lu dans index.html ; l'augmenter partout force les navigateurs à recharger.
+  Numéro de version (?v=82) : il est lu dans index.html ; l'augmenter partout force les navigateurs à recharger.
