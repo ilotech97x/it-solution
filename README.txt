@@ -135,10 +135,13 @@ PROSPECTION (prospection.html) — entreprises uniquement
   - CONFIG      : email, moteur Google (endpoint), adresse du site, déplacement offert, places par créneau…
   - SERVICES    : chaque prestation = un prix « dès » + des options
   - PACKS       : formules à prix fixe (le « au lieu de » est calculé tout seul)
-  - UNIVERS     : les 5 pôles (Informatique, Maison connectée, Web & marketing, Entreprises, Drone & 3D)
+  - UNIVERS     : les 5 pôles (Informatique, Maison connectée, Web, IA & marketing, Entreprises, Drone & immobilier)
   - CATEGORIES  : les onglets de chaque pôle et leur couleur ; BIENTOT : la ligne « Bientôt »
     Lien direct vers un pôle : index.html?pole=web (ou ?cat=drone pour un onglet)
   - SYMPTOMES   : « Dites-nous ce qui ne va pas »
+  - VITRINES    : la présentation de chaque onglet (« Ce que vous obtenez », puces)
+  - PHOTOS_CAT  : la photo de chaque onglet (img/photos/), affichée dans la 1re carte de service
+  - CARROUSEL   : les diapositives « IloTech en images » de l'accueil (photo + texte + prix, automatique)
   - ZONES, COMMUNES, HORAIRES, AGENCES, DELAIS, CRENEAUX
   - Rendez-vous : CONFIG.placesParCreneau (3 clients le matin, 3 l'après-midi, par agence ; même
     valeur que CAPACITE dans le script Google) et CONFIG.delaiMinJours (1 = pas de rendez-vous le jour même).
@@ -161,12 +164,16 @@ PROSPECTION (prospection.html) — entreprises uniquement
 ══════════════════════════════════════════════════════════════
   data.js                  réglages, prix, prestations (le seul fichier à modifier)
   outils.js                petits outils communs (prix, dates, téléphone)
-  index.html  app.js  style.css          site client
+  index.html  app.js  style.css          site client. L'accueil, de haut en bas :
+                                         1. l'outil de rendez-vous (tient sur un écran sur PC)
+                                         2. « IloTech en images » : carrousel construit par app.js depuis CARROUSEL
+                                         3. « Nos autres sites » (Studio, Immobilier, Conseils), engagements, pied de page
   services.html  services.js             page Services et tarifs
   scenes.js                              illustrations (un exemple concret par catégorie)
   generer-pages.js  *-martinique.html  pages-seo.js   pages Google, une par service (générées)
+  conseils.html  guide-*.html  404.html  sitemap.xml   aussi générés par generer-pages.js (ne pas modifier à la main)
   outils-gratuits.html  outils-gratuits.js   outils gratuits (QR code, mot de passe, onduleur)
-  img/photos/<nom>.jpg                   photos (starlink, reparation, camera, ia, drone, reseaux, seniors) : affichées sur les pages Google dès que le fichier existe
+  img/photos/<nom>.jpg                   photos générées par IA (« Illustration ») ; dimensions.json : leurs tailles
   CONFIG.reseaux / CONFIG.partenaires (data.js)   réseaux sociaux et partenaires affichés sur le site
   fiche-tarifs.html .js .css             fiche tarifs imprimable
   gestion.html  gestion.js  gestion.css  page Rendez-vous
@@ -175,3 +182,9 @@ PROSPECTION (prospection.html) — entreprises uniquement
   osm-martinique.json      copie de secours des commerces (OpenStreetMap)
   img/                     logo et icônes ; sitemap.xml : plan du site pour Google
   google-apps-script.gs    le moteur Google (reste sur votre PC)
+  A-FAIRE.txt  GOOGLE-BUSINESS.txt  PROMPTS-IMAGES.txt   notes personnelles (jamais publiées)
+
+  Les autres sites (dossiers voisins, créés par ..\sites\construire.py — ne pas modifier leur index.html à la main) :
+  ..gence-marketing   IloTech Studio      https://ilotech97x.github.io/agence-marketing/
+  ..\immobilier         IloTech Immobilier  https://ilotech97x.github.io/immobilier/
+  Numéro de version (?v=81) : il est lu dans index.html ; l'augmenter partout force les navigateurs à recharger.

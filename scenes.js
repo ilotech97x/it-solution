@@ -17,7 +17,6 @@
   const tel = (x, y, contenu, w = 104, h = 184) => `<g>${r(x, y, w, h, '#0f172a', 16)}${r(x + 5, y + 5, w - 10, h - 10, '#f8fafc', 12)}${r(x + w / 2 - 16, y + 9, 32, 5, '#0f172a', 3)}${contenu}</g>`;
   const fond = (id, c) => `<defs><linearGradient id="sc-${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c}" stop-opacity=".9"/><stop offset="1" stop-color="${c}" stop-opacity=".25"/></linearGradient></defs>
     ${r(0, 0, W, H, '#0b1324', 18)}${r(0, 0, W, H, `url(#sc-${id})`, 18, ' opacity=".55"')}<circle cx="290" cy="22" r="60" fill="#fff" opacity=".06"/><circle cx="20" cy="190" r="50" fill="#fff" opacity=".05"/>`;
-  const bulle = (x, y, w, s, moi) => r(x, y, w, 22, moi ? '#dcfce7' : '#ffffff', 9, ' stroke="#e2e8f0"') + t(x + 8, y + 15, s, { s: 10 });
 
   const S = {
     ordi: c => fenetre(22, 18, 276, 166, 'Diagnostic de votre PC', c,

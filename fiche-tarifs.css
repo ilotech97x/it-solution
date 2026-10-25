@@ -22,7 +22,7 @@
 .f-svc h3 .ico{width:16px;height:16px;color:var(--primary)}
 .f-svc h3 b{color:var(--primary);font-size:13px;white-space:nowrap}
 .f-desc{margin:2px 0 4px;font-size:12px;color:var(--muted)}
-.f-etu{color:var(--ok);font-weight:600}
+
 .f-svc table{width:100%;border-collapse:collapse;font-size:12px}
 .f-svc td{padding:2px 0;border-top:1px dotted var(--line);vertical-align:top}
 .f-svc td small{display:block;color:var(--muted);font-size:10.5px}

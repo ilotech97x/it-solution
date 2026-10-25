@@ -2,7 +2,6 @@
    OUTILS
    ===================================================================== */
 const lineVal = l => eur(l.prix) + (l.mensuel ? '/mois' : '');
-const optPrice = o => o[2] ? '+' + eur(o[2]) : (o[3] || 'Gratuit');
 const fromPrice = s => s.base ? `dès ${eur(s.base)}${s.mensuel ? '/mois' : ''}` : 'Gratuit';
 const packLabel = p => `Pack « ${p.nom} »`;
 const commune = nom => COMMUNES.find(c => c[0] === nom);
@@ -112,15 +111,6 @@ function creneauxFor(date, agence = agenceKey()) {
 
 // places restantes d'un créneau (null = pas encore connu)
 const places = (date, k, agence = agenceKey()) => { const r = slotCache[date + '|' + agence]; return r && typeof r[k] === 'number' ? r[k] : null; };
-function nextFreeSlot() {
-  const t = premierJour();
-  for (let i = 0; i < 14; i++) {
-    const v = addDays(t, i);
-    const free = creneauxFor(v, 'ducos').find(([, why]) => !why);
-    if (free) return `${v === addDays(todayISO(), 1) ? 'Demain' : shortDate(v)}, ${CRENEAUX[free[0]].label.toLowerCase()}`;
-  }
-  return '';
-}
 
 // interroge le planning pour savoir quels créneaux sont complets
 async function fetchSlots(date) {
@@ -947,3 +937,47 @@ renderStatic();
 renderAvis();
 render();
 if (state.step === 2) fetchSlots(state.d.date);
+carrousel();
+
+/* =====================================================================
+   ACCUEIL : carrousel « IloTech en images » (photo à gauche, texte à droite)
+   ===================================================================== */
+function diapo([id, titre]) {
+  const c = CATEGORIES.find(x => x.id === id), v = VITRINES[id] || { obtenez: [] };
+  const moins = c.services.map(svc).filter(x => x.base).sort((a, b) => a.base - b.base)[0];
+  const seo = typeof PAGES_SEO !== 'undefined' && PAGES_SEO[id];
+  return `<article class="car-carte" style="--t:${c.couleur}">
+    <img src="img/photos/${PHOTOS_CAT[id]}.jpg" alt="${esc(titre)} (illustration)" width="410" height="464" loading="lazy" decoding="async">
+    <div class="car-txt">
+      <span class="car-pole">${ico(c.icon)}${esc(c.nom)}</span>
+      <h3>${esc(titre)}</h3>
+      <p>${esc(c.accroche)}</p>
+      <ul>${v.obtenez.map(([i, t]) => `<li>${ico(i)}<span>${esc(t)}</span></li>`).join('')}</ul>
+      <div class="car-bas"><span class="car-prix"><small>À partir de</small><b>${moins ? eur(moins.base) : 'Devis'}</b></span>
+        <button type="button" class="btn btn-primary" onclick="setCat('${id}');scrollTo({top:0,behavior:'smooth'})">Voir les tarifs</button>${seo ? `<a class="btn" href="${seo.url}">En savoir plus</a>` : ''}</div>
+    </div></article>`;
+}
+
+// défilement par glisser (scroll-snap), flèches, points, clavier ; lecture auto (pause au survol, au focus, au toucher)
+function carrousel() {
+  const car = document.querySelector('[data-carrousel]');
+  if (!car) return;
+  const piste = car.querySelector('.car-piste'), points = car.querySelector('.car-points');
+  piste.innerHTML = CARROUSEL.map(diapo).join('');
+  const n = CARROUSEL.length, pas = () => piste.clientWidth;
+  const index = () => Math.round(piste.scrollLeft / pas());
+  const aller = i => piste.scrollTo({ left: ((i + n) % n) * pas(), behavior: 'smooth' });
+  points.innerHTML = CARROUSEL.map(([, t], i) => `<button type="button" aria-label="${esc(t)} (${i + 1} sur ${n})"></button>`).join('');
+  const majPoints = () => [...points.children].forEach((b, i) => b.setAttribute('aria-current', i === index() ? 'true' : 'false'));
+  car.querySelector('.prec').addEventListener('click', () => aller(index() - 1));
+  car.querySelector('.suiv').addEventListener('click', () => aller(index() + 1));
+  [...points.children].forEach((b, i) => b.addEventListener('click', () => aller(i)));
+  piste.addEventListener('scroll', () => { clearTimeout(piste._t); piste._t = setTimeout(majPoints, 80); }, { passive: true });
+  piste.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); aller(index() + (e.key === 'ArrowRight' ? 1 : -1)); } });
+  majPoints();
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let pause = false;
+  ['mouseenter', 'focusin', 'touchstart'].forEach(t => car.addEventListener(t, () => { pause = true; }, { passive: true }));
+  ['mouseleave', 'focusout'].forEach(t => car.addEventListener(t, () => { pause = false; }));
+  setInterval(() => { if (!pause && !document.hidden) aller(index() + 1); }, 6000);
+}
