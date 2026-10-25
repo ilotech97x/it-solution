@@ -330,6 +330,23 @@ function tile({ type = 'radio', name, value, checked, disabled, title, sub, icon
     <span class="tile-text"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</span>${price ? `<span class="price">${price}</span>` : ''}</label>`;
 }
 
+// vitrine compacte de l'onglet : visuel (dessin + photo + pastille), titre, accroche, « ce que vous obtenez », prix
+function vitrineCompacte(c) {
+  const v = (typeof VITRINES !== 'undefined' && VITRINES[c.id]) || { obtenez: [], puces: [] };
+  const ss = c.services.map(svc);
+  const moins = ss.filter(x => x.base).sort((a, b) => a.base - b.base)[0];
+  const pk = PACKS.find(x => Object.keys(x.items).some(id => c.services.includes(id)));
+  return `<div class="cat-vitrine" style="--t:${c.couleur}">
+    <div class="cv-visuel">${scene(c)}${photoCat(c, 'cv-photo')}${v.puces[0] ? `<span class="cv-puce">${ico('sparkles')}${esc(v.puces[0])}</span>` : ''}</div>
+    <div class="cv-texte">
+      <div class="cv-titre"><span class="cv-icone">${ico(c.icon)}</span><b>${esc(c.nom)}</b>${c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</div>
+      <p class="cv-accroche">${esc(c.accroche)}</p>
+      <ul class="cv-obtenez">${v.obtenez.map(([i, t]) => `<li>${ico(i)}<span>${esc(t)}</span></li>`).join('')}</ul>
+    </div>
+    <div class="cv-prix">${pk ? `<span class="cv-prix-2">Formule ${eur(pk.prix)}</span>` : ''}<span class="cv-prix-1"><small>À partir de</small><b>${moins ? eur(moins.base) : 'Devis'}</b>${moins && moins.mensuel ? '<em>/mois</em>' : ''}</span></div>
+  </div>`;
+}
+
 // carte d'un service : en-tête illustré à la couleur de la catégorie, puis nom, description, prix
 function carteService(x, c, on, inPack) {
   const t = themeOf(x.id);
@@ -415,7 +432,7 @@ const VIEWS = {
         const n = c.services.filter(id => state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
         return `<button type="button" role="tab" style="--t:${c.couleur}" aria-selected="${state.cat === c.id}" onclick="setCat('${c.id}')">${ico(c.icon)}<span>${c.nom}</span>${n ? `<em class="count">${n}</em>` : c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</button>`;
       }).join('')}</div>
-      ${(c => `<div class="cat-hero" style="--t:${c.couleur}"><span class="cat-visuels">${photoCat(c)}${scene(c)}</span><div><b>${esc(c.accroche)}</b><small>${c.services.map(id => esc(svc(id).nom)).join(' · ')}</small></div></div>`)(CATEGORIES.find(c => c.id === state.cat))}
+      ${vitrineCompacte(CATEGORIES.find(c => c.id === state.cat))}
       <div class="grid g5 services" role="tabpanel">${CATEGORIES.find(c => c.id === state.cat).services.map(id => {
           const x = svc(id);
           const inPack = packValid() && pack(state.pack).items[x.id];

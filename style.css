@@ -849,3 +849,32 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (min-width:901px) and (max-width:1500px){.studio-badge small{display:none}.studio-badge b{font-size:12.5px}}
 @media (min-width:901px) and (max-width:1180px){.studio-badge span{display:none}.studio-badge{padding:4px}}
 .v-prix{height:186px}.v-prix-2{white-space:normal;overflow:visible;padding:12px 18px 50px;line-height:1.35}.v-prix-1{top:72px}
+
+/* ===== Vitrine compacte de l'accueil (onglet choisi) ===== */
+.cat-vitrine{display:grid;grid-template-columns:200px minmax(0,1fr) auto;gap:18px;align-items:center;margin:4px 0 10px;padding:10px 16px 10px 10px;border-radius:18px;background:linear-gradient(120deg,color-mix(in srgb,var(--t) 16%,var(--surface-2)),var(--surface-2) 70%);border:1px solid color-mix(in srgb,var(--t) 35%,var(--line))}
+.cv-visuel{position:relative;align-self:stretch;display:flex;align-items:center}
+.cv-visuel .illu.scene{width:100%;border-radius:12px;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+.cv-visuel .cv-photo{position:absolute;right:-12px;bottom:-6px;width:58px;aspect-ratio:410/464;height:auto;border-radius:10px;border:2px solid var(--surface-2);object-fit:cover;box-shadow:0 8px 18px rgba(0,0,0,.45)}
+.cv-puce{position:absolute;left:6px;top:-6px;display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#fff;color:#0f172a;font-weight:700;font-size:11px;white-space:nowrap;box-shadow:0 6px 14px rgba(0,0,0,.3)}
+.cv-puce svg{width:12px;height:12px;color:var(--t)}
+.cv-titre{display:flex;align-items:center;gap:8px}
+.cv-titre b{font-size:20px;letter-spacing:-.01em}
+.cv-icone{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:color-mix(in srgb,var(--t) 22%,transparent);color:var(--t)}
+.cv-icone svg{width:18px;height:18px}
+.cv-accroche{margin:4px 0 8px;font-weight:600;font-size:14.5px;line-height:1.35}
+.cv-obtenez{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.cv-obtenez li{display:flex;align-items:center;gap:6px;font-size:12px;line-height:1.2;color:var(--muted)}
+.cv-obtenez svg{flex:none;width:24px;height:24px;padding:5px;border-radius:8px;background:color-mix(in srgb,var(--t) 16%,transparent);color:var(--t)}
+.cv-prix{position:relative;display:flex;flex-direction:column;align-items:flex-end;gap:0;padding-right:4px}
+.cv-prix-2{transform:rotate(-5deg) translate(8px,6px);padding:6px 12px 14px;border-radius:12px;background:color-mix(in srgb,var(--t) 70%,#000);color:#fff;font-weight:700;font-size:11.5px;white-space:nowrap;opacity:.9}
+.cv-prix-1{position:relative;transform:rotate(-3deg);padding:8px 14px;border-radius:14px;background:linear-gradient(135deg,var(--t),color-mix(in srgb,var(--t) 65%,#000));color:#fff;box-shadow:0 10px 24px rgba(0,0,0,.35);white-space:nowrap}
+.cv-prix-1 small{display:block;font-size:11px;font-weight:600;opacity:.9}
+.cv-prix-1 b{font-size:26px;line-height:1.05}
+.cv-prix-1 em{font-style:normal;font-size:12px;font-weight:700;margin-left:2px}
+/* cartes : en-tête illustré seulement sur les grands écrans (la vitrine porte le visuel) */
+@media (max-height:899px) and (min-width:901px){.service.carte .carte-media{display:none}}
+@media (max-height:780px) and (min-width:901px){.cat-vitrine{grid-template-columns:150px minmax(0,1fr) auto;padding:6px 12px 6px 6px;gap:12px}.cv-obtenez li span{display:none}.cv-obtenez{display:flex;gap:6px}.cv-accroche{margin:2px 0 4px;font-size:13.5px}.cv-titre b{font-size:17px}.cv-prix-2{display:none}.cv-prix-1 b{font-size:22px}}
+@media (max-height:740px) and (min-width:901px){.cat-vitrine{grid-template-columns:118px minmax(0,1fr) auto}.cv-obtenez{display:none}.cv-puce{display:none}}
+@media (max-width:900px){.cat-vitrine{grid-template-columns:minmax(0,1fr) auto;padding:10px}.cv-visuel{grid-column:1/-1}.cv-visuel .illu.scene{max-width:320px;margin:0 auto}.cv-obtenez{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.cv-titre .neuf{padding:1px 8px;border-radius:99px;background:#facc15;color:#1a1300;font:800 10px/1.6 var(--sans);font-style:normal;letter-spacing:.02em}
+@media (min-width:901px) and (max-width:1440px){#grandBtn span{display:none}.studio-badge span{display:none}.studio-badge{padding:4px}}
