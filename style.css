@@ -744,3 +744,7 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 .ond-liste{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px 14px;margin:8px 0}
 .ond-res{font-size:16px;margin:8px 0}
 .ond-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--surface);border:1px solid var(--line);cursor:pointer;font-weight:500}.ond-item input{width:18px;height:18px;min-height:0;flex:none;margin:0;accent-color:var(--primary)}
+.seo-photo.petite{float:right;width:min(340px,42%);margin:4px 0 14px 22px}
+.seo-photo.petite img{aspect-ratio:auto}
+@media (max-width:700px){.seo-photo.petite{float:none;width:100%;margin:14px 0}}
+.seo-exemple,.seo-atouts,.svc-list,.seo-cta{clear:both}

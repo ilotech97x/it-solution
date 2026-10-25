@@ -265,7 +265,7 @@ const UNIVERS = [
   { id: 'maison', nom: 'Maison connectée', icon: 'home',      badge: 'wifi',     couleur: '#22c55e', desc: 'Caméras, alarme, domotique et Wi-Fi dans toute la maison.' },
   { id: 'web',    nom: 'Web, IA & marketing',  icon: 'globe',     badge: 'trending', couleur: '#6366f1', desc: 'Sites web, intelligence artificielle, boutiques en ligne, applications et stratégie pour trouver des clients.' },
   { id: 'pro',    nom: 'Entreprises',      icon: 'briefcase', badge: 'shield',   couleur: '#8b5cf6', desc: 'Maintenance informatique, cybersécurité et caisse pour les commerces et les bureaux.' },
-  { id: 'crea',   nom: 'Drone & 3D',       icon: 'drone',     badge: 'camera',   couleur: '#38bdf8', desc: 'Images aériennes et impression 3D, étudiées au cas par cas.' }
+  { id: 'crea',   nom: 'Drone',       icon: 'drone',     badge: 'camera',   couleur: '#38bdf8', desc: 'Photos et vidéos aériennes, inspection de toiture, suivi de chantier.' }
 ];
 
 // accroche : la phrase qui parle au client ; badge : petit pictogramme de l'illustration
@@ -316,12 +316,12 @@ const CATEGORIES = [
     accroche: 'Une caisse simple, rapide et fiable pour votre commerce.' },
   { id: 'drone',     univers: 'crea',   nom: 'Drone',         icon: 'drone',      badge: 'camera',     couleur: '#38bdf8', services: ['drone'],
     accroche: 'Votre maison, votre commerce ou votre événement vus du ciel.' },
-  { id: 'print3d',   univers: 'crea',   nom: 'Impression 3D', icon: 'box',        badge: 'tools',      couleur: '#10b981', services: ['impression3d'],
+  { id: 'print3d',   univers: 'crea',   bientot: true,   nom: 'Impression 3D', icon: 'box',        badge: 'tools',      couleur: '#10b981', services: ['impression3d'],
     accroche: 'Un objet, un support, une pièce : on l’imprime en 3D.' }
 ];
 
 // Annoncés sous les onglets (« Bientôt ») — retirez une ligne quand le service est lancé.
-const BIENTOT = ['Vente d’accessoires'];
+const BIENTOT = ['Vente d’accessoires', 'Impression 3D'];
 
 // Type d'appareil demandé à l'étape « Situation » (pré-rempli selon les services choisis)
 const APPAREILS = { fixe: 'PC fixe', portable: 'PC portable', aio: 'PC tout-en-un', mac: 'Mac', console: 'Console de jeux', autre: 'Autre' };
@@ -410,7 +410,6 @@ const SYMPTOMES = [
   { id: 'clients', label: 'Je veux plus de clients / être plus visible', items: { marketing: ['google'] } },
   { id: 'reseau',  label: 'Je n’ai pas le temps de gérer mes réseaux',  items: { reseaux: [] } },
   { id: 'droneph', label: 'Je veux des photos ou vidéos par drone',     items: { drone: ['photo'] } },
-  { id: 'objet3d', label: 'Je veux faire imprimer un objet en 3D',      items: { impression3d: ['fichier'] } },
   { id: 'tel',     label: 'L’écran de mon téléphone est cassé',      items: { mobile: ['screen'] } },
   { id: 'newtel',  label: 'J’ai un nouveau téléphone à installer',   pack: 'phone' },
   { id: 'tv',      label: 'Ma TV ou ma box ne marche pas bien',       items: { multimedia: ['box'] } },

@@ -6,7 +6,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>IloTech — Plaquette de présentation</title>
-  <meta name="description" content="IloTech, entreprise informatique en Martinique (Ducos et Le Robert) : informatique, maison connectée, web et marketing, solutions pour les entreprises, drone et impression 3D.">
+  <meta name="description" content="IloTech, entreprise informatique en Martinique (Ducos et Le Robert) : informatique, maison connectée, web et marketing, solutions pour les entreprises et drone.">
   <link rel="icon" type="image/png" href="img/favicon.png">
   <style>
     :root{--bleu:#1673e6;--encre:#0b1526;--gris:#55617a;--trait:#dde3ec}
@@ -63,9 +63,9 @@
 <body>
   <div class="barre"><b>Plaquette IloTech</b><button type="button" class="imp" onclick="print()">Imprimer / PDF</button><a href="index.html">Prendre rendez-vous</a></div>
   <article class="page" id="plaquette"></article>
-  <script src="data.js?v=72"></script>
-  <script src="outils.js?v=72"></script>
-  <script src="scenes.js?v=72"></script>
+  <script src="data.js?v=73"></script>
+  <script src="outils.js?v=73"></script>
+  <script src="scenes.js?v=73"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
     (function () {
@@ -83,7 +83,7 @@
       $('plaquette').innerHTML = `
         <header class="couv"><img src="img/logo-ilo.png" alt="IloTech"><div><h1>Ilo<span>Tech</span></h1>
           <p>Informatique, réseaux, web et sécurité — Martinique</p><span class="tag">DUCOS · LE ROBERT</span></div></header>
-        <section><h2>Qui sommes-nous ?</h2><p class="intro">IloTech accompagne les particuliers, les commerces et les entreprises de Martinique dans tout ce qui touche au numérique : dépannage et installation, réseaux et Wi-Fi, maison connectée, sites web, applications et marketing, maintenance et cybersécurité, jusqu’aux images aériennes par drone et à l’impression 3D. Notre engagement : des solutions fiables, expliquées simplement.</p></section>
+        <section><h2>Qui sommes-nous ?</h2><p class="intro">IloTech accompagne les particuliers, les commerces et les entreprises de Martinique dans tout ce qui touche au numérique : dépannage et installation, réseaux et Wi-Fi, maison connectée, sites web, applications et marketing, maintenance et cybersécurité, jusqu’aux images aériennes par drone. Notre engagement : des solutions fiables, expliquées simplement.</p></section>
         <section><h2>Nos pôles</h2><div class="poles">${poles.map(u => `<div class="pole" style="--t:${u.couleur}">${scene(u)}<div><b>${esc(u.nom)}</b><p>${esc(u.desc)}</p><ul>${u.cats.map(c => `<li><b style="display:inline;font-size:13.5px">${esc(c.nom)}</b> <small>— ${esc(c.services.map(id => svc(id).nom).join(', '))}</small></li>`).join('')}</ul></div></div>`).join('')}</div></section>
         <section><h2>Pourquoi IloTech ?</h2><div class="atouts">${atouts.map(([t, d]) => `<div class="atout"><b>${t}</b><span>${d}</span></div>`).join('')}</div></section>
         <section><h2>Comment ça se passe ?</h2><div class="etapes">${etapes.map(([t, d]) => `<div class="etape"><b>${t}</b><span>${d}</span></div>`).join('')}</div></section>

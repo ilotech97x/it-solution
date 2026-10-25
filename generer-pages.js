@@ -327,21 +327,6 @@ const PAGES = [
       ['Peut-on voler partout en Martinique ?', 'Non : les abords de l’aéroport, certains sites protégés et les zones habitées ont des règles. Nous vérifions la zone avant de confirmer.'],
       ['Combien coûte une séance drone ?', 'Le forfait photo commence à {drone}. Vidéo, inspection de toiture et suivi de chantier sont en option.']
     ] },
-  { slug: 'impression-3d-martinique', cat: 'print3d', scene: 'print3d', services: ['impression3d'],
-    titre: 'Impression 3D en Martinique : pièces et objets | IloTech',
-    desc: 'Impression 3D en Martinique : pièce de remplacement introuvable, support, objet décoratif, figurine, prototype, petite série. Dès 25 €, à retirer en agence. Devis gratuit.',
-    h1: 'Impression 3D : pièces, objets, prototypes',
-    accroche: 'Une pièce introuvable, un support sur mesure, un objet décoratif ou un prototype : on l’imprime en 3D, ici en Martinique.',
-    intro: [
-      'Commander une petite pièce en plastique depuis l’Hexagone prend des semaines et coûte cher en frais de port. L’impression 3D permet de la fabriquer sur place : clip cassé, bouton, support de téléphone, pièce d’appareil, rangement sur mesure.',
-      'Envoyez-nous un fichier ou une photo avec les mesures : nous adaptons ou créons le modèle, choisissons la matière (PLA, PETG) et vous annonçons le prix avant d’imprimer.'
-    ],
-    exemple: { titre: 'Exemple : une pièce de ventilateur au Vauclin', avant: ['Clip en plastique cassé', 'Pièce introuvable en magasin', 'Ventilateur à jeter'], apres: ['Pièce mesurée et modélisée', 'Imprimée en PETG résistant', 'Ventilateur réparé pour quelques euros'] },
-    pourquoi: ['Fabriqué sur place, sans frais de port', 'Pièces de remplacement sur mesure', 'Prix annoncé avant d’imprimer', 'Petites séries possibles'],
-    faq: [
-      ['Je n’ai pas de fichier 3D, est-ce possible ?', 'Oui : une photo avec les mesures suffit souvent. Nous créons le modèle (au-delà de 15 minutes de modélisation, c’est facturé à l’heure, annoncé avant).'],
-      ['Quelle matière choisir ?', 'Le PLA pour les objets décoratifs, le PETG pour les pièces qui doivent résister à la chaleur et aux chocs.']
-    ] },
   { slug: 'pc-gamer-console-martinique', cat: 'gaming', scene: 'gaming', services: ['gamer', 'console', 'emulation'],
     titre: 'PC gamer et entretien console en Martinique | IloTech',
     desc: 'PC gamer monté sur mesure en Martinique, nettoyage et entretien de console (PS5, Xbox, Switch) contre la chaleur et la poussière, émulation rétro. Conseil selon votre budget.',
@@ -520,11 +505,17 @@ const remplir = t => t.replace(/\{(\w+)\}/g, (m, id) => svc(id) ? prixDe(svc(id)
 const catDe = id => CATEGORIES.find(c => c.id === id);
 const lien = p => p.slug + '.html';
 // photos réalistes (illustrations) : img/photos/<nom>.jpg, affichées seulement si le fichier existe
-const PHOTOS = {"installation-starlink-martinique": "starlink", "starlink-gite-entreprise-bateau-martinique": "starlink", "guide-starlink-martinique": "starlink", "depannage-informatique-martinique": "reparation", "reparation-ordinateur-portable-martinique": "reparation", "installation-camera-surveillance-martinique": "camera", "intelligence-artificielle-ia-martinique": "ia", "assistant-ia-chatbot-entreprise-martinique": "ia", "guide-ia-entreprise-martinique": "ia", "automatisation-entreprise-ia-martinique": "ia", "drone-photo-video-martinique": "drone", "agence-reseaux-sociaux-contenu-ia-martinique": "reseaux", "marketing-digital-reseaux-sociaux-martinique": "reseaux", "cours-informatique-seniors-martinique": "seniors"};
-const ALT_PHOTOS = {"starlink": "Installation d’une antenne Starlink sur un toit en Martinique", "reparation": "Technicien qui répare un ordinateur portable en atelier", "camera": "Caméra de surveillance installée sur une maison créole", "ia": "Commerçante qui utilise un assistant d’intelligence artificielle", "drone": "Vue aérienne d’une baie de Martinique prise par drone", "reseaux": "Création de vidéos courtes pour les réseaux sociaux", "seniors": "Cours de tablette à domicile pour une personne âgée"};
+const PHOTOS = {"installation-starlink-martinique": "starlink", "starlink-gite-entreprise-bateau-martinique": "starlink", "guide-starlink-martinique": "starlink", "depannage-informatique-martinique": "reparation", "reparation-ordinateur-portable-martinique": "reparation", "installation-camera-surveillance-martinique": "camera", "intelligence-artificielle-ia-martinique": "ia", "assistant-ia-chatbot-entreprise-martinique": "ia", "guide-ia-entreprise-martinique": "ia", "automatisation-entreprise-ia-martinique": "ia", "drone-photo-video-martinique": "drone", "agence-reseaux-sociaux-contenu-ia-martinique": "studio", "marketing-digital-reseaux-sociaux-martinique": "reseaux", "cours-informatique-seniors-martinique": "seniors"};
+const ALT_PHOTOS = {"starlink": "Installation d’une antenne Starlink sur un toit en Martinique", "reparation": "Technicien qui répare un ordinateur portable en atelier", "camera": "Caméra de surveillance installée sur une maison créole", "ia": "Commerçante qui utilise un assistant d’intelligence artificielle", "drone": "Vue aérienne d’une baie de Martinique prise par drone", "reseaux": "Création de vidéos courtes pour les réseaux sociaux", "seniors": "Cours de tablette à domicile pour une personne âgée", "studio": "Studio de création de contenus pour les réseaux sociaux"};
+const DIMS = fs.existsSync(path.join(dir, 'img/photos/dimensions.json')) ? JSON.parse(fs.readFileSync(path.join(dir, 'img/photos/dimensions.json'), 'utf8')) : {};
 const photoDe = slug => { const n = PHOTOS[slug]; return n && fs.existsSync(path.join(dir, 'img/photos', n + '.jpg')) ? n : ''; };
-const photoHtml = slug => { const n = photoDe(slug); return n ? `<figure class="seo-photo"><img src="img/photos/${n}.jpg" alt="${esc(ALT_PHOTOS[n])}" width="1600" height="900" loading="lazy" decoding="async"><figcaption>Illustration</figcaption></figure>` : ''; };
-const ogImage = slug => photoDe(slug) ? SITE + 'img/photos/' + photoDe(slug) + '.jpg' : SITE + 'img/og-ilotech.jpg';
+const petite = slug => { const n = photoDe(slug); return !!n && (DIMS[n] || [1600])[0] < 800; };
+const photoHtml = slug => {
+  const n = photoDe(slug); if (!n) return '';
+  const [w, h] = DIMS[n] || [1600, 900];
+  return `<figure class="seo-photo${w < 800 ? ' petite' : ''}"><img src="img/photos/${n}.jpg" alt="${esc(ALT_PHOTOS[n])}" width="${w}" height="${h}" loading="lazy" decoding="async"><figcaption>Illustration</figcaption></figure>`;
+};
+const ogImage = slug => photoDe(slug) && fs.existsSync(path.join(dir, 'img/photos', photoDe(slug) + '-og.jpg')) ? SITE + 'img/photos/' + photoDe(slug) + '-og.jpg' : SITE + 'img/og-ilotech.jpg';
 const jours = { 1: 'Mo', 2: 'Tu', 3: 'We', 4: 'Th', 5: 'Fr', 6: 'Sa', 0: 'Su' };
 const horaires = Object.entries(HORAIRES).map(([j, [a, b]]) => ({ '@type': 'OpeningHoursSpecification', dayOfWeek: 'https://schema.org/' + ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][j], opens: String(a).padStart(2, '0') + ':00', closes: String(b).padStart(2, '0') + ':00' }));
 const agences = Object.entries(AGENCES).map(([k, a]) => ({ '@type': 'LocalBusiness', '@id': SITE + '#agence-' + k, name: 'IloTech — ' + a.nom, telephone: '+596' + a.tel.replace(/\D/g, '').slice(1), url: SITE,
@@ -608,8 +599,9 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
       <figure class="seo-scene">${scene({ id: p.scene, nom: p.h1, couleur: coul })}<figcaption>Exemple : ce que vous obtenez</figcaption></figure>
     </section>
 
+    ${petite(p.slug) ? photoHtml(p.slug) : ''}
     ${p.intro.map(x => `<p class="seo-texte">${esc(x)}</p>`).join('\n    ')}
-    ${photoHtml(p.slug)}
+    ${petite(p.slug) ? '' : photoHtml(p.slug)}
 
     <section class="seo-exemple" aria-labelledby="ex-titre">
       <h2 id="ex-titre">${esc(p.exemple.titre)}</h2>
@@ -695,7 +687,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
     <div class="top-actions"><a class="btn btn-head" href="conseils.html">Conseils</a><a class="btn btn-head" href="index.html">Prendre rendez-vous</a></div>
   </header>
 `;
-const pied = () => `  <footer class="seo-pied">${reseauxHtml()}<p>IloTech — entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
+const pied = () => `  <footer class="seo-pied">${reseauxHtml()}<p>IloTech — entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="https://ilotech97x.github.io/agence-marketing/">IloTech Studio, agence marketing</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
   <script src="data.js?v=${V}"></script>
   <script src="outils.js?v=${V}"></script>
 </body>
