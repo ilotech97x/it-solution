@@ -155,10 +155,11 @@
     const c = o.couleur || '#2b8cff';
     return `<svg class="illu scene ${cls}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Exemple : ${e(o.nom || '')}" font-family="inherit">${fond(id + cls.replace(/\W/g, ''), c)}${S[id](c)}</svg>`;
   };
-  // photo de la catégorie si elle existe (PHOTOS_CAT dans data.js), sinon le dessin
-  window.visuel = function (o, cls = '') {
+  // photo de la catégorie (PHOTOS_CAT dans data.js), affichée EN PLUS du dessin ; '' s'il n'y en a pas
+  window.photoCat = function (o, cls = '') {
     const p = typeof PHOTOS_CAT !== 'undefined' && PHOTOS_CAT[o.id];
-    return p ? `<img class="illu photo ${cls}" src="img/photos/${p}.jpg" alt="${e(o.nom || '')} (illustration)" width="410" height="464" loading="lazy" decoding="async">` : window.scene(o, cls);
+    return p ? `<img class="illu photo ${cls}" src="img/photos/${p}.jpg" alt="${e(o.nom || '')} (illustration)" width="410" height="464" loading="lazy" decoding="async">` : '';
   };
+  window.visuel = (o, cls = '') => window.photoCat(o, cls) || window.scene(o, cls);
   window.SCENES = Object.keys(S);
 })();

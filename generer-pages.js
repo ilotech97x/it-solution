@@ -15,7 +15,7 @@ ctx.window = ctx;
 vm.createContext(ctx);
 ['data.js', 'outils.js', 'scenes.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(dir, f), 'utf8'), ctx, { filename: f }));
 const { CONFIG, SERVICES, CATEGORIES, COMMUNES, ZONES, AGENCES, HORAIRES, ENTREPRISE } = vm.runInContext('({ CONFIG, SERVICES, CATEGORIES, COMMUNES, ZONES, AGENCES, HORAIRES, ENTREPRISE })', ctx);
-const { esc, eur, svc, ico, scene, waUrl } = vm.runInContext('({ esc, eur, svc, ico, scene, waUrl })', ctx);
+const { esc, eur, svc, ico, scene, waUrl, bandeau } = vm.runInContext('({ esc, eur, svc, ico, scene, waUrl, bandeau })', ctx);
 const SITE = CONFIG.siteUrl.replace(/\/?$/, '/');
 const RESEAUX = Object.entries(CONFIG.reseaux || {}).filter(([, u]) => u);
 const SAMEAS = RESEAUX.map(([, u]) => u);
@@ -523,8 +523,9 @@ const agences = Object.entries(AGENCES).map(([k, a]) => ({ '@type': 'LocalBusine
 
 function tarifs(ids) {
   return ids.map(svc).filter(Boolean).map(s => `
-    <section class="svc-block" style="--t:${catDe((CATEGORIES.find(c => c.services.includes(s.id)) || {}).id || 'ordi')?.couleur || '#2b8cff'}">
-      <h3>${ico(s.icon)} ${esc(s.nom)} <span class="mono">${prixDe(s)}</span></h3>
+    <section class="svc-block carte-bloc" style="--t:${(CATEGORIES.find(c => c.services.includes(s.id)) || {}).couleur || '#2b8cff'}">
+      <div class="svc-media">${(c => bandeau({ id: 'b-' + s.id, icon: s.icon, badge: c.badge || 'zap', couleur: c.couleur || '#2b8cff' }))(CATEGORIES.find(c => c.services.includes(s.id)) || {})}<span class="svc-prix mono">${prixDe(s)}</span></div>
+      <h3>${ico(s.icon)} ${esc(s.nom)}</h3>
       <p class="muted">${esc(s.desc)}.${s.note ? ' ' + esc(s.note) : ''}</p>
       ${s.compris ? `<div class="svc-compris"><div><b>Compris</b><ul>${s.compris.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>${s.pasCompris ? `<div class="non"><b>Pas compris</b><ul>${s.pasCompris.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}</div>` : ''}
       <table class="price-table"><tbody>${s.options.map(o => `<tr><td>${esc(o[1])}</td><td class="mono">${o[2] ? '+' + eur(o[2]) + (s.mensuel ? '/mois' : '') : esc(o[3] || 'Inclus')}</td></tr>`).join('')}</tbody></table>

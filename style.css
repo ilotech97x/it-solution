@@ -754,3 +754,45 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 .cat-scene .illu.photo{width:100%;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);border:1px solid color-mix(in srgb,var(--t) 40%,var(--line))}
 @media (max-height:780px){.cat-hero .illu.photo{width:96px}}
 @media (max-width:600px){.cat-hero .illu.photo{width:104px}}
+
+/* ===== Cartes (25/10) : services illustrés, photo + dessin ===== */
+/* bandeau de catégorie : photo et dessin côte à côte */
+.cat-visuels{display:flex;gap:8px;flex:none}
+.cat-hero .cat-visuels .illu{width:118px}
+.cat-hero .cat-visuels .illu.photo{width:96px;aspect-ratio:4/3}
+/* cartes de services (accueil) */
+.service.carte{flex-direction:column;align-items:stretch;gap:0;padding:0;min-height:0;overflow:hidden;border-radius:14px}
+.service.carte .carte-media{display:block;height:58px;overflow:hidden;border-bottom:1px solid color-mix(in srgb,var(--t) 35%,var(--line))}
+.service.carte .carte-media .illu{width:100%;height:100%;border-radius:0;display:block}
+.service.carte .carte-corps{display:flex;align-items:flex-start;gap:10px;padding:10px 12px 12px}
+.service.carte .box{order:2;margin-left:auto;margin-top:2px}
+.service.carte .tile-text{order:1;flex:1}
+.service.carte b{font-size:15px}
+.service.carte:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.35)}
+.service.carte{transition:transform .15s,box-shadow .15s,border-color .15s}
+.services.grid{align-items:stretch}
+/* écrans peu hauts : cartes compactes (l'accueil tient sur un écran) */
+@media (max-height:800px) and (min-width:901px){.service.carte .carte-media{height:30px}.cat-hero .cat-visuels .illu{width:96px}.cat-hero .cat-visuels .illu.photo{width:72px}}
+@media (max-height:740px) and (min-width:901px){.service.carte .carte-media{display:none}.cat-hero .cat-visuels .illu.photo{display:none}}
+@media (max-width:600px){.service.carte .carte-media{height:46px}.cat-hero .cat-visuels .illu.photo{display:none}}
+/* page Services : photo + dessin, cartes de services */
+.cat-scene.double{grid-template-columns:minmax(0,210px) minmax(0,340px) minmax(0,1fr)}
+.cat-scene .illu.photo.grand{width:100%;aspect-ratio:410/464;border-radius:14px;object-fit:cover;box-shadow:0 10px 30px rgba(0,0,0,.35);border:1px solid color-mix(in srgb,var(--t) 40%,var(--line))}
+@media (max-width:980px){.cat-scene.double{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.cat-scene.double>div{grid-column:1/-1}}
+@media (max-width:560px){.cat-scene.double{grid-template-columns:minmax(0,1fr)}}
+.carte-bloc{padding:0;overflow:hidden;border-radius:16px;transition:transform .15s,box-shadow .15s}
+.carte-bloc:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(0,0,0,.35)}
+.carte-bloc>*:not(.svc-media){margin-left:16px;margin-right:16px}
+.carte-bloc>:last-child{margin-bottom:14px}
+.svc-media{position:relative;height:84px;overflow:hidden}
+.svc-media .illu{width:100%;height:100%;border-radius:0;display:block}
+.svc-prix{position:absolute;right:12px;bottom:10px;padding:5px 12px;border-radius:999px;background:rgba(5,7,13,.78);color:#fff;font-weight:700;font-size:14px;backdrop-filter:blur(4px)}
+.carte-bloc h3{margin-top:12px}
+@media (max-height:740px) and (min-width:901px){.service.carte .carte-corps{padding:6px 12px;align-items:center}.service.carte b{font-size:14px}.service.carte small{font-size:12px}.service.carte{border-radius:var(--radius)}.service.carte:hover{transform:none}}
+@media (max-height:740px) and (min-width:901px){.service.carte .carte-desc{display:none}}
+.services.grid:has(.carte){grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.services .service.carte,.services.g5 .service.carte{padding:0;gap:0}
+.service.carte .carte-media svg rect:first-of-type,.service.carte .carte-media svg rect:nth-of-type(2){rx:0}
+.service.carte .tile-text b{margin-bottom:2px}
+.bandeau{display:block;width:100%;height:100%}
+.carte-bloc .price-table{width:calc(100% - 32px)}

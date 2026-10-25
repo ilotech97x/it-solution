@@ -330,6 +330,17 @@ function tile({ type = 'radio', name, value, checked, disabled, title, sub, icon
     <span class="tile-text"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</span>${price ? `<span class="price">${price}</span>` : ''}</label>`;
 }
 
+// carte d'un service : en-tête illustré à la couleur de la catégorie, puis nom, description, prix
+function carteService(x, c, on, inPack) {
+  const t = themeOf(x.id);
+  return `<label class="tile service carte ${on ? 'on' : ''} ${inPack ? 'included' : ''}" style="--t:${t}">
+    <input type="checkbox" name="svc" value="${x.id}" ${on ? 'checked' : ''} ${inPack ? 'disabled' : ''} onchange="toggle('${x.id}')">
+    <span class="carte-media">${bandeau({ id: 's-' + x.id, icon: x.icon, badge: c.badge, couleur: t })}</span>
+    <span class="carte-corps"><span class="box" aria-hidden="true"></span>
+      <span class="tile-text"><b>${x.nom.replace('Vidéosurveillance', 'Vidéo\u00ADsurveillance')}</b>${inPack ? '<small>✓ Inclus dans votre formule</small>'
+        : `<small><span class="carte-desc">${x.desc}</span><span class="price-row"><span class="mono">${fromPrice(x)}</span><span class="add">${on ? '✓ Ajouté' : '+ Ajouter'}</span></span></small>`}</span></span></label>`;
+}
+
 function packCard(p, on, action) {
   const value = itemsValue(p.items);
   const cats = [...new Set(Object.keys(p.items).map(id => catOf(id).nom))];
@@ -404,14 +415,11 @@ const VIEWS = {
         const n = c.services.filter(id => state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
         return `<button type="button" role="tab" style="--t:${c.couleur}" aria-selected="${state.cat === c.id}" onclick="setCat('${c.id}')">${ico(c.icon)}<span>${c.nom}</span>${n ? `<em class="count">${n}</em>` : c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</button>`;
       }).join('')}</div>
-      ${(c => `<div class="cat-hero" style="--t:${c.couleur}">${visuel(c)}<div><b>${esc(c.accroche)}</b><small>${c.services.map(id => esc(svc(id).nom)).join(' · ')}</small></div></div>`)(CATEGORIES.find(c => c.id === state.cat))}
+      ${(c => `<div class="cat-hero" style="--t:${c.couleur}"><span class="cat-visuels">${photoCat(c)}${scene(c)}</span><div><b>${esc(c.accroche)}</b><small>${c.services.map(id => esc(svc(id).nom)).join(' · ')}</small></div></div>`)(CATEGORIES.find(c => c.id === state.cat))}
       <div class="grid g5 services" role="tabpanel">${CATEGORIES.find(c => c.id === state.cat).services.map(id => {
           const x = svc(id);
           const inPack = packValid() && pack(state.pack).items[x.id];
-          return tile({ type: 'checkbox', name: 'svc', value: x.id, checked: !inPack && state.sel.includes(x.id), disabled: !!inPack,
-            title: x.nom.replace('Vidéosurveillance', 'Vidéo\u00ADsurveillance'),
-            sub: inPack ? '✓ Inclus dans votre formule' : `${x.desc}<span class="price-row"><span class="mono">${fromPrice(x)}</span><span class="add">${state.sel.includes(x.id) ? '✓ Ajouté' : '+ Ajouter'}</span></span>`,
-            icon: x.icon, theme: themeOf(x.id), cls: 'service' + (inPack ? ' included' : ''), onchange: `toggle('${x.id}')` });
+          return carteService(x, CATEGORIES.find(c => c.id === state.cat), !inPack && state.sel.includes(x.id), inPack);
         }).join('')}</div>
       ${(() => {
         const u = UNIVERS.find(x => x.id === univOf(state.cat));

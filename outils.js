@@ -32,11 +32,25 @@ const parseISO = s => { const [y, m, d] = String(s).slice(0, 10).split('-').map(
 const todayISO = () => iso(new Date());
 const addDays = (s, n) => { const dt = parseISO(s); dt.setDate(dt.getDate() + n); return iso(dt); };
 
+// Bandeau horizontal d'une carte de service : fond à sa couleur, pictogramme entier à gauche, badge à droite (SVG)
+function bandeau({ id, icon, badge, couleur }) {
+  const g = 'bd-' + id;
+  const points = [0, 1, 2, 3].flatMap(x => [0, 1].map(y => `<circle cx="${250 + x * 10}" cy="${16 + y * 10}" r="1.6"/>`)).join('');
+  return `<svg class="bandeau" viewBox="0 0 320 90" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+    <defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${couleur}" stop-opacity=".95"/><stop offset="1" stop-color="${couleur}" stop-opacity=".2"/></linearGradient></defs>
+    <rect width="320" height="90" fill="#0b1324"/><rect width="320" height="90" fill="url(#${g})" opacity=".75"/>
+    <circle cx="300" cy="-6" r="56" fill="#fff" opacity=".08"/><circle cx="150" cy="104" r="44" fill="#fff" opacity=".06"/>
+    <g fill="#fff" opacity=".35">${points}</g>
+    <g transform="translate(26 15) scale(2.5)" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICONS[icon] || ''}</g>
+    ${badge ? `<circle cx="112" cy="62" r="17" fill="#fff"/><g transform="translate(102.5 52.5) scale(.8)" fill="none" stroke="${couleur}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ICONS[badge] || ''}</g>` : ''}
+  </svg>`;
+}
+
 // Illustration d'une catégorie ou d'un pôle : fond à sa couleur, grand pictogramme, badge (SVG, aucun fichier image)
 function illustration({ id, icon, badge, couleur }, cls = '') {
   const g = 'il-' + id + cls.replace(/\W/g, '');
   const points = [0, 1, 2].flatMap(x => [0, 1, 2].map(y => `<circle cx="${16 + x * 9}" cy="${16 + y * 9}" r="1.6"/>`)).join('');
-  return `<svg class="illu ${cls}" viewBox="0 0 160 110" aria-hidden="true" focusable="false">
+  return `<svg class="illu ${cls}" viewBox="0 0 160 110"${/bande/.test(cls) ? ' preserveAspectRatio="xMidYMid slice"' : ''} aria-hidden="true" focusable="false">
     <defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${couleur}" stop-opacity=".95"/><stop offset="1" stop-color="${couleur}" stop-opacity=".25"/></linearGradient></defs>
     <rect width="160" height="110" rx="16" fill="#0b1324"/><rect width="160" height="110" rx="16" fill="url(#${g})" opacity=".7"/>
     <circle cx="138" cy="16" r="36" fill="#fff" opacity=".08"/><circle cx="14" cy="104" r="30" fill="#fff" opacity=".07"/>

@@ -4,8 +4,9 @@
   const prix = s => s.base ? 'dès ' + eur(s.base) + (s.mensuel ? '/mois' : '') : 'Gratuit';
 
   const block = (s, c) => `
-    <section class="svc-block" id="${s.id}" style="--t:${c.couleur}">
-      <h3>${ico(s.icon)} ${esc(s.nom)} <span class="mono">${prix(s)}</span></h3>
+    <section class="svc-block carte-bloc" id="${s.id}" style="--t:${c.couleur}">
+      <div class="svc-media">${bandeau({ id: 'b-' + s.id, icon: s.icon, badge: c.badge, couleur: c.couleur })}<span class="svc-prix mono">${prix(s)}</span></div>
+      <h3>${ico(s.icon)} ${esc(s.nom)}</h3>
       <p class="muted">${esc(s.desc)} — ${s.modes.map(m => where[m]).join(', ')}.${s.note ? ` ${esc(s.note)}` : ''}</p>
       ${s.compris ? `<div class="svc-compris"><div><b>Compris</b><ul>${s.compris.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>${s.pasCompris ? `<div class="non"><b>Pas compris</b><ul>${s.pasCompris.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}</div>` : ''}
       <table class="price-table"><tbody>${s.options.map(o => `<tr><td>${esc(o[1])}</td><td class="mono">${o[2] ? '+' + eur(o[2]) + (s.mensuel ? '/mois' : '') : esc(o[3] || 'Gratuit')}</td></tr>`).join('')}</tbody></table>
@@ -27,7 +28,7 @@
       <p>${esc(u.desc)}</p>
       <div class="actions left"><a class="btn btn-primary" href="index.html?pole=${u.id}">Rendez-vous ou devis : ${esc(u.nom)}</a></div>
       ${u.cats.map(c => `<h3 class="cat-title" style="--t:${c.couleur}">${illustration(c, 'mini')} ${esc(c.nom)}</h3>
-        <div class="cat-scene" style="--t:${c.couleur}">${visuel(c)}<div><p class="cat-accroche">${esc(c.accroche)}</p>
+        <div class="cat-scene${photoCat(c) ? ' double' : ''}" style="--t:${c.couleur}">${photoCat(c, 'grand')}${scene(c)}<div><p class="cat-accroche">${esc(c.accroche)}</p>
           <ul class="cat-inclus">${c.services.map(id => `<li>${ico(svc(id).icon)} <b>${esc(svc(id).nom)}</b> <span>${esc(svc(id).desc)}</span></li>`).join('')}</ul>
           ${typeof PAGES_SEO !== 'undefined' && PAGES_SEO[c.id] ? `<a class="cat-plus" href="${PAGES_SEO[c.id].url}">En savoir plus : ${esc(PAGES_SEO[c.id].titre)} →</a>` : ''}</div></div>
         <div class="svc-list">${c.services.map(id => block(svc(id), c)).join('')}</div>`).join('')}
