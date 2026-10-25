@@ -33,6 +33,9 @@ const DEFAULT = {
   d: { appType: '', mode: 'site', commune: '', agence: 'ducos', creneau: '', date: '', type: 'individual', budget: 'medium', appareil: '', desc: '', contrat: false, name: '', email: '', phone: '', address: '', pref: 'whatsapp', consent: false, website: '', chatMsg: MESSAGES_WA[0][1], chatCommune: '' }
 };
 let state = load();
+// hauteur de l'en-tête : l'outil occupe exactement le reste du premier écran
+const hautEntete = () => { try { const h = document.querySelector('header.top'); if (h) document.documentElement.style.setProperty('--haut-entete', h.offsetHeight + 'px'); } catch (e) {} };
+window.addEventListener('resize', hautEntete); setTimeout(hautEntete, 0);
 const ouvertLe = Date.now();   // anti-robot : un humain met plus de quelques secondes à remplir le formulaire
 const slotCache = {};   // places restantes par créneau, par "date|agence" : { matin: 2, aprem: 0 }
 const premierJour = () => addDays(todayISO(), CONFIG.delaiMinJours || 0);
@@ -337,7 +340,7 @@ function vitrineCompacte(c) {
   const moins = ss.filter(x => x.base).sort((a, b) => a.base - b.base)[0];
   const pk = PACKS.find(x => Object.keys(x.items).some(id => c.services.includes(id)));
   return `<div class="cat-vitrine" style="--t:${c.couleur}">
-    <div class="cv-visuel">${scene(c)}${photoCat(c, 'cv-photo')}${v.puces[0] ? `<span class="cv-puce">${ico('sparkles')}${esc(v.puces[0])}</span>` : ''}</div>
+    <div class="cv-visuel">${scene(c)}${v.puces[0] ? `<span class="cv-puce">${ico('sparkles')}${esc(v.puces[0])}</span>` : ''}</div>
     <div class="cv-texte">
       <div class="cv-titre"><span class="cv-icone">${ico(c.icon)}</span><b>${esc(c.nom)}</b>${c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</div>
       <p class="cv-accroche">${esc(c.accroche)}</p>
@@ -352,7 +355,7 @@ function carteService(x, c, on, inPack) {
   const t = themeOf(x.id);
   return `<label class="tile service carte ${on ? 'on' : ''} ${inPack ? 'included' : ''}" style="--t:${t}">
     <input type="checkbox" name="svc" value="${x.id}" ${on ? 'checked' : ''} ${inPack ? 'disabled' : ''} onchange="toggle('${x.id}')">
-    <span class="carte-media">${bandeau({ id: 's-' + x.id, icon: x.icon, badge: c.badge, couleur: t })}</span>
+    <span class="carte-media">${c.services[0] === x.id && photoCat(c) ? photoCat(c, 'carte-photo') : bandeau({ id: 's-' + x.id, icon: x.icon, badge: c.badge, couleur: t })}</span>
     <span class="carte-corps"><span class="box" aria-hidden="true"></span>
       <span class="tile-text"><b>${x.nom.replace('Vidéosurveillance', 'Vidéo\u00ADsurveillance')}</b>${inPack ? '<small>✓ Inclus dans votre formule</small>'
         : `<small><span class="carte-desc">${x.desc}</span><span class="price-row"><span class="mono">${fromPrice(x)}</span><span class="add">${on ? '✓ Ajouté' : '+ Ajouter'}</span></span></small>`}</span></span></label>`;

@@ -5,7 +5,7 @@
 
   const block = (s, c) => `
     <section class="svc-block carte-bloc" id="${s.id}" style="--t:${c.couleur}">
-      <div class="svc-media">${bandeau({ id: 'b-' + s.id, icon: s.icon, badge: c.badge, couleur: c.couleur })}<span class="svc-prix mono">${prix(s)}</span></div>
+      <div class="svc-media">${c.services[0] === s.id && photoCat(c) ? photoCat(c, 'carte-photo') : bandeau({ id: 'b-' + s.id, icon: s.icon, badge: c.badge, couleur: c.couleur })}<span class="svc-prix mono">${prix(s)}</span></div>
       <h3>${ico(s.icon)} ${esc(s.nom)}</h3>
       <p class="muted">${esc(s.desc)} — ${s.modes.map(m => where[m]).join(', ')}.${s.note ? ` ${esc(s.note)}` : ''}</p>
       ${s.compris ? `<div class="svc-compris"><div><b>Compris</b><ul>${s.compris.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>${s.pasCompris ? `<div class="non"><b>Pas compris</b><ul>${s.pasCompris.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}</div>` : ''}
@@ -42,7 +42,7 @@
           ${seo ? `<a class="v-plus" href="${seo.url}">En savoir plus →</a>` : ''}</div>
       </div>
       <div class="v-droite"><div class="v-panneau">
-        <div class="v-scene">${scene(c)}</div>${photoCat(c, 'v-photo')}
+        <div class="v-scene">${scene(c)}</div>
         ${v.puces.map((x, i) => `<span class="v-puce p${i}">${ico('sparkles')}${esc(x)}</span>`).join('')}
       </div><p class="v-legende">Exemple illustratif</p></div>
     </article>`;
