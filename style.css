@@ -722,3 +722,25 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 .top .btn,.top .status{white-space:nowrap}
 @media (min-width:901px) and (max-width:1340px){#grandBtn span{display:none}.top .status{font-size:11.5px}.brand-text .mono{white-space:nowrap}}
 .neuf-note a{color:var(--text);text-decoration:none;font-weight:600}.neuf-note a:hover{text-decoration:underline}.neuf-note .neuf-tag{margin-right:4px;font-size:10.5px;padding:1px 7px}
+
+/* Réseaux sociaux (pied des pages) */
+.reseaux{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 8px}
+.reseaux a{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);text-decoration:none;font-weight:600}
+.reseaux a:hover{border-color:var(--primary)}
+.reseaux svg{width:18px;height:18px}
+/* Photos réalistes (illustrations) et outils gratuits */
+.seo-photo{margin:18px 0}
+.seo-photo img{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--line);box-shadow:0 12px 34px rgba(0,0,0,.35)}
+.seo-photo figcaption{margin-top:4px;font-size:12px;color:var(--muted);text-align:right}
+.outil{margin:18px 0;padding:16px 18px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line)}
+.outil h2{display:flex;align-items:center;gap:8px;margin:0 0 6px!important}
+.outil h2 svg{width:22px;height:22px;color:var(--primary)}
+.outil-ligne{display:flex;flex-wrap:wrap;align-items:end;gap:10px 14px}
+.outil-ligne label{display:grid;gap:4px;font-weight:600;flex:1;min-width:200px}
+.outil-ligne label.p-check{display:flex;flex:none;min-width:0}
+.qr-rendu{margin:12px 0}
+.qr-rendu img,.qr-rendu canvas{background:#fff;padding:10px;border-radius:10px}
+.mdp code{font-size:18px;word-break:break-all;padding:6px 10px;border-radius:8px;background:var(--surface);display:inline-block}
+.ond-liste{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px 14px;margin:8px 0}
+.ond-res{font-size:16px;margin:8px 0}
+.ond-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--surface);border:1px solid var(--line);cursor:pointer;font-weight:500}.ond-item input{width:18px;height:18px;min-height:0;flex:none;margin:0;accent-color:var(--primary)}

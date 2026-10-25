@@ -165,6 +165,9 @@ PROSPECTION (prospection.html) — entreprises uniquement
   services.html  services.js             page Services et tarifs
   scenes.js                              illustrations (un exemple concret par catégorie)
   generer-pages.js  *-martinique.html  pages-seo.js   pages Google, une par service (générées)
+  outils-gratuits.html  outils-gratuits.js   outils gratuits (QR code, mot de passe, onduleur)
+  img/photos/<nom>.jpg                   photos (starlink, reparation, camera, ia, drone, reseaux, seniors) : affichées sur les pages Google dès que le fichier existe
+  CONFIG.reseaux / CONFIG.partenaires (data.js)   réseaux sociaux et partenaires affichés sur le site
   fiche-tarifs.html .js .css             fiche tarifs imprimable
   gestion.html  gestion.js  gestion.css  page Rendez-vous
   prospection.html .js .css              prospection

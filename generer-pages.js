@@ -17,6 +17,9 @@ vm.createContext(ctx);
 const { CONFIG, SERVICES, CATEGORIES, COMMUNES, ZONES, AGENCES, HORAIRES, ENTREPRISE } = vm.runInContext('({ CONFIG, SERVICES, CATEGORIES, COMMUNES, ZONES, AGENCES, HORAIRES, ENTREPRISE })', ctx);
 const { esc, eur, svc, ico, scene, waUrl } = vm.runInContext('({ esc, eur, svc, ico, scene, waUrl })', ctx);
 const SITE = CONFIG.siteUrl.replace(/\/?$/, '/');
+const RESEAUX = Object.entries(CONFIG.reseaux || {}).filter(([, u]) => u);
+const SAMEAS = RESEAUX.map(([, u]) => u);
+const reseauxHtml = () => RESEAUX.length ? `<p class="reseaux">Suivez-nous : ${RESEAUX.map(([k, u]) => `<a href="${u}" target="_blank" rel="noopener me" aria-label="IloTech sur ${k}">${ico(k)}<span>${({ instagram: "Instagram", tiktok: "TikTok", youtube: "YouTube", facebook: "Facebook", linkedin: "LinkedIn" })[k] || k}</span></a>`).join('')}</p>` : '';
 const V = (fs.readFileSync(path.join(dir, 'index.html'), 'utf8').match(/style\.css\?v=(\d+)/) || [])[1] || '1';
 
 /* ---------- Contenu de chaque page ---------- */
@@ -247,7 +250,7 @@ const PAGES = [
       ['Faut-il publier sur l’App Store et Google Play ?', 'Pas forcément : une application web s’installe sur le téléphone sans passer par les Stores. Si vous voulez y être, nous préparons la publication.'],
       ['Puis-je faire évoluer l’application ensuite ?', 'Oui : le code vous appartient, et nous chiffrons chaque nouvelle fonction avant.']
     ] },
-  { slug: 'marketing-digital-reseaux-sociaux-martinique', distance: true, cat: 'marketing', scene: 'marketing', services: ['marketing', 'reseaux'],
+  { slug: 'marketing-digital-reseaux-sociaux-martinique', distance: true, cat: 'marketing', scene: 'marketing', services: ['marketing', 'reseaux', 'contenuia'],
     titre: 'Marketing digital et réseaux sociaux en Martinique | IloTech',
     desc: 'Être visible et trouver des clients en Martinique : fiche Google Maps optimisée, avis, publicité Facebook et Instagram, vidéos courtes, gestion des réseaux sociaux. Bilan et plan d’action.',
     h1: 'Marketing digital et réseaux sociaux',
@@ -400,6 +403,39 @@ const PAGES = [
       ['Peut-on partager Starlink entre plusieurs logements ?', 'Oui, avec des bornes Wi-Fi reliées entre elles. Nous créons un réseau séparé pour les voyageurs.'],
       ['Starlink fonctionne-t-il en mer autour de la Martinique ?', 'Il existe des offres prévues pour la mer et pour les déplacements. Vérifiez les conditions sur starlink.com selon votre usage ; nous réglons l’installation à bord.'],
       ['Peut-on utiliser Starlink en secours de la fibre ?', 'Oui : un routeur bascule automatiquement sur Starlink quand la fibre tombe, puis revient sur la fibre.']
+    ] },
+  { slug: 'agence-reseaux-sociaux-contenu-ia-martinique', cat: 'marketing', scene: 'marketing', services: ['reseaux', 'contenuia', 'marketing'], distance: true, nouveau: true,
+    titre: 'Agence réseaux sociaux et contenus IA en Martinique | IloTech',
+    desc: 'Agence réseaux sociaux en Martinique : vidéos courtes créées avec l’IA, publication automatique sur Instagram, Facebook, TikTok, LinkedIn et YouTube, plusieurs comptes, bilan mensuel.',
+    h1: 'Agence réseaux sociaux et contenus créés avec l’IA',
+    accroche: 'Être présent tous les jours sur Instagram, TikTok, Facebook, LinkedIn et YouTube, sans y passer vos soirées : on crée, on programme, on publie, sur tous vos comptes.',
+    intro: [
+      'Les réseaux sociaux demandent de la régularité : une publication de temps en temps ne suffit pas. Entre le travail, les clients et la famille, c’est souvent ce qui passe à la trappe.',
+      'Nous produisons vos contenus (vidéos courtes avec voix et sous-titres, carrousels, visuels) avec l’aide de l’intelligence artificielle, toujours relus par un humain, puis nous les programmons à l’avance sur tous vos réseaux et tous vos comptes. Vous recevez chaque mois un bilan clair : vues, abonnés, messages reçus.'
+    ],
+    exemple: { titre: 'Exemple : le système que nous utilisons pour IloTech', avant: ['Publier prenait des heures chaque semaine', 'Des semaines sans rien poster', 'Pas de vidéos'], apres: ['Plusieurs publications par jour, programmées à l’avance', 'Vidéos courtes avec voix et sous-titres', 'Instagram, TikTok, YouTube et Facebook alimentés en même temps'] },
+    pourquoi: ['Tous vos réseaux et comptes au même endroit', 'Contenus créés avec l’IA et vérifiés par un humain', 'Publication automatique, même quand vous êtes occupé', 'Bilan mensuel compréhensible', 'Sans engagement'],
+    faq: [
+      ['Sur quels réseaux publiez-vous ?', 'Instagram, Facebook, TikTok, LinkedIn, YouTube Shorts et votre fiche Google, selon ce qui convient à votre activité.'],
+      ['Gérez-vous plusieurs comptes ou plusieurs marques ?', 'Oui : chaque compte ou marque supplémentaire est une option, avec son propre calendrier de publication.'],
+      ['Les contenus faits avec l’IA sont-ils de bonne qualité ?', 'L’IA nous aide à produire plus et plus vite, mais chaque contenu est relu, corrigé et adapté à votre ton avant d’être publié. Les faits sont vérifiés.'],
+      ['Combien ça coûte ?', 'L’agence réseaux sociaux commence à {reseaux} et les contenus vidéo créés avec l’IA à {contenuia}, sans engagement. Le budget de publicité éventuel est à part.']
+    ] },
+  { slug: 'automatisation-entreprise-ia-martinique', cat: 'ia', scene: 'prog', services: ['iapro', 'devsurmesure'], distance: true,
+    titre: 'Automatisation et IA pour entreprises en Martinique | IloTech',
+    desc: 'Automatiser les tâches répétitives de votre entreprise avec l’IA : devis, factures, emails, formulaires, agenda, WhatsApp et tableaux reliés entre eux. Martinique et Antilles.',
+    h1: 'Automatiser votre entreprise avec l’IA',
+    accroche: 'Devis recopiés, factures relancées à la main, emails triés un par un : on relie vos outils entre eux et l’IA fait le travail répétitif.',
+    intro: [
+      'Dans une petite entreprise, une grande partie de la semaine part dans des tâches qui se répètent : recopier une demande dans un tableau, préparer un devis, relancer une facture, envoyer un rappel de rendez-vous, classer des documents.',
+      'Nous relions vos outils (formulaires, tableaux, agenda, emails, WhatsApp, logiciel de facturation) et ajoutons l’IA là où elle est utile : lire une demande, rédiger un brouillon, résumer un document. Vous validez, le reste se fait tout seul.'
+    ],
+    exemple: { titre: 'Exemple : un artisan du bâtiment au François', avant: ['Demandes notées sur papier', 'Devis tapés le soir', 'Factures relancées à la main'], apres: ['Demandes rangées toutes seules dans un tableau', 'Brouillon de devis prêt en un clic', 'Relances de factures automatiques'] },
+    pourquoi: ['On part de vos tâches réelles', 'Vos outils actuels gardés et reliés', 'Vous gardez la validation finale', 'Formation de l’équipe incluse'],
+    faq: [
+      ['Faut-il changer de logiciel ?', 'Rarement : nous relions d’abord ce que vous utilisez déjà (tableur, agenda, emails, logiciel de facturation).'],
+      ['Que se passe-t-il si une automatisation tombe en panne ?', 'Vous êtes prévenu, et nous intervenons. Chaque automatisation est documentée et peut être arrêtée à tout moment.'],
+      ['Combien coûte une automatisation ?', 'L’accompagnement IA commence à {iapro} ; chaque automatisation est chiffrée avant, selon sa complexité.']
     ] }
 ];
 
@@ -483,10 +519,16 @@ const prixDe = s => s.base ? 'dès ' + eur(s.base) + (s.mensuel ? '/mois' : '') 
 const remplir = t => t.replace(/\{(\w+)\}/g, (m, id) => svc(id) ? prixDe(svc(id)) : m);
 const catDe = id => CATEGORIES.find(c => c.id === id);
 const lien = p => p.slug + '.html';
+// photos réalistes (illustrations) : img/photos/<nom>.jpg, affichées seulement si le fichier existe
+const PHOTOS = {"installation-starlink-martinique": "starlink", "starlink-gite-entreprise-bateau-martinique": "starlink", "guide-starlink-martinique": "starlink", "depannage-informatique-martinique": "reparation", "reparation-ordinateur-portable-martinique": "reparation", "installation-camera-surveillance-martinique": "camera", "intelligence-artificielle-ia-martinique": "ia", "assistant-ia-chatbot-entreprise-martinique": "ia", "guide-ia-entreprise-martinique": "ia", "automatisation-entreprise-ia-martinique": "ia", "drone-photo-video-martinique": "drone", "agence-reseaux-sociaux-contenu-ia-martinique": "reseaux", "marketing-digital-reseaux-sociaux-martinique": "reseaux", "cours-informatique-seniors-martinique": "seniors"};
+const ALT_PHOTOS = {"starlink": "Installation d’une antenne Starlink sur un toit en Martinique", "reparation": "Technicien qui répare un ordinateur portable en atelier", "camera": "Caméra de surveillance installée sur une maison créole", "ia": "Commerçante qui utilise un assistant d’intelligence artificielle", "drone": "Vue aérienne d’une baie de Martinique prise par drone", "reseaux": "Création de vidéos courtes pour les réseaux sociaux", "seniors": "Cours de tablette à domicile pour une personne âgée"};
+const photoDe = slug => { const n = PHOTOS[slug]; return n && fs.existsSync(path.join(dir, 'img/photos', n + '.jpg')) ? n : ''; };
+const photoHtml = slug => { const n = photoDe(slug); return n ? `<figure class="seo-photo"><img src="img/photos/${n}.jpg" alt="${esc(ALT_PHOTOS[n])}" width="1600" height="900" loading="lazy" decoding="async"><figcaption>Illustration</figcaption></figure>` : ''; };
+const ogImage = slug => photoDe(slug) ? SITE + 'img/photos/' + photoDe(slug) + '.jpg' : SITE + 'img/og-ilotech.jpg';
 const jours = { 1: 'Mo', 2: 'Tu', 3: 'We', 4: 'Th', 5: 'Fr', 6: 'Sa', 0: 'Su' };
 const horaires = Object.entries(HORAIRES).map(([j, [a, b]]) => ({ '@type': 'OpeningHoursSpecification', dayOfWeek: 'https://schema.org/' + ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][j], opens: String(a).padStart(2, '0') + ':00', closes: String(b).padStart(2, '0') + ':00' }));
 const agences = Object.entries(AGENCES).map(([k, a]) => ({ '@type': 'LocalBusiness', '@id': SITE + '#agence-' + k, name: 'IloTech — ' + a.nom, telephone: '+596' + a.tel.replace(/\D/g, '').slice(1), url: SITE,
-  image: SITE + 'img/og-ilotech.jpg', priceRange: '€', address: { '@type': 'PostalAddress', addressLocality: a.nom, addressRegion: 'Martinique', postalCode: k === 'ducos' ? '97224' : '97231', addressCountry: 'FR' }, openingHoursSpecification: horaires, areaServed: { '@type': 'AdministrativeArea', name: 'Martinique' } }));
+  image: SITE + 'img/og-ilotech.jpg', priceRange: '€', sameAs: SAMEAS, address: { '@type': 'PostalAddress', addressLocality: a.nom, addressRegion: 'Martinique', postalCode: k === 'ducos' ? '97224' : '97231', addressCountry: 'FR' }, openingHoursSpecification: horaires, areaServed: { '@type': 'AdministrativeArea', name: 'Martinique' } }));
 
 function tarifs(ids) {
   return ids.map(svc).filter(Boolean).map(s => `
@@ -507,7 +549,7 @@ function page(p) {
   const wa = waUrl(AGENCES.ducos.tel, `Bonjour IloTech, je suis intéressé(e) par : ${p.h1}.`);
   const ld = [
     { '@context': 'https://schema.org', '@type': 'Service', name: p.h1, serviceType: p.h1, description: p.desc, url,
-      provider: { '@type': 'LocalBusiness', name: 'IloTech', url: SITE, telephone: '+596' + AGENCES.ducos.tel.replace(/\D/g, '').slice(1) },
+      provider: { '@type': 'LocalBusiness', name: 'IloTech', url: SITE, sameAs: SAMEAS, telephone: '+596' + AGENCES.ducos.tel.replace(/\D/g, '').slice(1) },
       areaServed: [{ '@type': 'AdministrativeArea', name: 'Martinique' }, ...(p.distance ? ['Guadeloupe', 'Guyane', 'Saint-Martin', 'Saint-Barthélemy'].map(n => ({ '@type': 'AdministrativeArea', name: n })) : []), ...COMMUNES.map(x => ({ '@type': 'City', name: x[0] }))],
       offers: p.services.map(svc).filter(Boolean).map(s => ({ '@type': 'Offer', name: s.nom, priceCurrency: 'EUR', price: s.base, priceSpecification: { '@type': 'PriceSpecification', minPrice: s.base, priceCurrency: 'EUR' }, availability: 'https://schema.org/InStock' })) },
     { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(([q, r]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: r } })) },
@@ -533,7 +575,7 @@ function page(p) {
   <meta property="og:title" content="${esc(p.h1)} — IloTech Martinique">
   <meta property="og:description" content="${esc(p.accroche)}">
   <meta property="og:url" content="${url}">
-  <meta property="og:image" content="${SITE}img/og-ilotech.jpg">
+  <meta property="og:image" content="${ogImage(p.slug)}">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
@@ -567,6 +609,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
     </section>
 
     ${p.intro.map(x => `<p class="seo-texte">${esc(x)}</p>`).join('\n    ')}
+    ${photoHtml(p.slug)}
 
     <section class="seo-exemple" aria-labelledby="ex-titre">
       <h2 id="ex-titre">${esc(p.exemple.titre)}</h2>
@@ -609,7 +652,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
     <h2>Nos autres services</h2>
     <ul class="seo-liens">${autres.map(x => `<li><a href="${lien(x)}">${esc(x.h1)}</a></li>`).join('')}<li><a href="services.html">Tous nos services et tarifs</a></li></ul>
   </main>
-  <footer class="seo-pied"><p>IloTech — ${esc(ENTREPRISE.nomCommercial)}, entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
+  <footer class="seo-pied">${reseauxHtml()}<p>IloTech — ${esc(ENTREPRISE.nomCommercial)}, entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
   <script src="data.js?v=${V}"></script>
   <script src="outils.js?v=${V}"></script>
 </body>
@@ -652,7 +695,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
     <div class="top-actions"><a class="btn btn-head" href="conseils.html">Conseils</a><a class="btn btn-head" href="index.html">Prendre rendez-vous</a></div>
   </header>
 `;
-const pied = () => `  <footer class="seo-pied"><p>IloTech — entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
+const pied = () => `  <footer class="seo-pied">${reseauxHtml()}<p>IloTech — entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
   <script src="data.js?v=${V}"></script>
   <script src="outils.js?v=${V}"></script>
 </body>
@@ -681,6 +724,7 @@ function guide(g) {
         <figure class="seo-scene">${scene({ id: g.scene, nom: g.h1, couleur: g.couleur })}</figure>
       </section>
       <nav class="sommaire" aria-label="Sommaire"><b>Sommaire</b><ol>${g.sections.map(([t], i) => `<li><a href="#s${i + 1}">${esc(t)}</a></li>`).join('')}<li><a href="#faq">Questions fréquentes</a></li></ol></nav>
+      ${photoHtml(g.slug)}
       ${g.sections.map(([t, ps], i) => `<section id="s${i + 1}"><h2>${esc(t)}</h2>${ps.map(x => `<p class="seo-texte">${esc(x)}</p>`).join('')}</section>`).join('\n      ')}
       <h2 id="faq">Questions fréquentes</h2>
       <div class="faq">${g.faq.map(([q, r]) => `<details><summary>${esc(q)}</summary><p>${esc(r)}</p></details>`).join('')}</div>
@@ -717,6 +761,39 @@ fs.writeFileSync(path.join(dir, 'conseils.html'), enTete('Conseils informatique,
   </main>
 ` + pied());
 
+
+// page « Outils gratuits » (comme un écosystème : des outils utiles qui font venir des visiteurs)
+fs.writeFileSync(path.join(dir, 'outils-gratuits.html'), enTete('Outils gratuits : QR code, mot de passe, onduleur | IloTech',
+  'Outils gratuits IloTech : créer un QR code, générer un mot de passe solide, calculer l’onduleur qu’il vous faut contre les coupures de courant. Tout fonctionne dans votre navigateur.',
+  SITE + 'outils-gratuits.html', [filLd('Outils gratuits', SITE + 'outils-gratuits.html', ['conseils.html', 'Conseils']),
+    { '@context': 'https://schema.org', '@type': 'ItemList', name: 'Outils gratuits IloTech', itemListElement: ['Générateur de QR code', 'Générateur de mot de passe', 'Calculateur d’onduleur'].map((n, i) => ({ '@type': 'ListItem', position: i + 1, name: n, url: SITE + 'outils-gratuits.html#o' + (i + 1) })) }],
+  'Outils gratuits IloTech', 'QR code, mot de passe, onduleur : des outils simples et gratuits.')
+  .replace("script-src 'self' 'unsafe-inline'", "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com") + `
+  <main class="doc doc-wide">
+    ${fil('Outils gratuits', ['conseils.html', 'Conseils'])}
+    <h1>Outils gratuits</h1>
+    <p class="lead">Des outils simples pour le quotidien. Tout se passe dans votre navigateur : rien n’est envoyé ni enregistré chez nous.</p>
+    <section class="outil" id="o1"><h2>${ico('grid')} Générateur de QR code</h2>
+      <p class="muted">Pour votre carte de visite, votre vitrine, un menu ou le Wi-Fi des invités.</p>
+      <div class="outil-ligne"><label>Adresse ou texte<input id="qrTexte" value="https://ilo-tech.com" maxlength="500"></label><button type="button" class="btn btn-primary" id="qrBtn">Créer le QR code</button></div>
+      <div id="qrRendu" class="qr-rendu" aria-live="polite"></div><a id="qrDl" class="btn" hidden download="qr-code.png">Télécharger l’image</a></section>
+    <section class="outil" id="o2"><h2>${ico('lock')} Générateur de mot de passe</h2>
+      <p class="muted">Un mot de passe différent et solide pour chaque compte : c’est la meilleure protection contre le piratage.</p>
+      <div class="outil-ligne"><label>Longueur <input id="mdpLong" type="number" min="12" max="64" value="16"></label>
+        <label class="p-check"><input id="mdpSym" type="checkbox" checked> Symboles</label><button type="button" class="btn btn-primary" id="mdpBtn">Générer</button></div>
+      <p class="mdp"><code id="mdpRes">—</code> <button type="button" class="btn btn-sm" id="mdpCopie">Copier</button></p></section>
+    <section class="outil" id="o3"><h2>${ico('battery')} Quel onduleur me faut-il ?</h2>
+      <p class="muted">Cochez ce que vous voulez garder allumé pendant une coupure de courant.</p>
+      <div id="ondListe" class="ond-liste"></div>
+      <p class="ond-res" id="ondRes" aria-live="polite"></p>
+      <p class="muted small">Estimation indicative. <a href="onduleur-coupure-courant-martinique.html">Nous choisissons et installons le bon modèle</a>.</p></section>
+    <h2>Besoin d’aide ?</h2>
+    <ul class="seo-liens"><li><a href="guide-arnaques-sms-martinique.html">Reconnaître les arnaques</a></li><li><a href="guide-coupures-courant-martinique.html">Protéger son matériel des coupures</a></li><li><a href="installation-starlink-martinique.html">Installation Starlink</a></li><li><a href="services.html">Tous nos services</a></li></ul>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="outils-gratuits.js?v=${V}"></script>
+` + pied());
+
 // page d'erreur (adresse inconnue) : liens absolus, car elle s'affiche à n'importe quelle adresse
 fs.writeFileSync(path.join(dir, '404.html'), enTete('Page introuvable | IloTech', 'Cette page n’existe pas ou a été déplacée.', '', [], 'IloTech', 'Page introuvable', 'noindex')
   .replace(/href="(?!https?:|#|tel:|\/)([^"]+)"/g, 'href="/$1"').replace(/src="(?!https?:|\/)([^"]+)"/g, 'src="/$1"') + `
@@ -736,7 +813,7 @@ const svcHtml = path.join(dir, 'services.html');
 let sh = fs.readFileSync(svcHtml, 'utf8');
 const bloc = `<!-- PAGES (généré par generer-pages.js) -->
     <nav class="seo-index" aria-label="Tous nos services en détail"><h2>Tous nos services en détail</h2>
-      <ul class="seo-liens">${PAGES.map(p => `<li><a href="${lien(p)}">${esc(p.h1)}</a></li>`).join('')}<li><a href="conseils.html">Conseils et guides</a></li></ul></nav>
+      <ul class="seo-liens">${PAGES.map(p => `<li><a href="${lien(p)}">${esc(p.h1)}</a></li>`).join('')}<li><a href="conseils.html">Conseils et guides</a></li><li><a href="outils-gratuits.html">Outils gratuits</a></li></ul></nav>
     <!-- /PAGES -->`;
 sh = /<!-- PAGES[\s\S]*?<!-- \/PAGES -->/.test(sh) ? sh.replace(/<!-- PAGES[\s\S]*?<!-- \/PAGES -->/, bloc) : sh.replace('  </main>', '    ' + bloc + '\n  </main>');
 fs.writeFileSync(svcHtml, sh);
@@ -744,7 +821,7 @@ fs.writeFileSync(svcHtml, sh);
 // sitemap : pages principales, pages service, guides
 const jour = new Date().toISOString().slice(0, 10);
 const urls = [['', '1.0', 'weekly'], ['services.html', '0.9', 'weekly'], ...PAGES.map(p => [lien(p), p.nouveau ? '0.9' : '0.8', 'monthly']),
-  ['conseils.html', '0.7', 'monthly'], ...GUIDES.map(g => [g.slug + '.html', '0.7', 'monthly']), ['plaquette.html', '0.6', 'monthly'], ['fiche-tarifs.html', '0.5', 'monthly']];
+  ['conseils.html', '0.7', 'monthly'], ['outils-gratuits.html', '0.6', 'monthly'], ...GUIDES.map(g => [g.slug + '.html', '0.7', 'monthly']), ['plaquette.html', '0.6', 'monthly'], ['fiche-tarifs.html', '0.5', 'monthly']];
 fs.writeFileSync(path.join(dir, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map(([u, pr, f]) => `  <url><loc>${SITE}${u}</loc><lastmod>${jour}</lastmod><changefreq>${f}</changefreq><priority>${pr}</priority></url>`).join('\n')}

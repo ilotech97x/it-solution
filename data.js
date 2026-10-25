@@ -12,7 +12,17 @@ const CONFIG = {
   //    Les deux peuvent fonctionner ensemble. Si aucun n'est rempli, les demandes partent par WhatsApp.
   endpoint: 'https://script.google.com/macros/s/AKfycbx6NsIGVdNgkN7TdYYP6R_Y6Ds2gr9fXp8PZOz-lIF632DDhaFFuZICs7cDB9VawkrJ/exec',   // moteur sur ilotech.contact@gmail.com
   email: 'ilotech.contact@gmail.com', // adresse de contact affichée aux clients
-  avisGoogleUrl: '',// lien « Laisser un avis » de votre fiche Google Business (affiché s'il est rempli)
+  avisGoogleUrl: '',
+  // réseaux sociaux d'IloTech : affichés en bas des pages et déclarés à Google (laisser vide pour masquer)
+  reseaux: {
+    instagram: 'https://www.instagram.com/ilo.tech.97/',
+    tiktok: 'https://www.tiktok.com/@ilo.tech',
+    youtube: 'https://www.youtube.com/@Ilo_Tech',
+    facebook: '',
+    linkedin: ''
+  },
+  // partenaires et clients qui acceptent d'être cités (logo dans img/partenaires/) : { nom, url, logo }
+  partenaires: [],// lien « Laisser un avis » de votre fiche Google Business (affiché s'il est rempli)
   mentionPrix: 'TVA non applicable, art. 293 B du CGI',  // franchise en base de TVA (micro-entreprise) — affiché sur les devis et tarifs
   agenceDistance: 'ducos',   // agence qui traite les interventions à distance
   deplacementOffertDes: 200, // déplacement offert à partir de ce montant de prestation (€)
@@ -214,15 +224,22 @@ const SERVICES = [
     pasCompris: ['Abonnements aux outils d’IA (ChatGPT, Copilot, Gemini…), si vous en prenez'],
     options: [['assistant', 'Assistant IA qui répond à vos clients (site ou WhatsApp)', 390], ['auto', 'Automatisation avec l’IA (emails, devis, tri de documents)', 290],
       ['contenu', 'Textes et visuels pour vos réseaux, avec l’IA', 149], ['outils', 'Mise en place de ChatGPT, Copilot ou Gemini pour l’équipe', 99],
-      ['charte', 'Charte d’utilisation de l’IA et protection des données', 149], ['suivi', 'Séance de suivi (1 h) un mois après', 59]] },
+      ['charte', 'Charte d’utilisation de l’IA et protection des données', 149], ['flux', 'Outils reliés entre eux : formulaires, devis, factures, agenda, WhatsApp', 290], ['suivi', 'Séance de suivi (1 h) un mois après', 59]] },
   // --- Marketing
   { id: 'marketing', icon: 'megaphone', nom: 'Stratégie marketing', desc: 'Être visible, trouver des clients', base: 149, modes: ['distance', 'site', 'atelier'],
     note: 'On commence par un bilan de votre visibilité (Google, réseaux, site), puis un plan simple avec les actions qui rapportent le plus.',
     options: [['google', 'Fiche Google Maps optimisée', 79], ['pub', 'Campagne de publicité Facebook / Instagram', 99], ['contenu', '4 visuels ou vidéos courtes', 149],
       ['emailing', 'Emailing / newsletter clients', 89], ['form', 'Formation réseaux sociaux (2 h)', 69]] },
-  { id: 'reseaux', icon: 'trending', nom: 'Gestion des réseaux sociaux', desc: 'Publications chaque semaine', base: 149, mensuel: true, modes: ['distance'],
-    note: 'Prix par mois : nous préparons et publions vos contenus, et vous envoyons un bilan mensuel.',
-    options: [['videos', '4 vidéos courtes par mois', 99], ['pubs', 'Suivi de vos publicités', 49], ['avis', 'Réponses aux avis Google', 29]] },
+  { id: 'reseaux', icon: 'trending', nom: 'Agence réseaux sociaux', desc: 'Tous vos réseaux, publiés automatiquement', base: 149, mensuel: true, modes: ['distance'],
+    note: 'Prix par mois, sans engagement : nous préparons vos contenus, les programmons sur tous vos réseaux et comptes, et vous envoyons un bilan chaque mois.',
+    compris: ['Instagram, Facebook, TikTok, LinkedIn, YouTube Shorts et fiche Google', 'Calendrier de publication programmé à l’avance (Buffer)', 'Publications chaque semaine, même quand vous êtes occupé', 'Bilan mensuel : vues, abonnés, messages reçus'],
+    pasCompris: ['Budget de publicité payé aux réseaux sociaux'],
+    options: [['comptes', 'Compte ou marque supplémentaire', 79], ['videos', '4 vidéos courtes par mois', 99], ['pubs', 'Gestion de vos publicités', 49], ['avis', 'Réponses aux avis Google', 29], ['messages', 'Réponses aux messages et commentaires', 59]] },
+  { id: 'contenuia', icon: 'sparkles', nom: 'Contenus vidéo créés avec l’IA', desc: 'Vidéos courtes, carrousels, voix et sous-titres', base: 199, mensuel: true, modes: ['distance'],
+    note: 'Prix par mois : une production régulière de vidéos courtes et de visuels, créés avec l’intelligence artificielle et vérifiés par un humain, puis publiés tout seuls.',
+    compris: ['8 vidéos courtes par mois (Reels, TikTok, Shorts) avec voix et sous-titres', '8 visuels ou carrousels', 'Idées de sujets adaptées à votre activité', 'Publication automatique sur vos réseaux'],
+    pasCompris: ['Tournage sur place (option drone ou vidéo)', 'Budget de publicité'],
+    options: [['plus', '8 vidéos de plus par mois', 149], ['mascotte', 'Mascotte ou avatar à votre image (création amortie sur 6 mois)', 49], ['langues', 'Versions en créole ou en anglais', 49]] },
   // --- Entreprises
   { id: 'reseaupro', icon: 'network', nom: 'Réseau d’entreprise', desc: 'Câblage, Wi-Fi pro, serveur', base: 79, modes: ['site'],
     note: 'Matériel (switch, bornes, NAS) conseillé et chiffré séparément.',
@@ -285,8 +302,8 @@ const CATEGORIES = [
     accroche: 'Gagnez du temps : on automatise vos tâches répétitives.' },
   { id: 'ia',        univers: 'web',    nom: 'IA',            icon: 'sparkles',   badge: 'zap',        couleur: '#a855f7', services: ['iapro'], nouveau: true,
     accroche: 'L’intelligence artificielle au service de votre activité : formation, assistants, automatisations.' },
-  { id: 'marketing', univers: 'web',    nom: 'Marketing',     icon: 'megaphone',  badge: 'trending',   couleur: '#84cc16', services: ['marketing', 'reseaux'],
-    accroche: 'Plus de visibilité, plus de clients : on vous aide à être trouvé.' },
+  { id: 'marketing', univers: 'web',    nom: 'Marketing',     icon: 'megaphone',  badge: 'trending',   couleur: '#84cc16', services: ['marketing', 'reseaux', 'contenuia'],
+    accroche: 'Votre agence marketing : réseaux sociaux, vidéos créées avec l’IA, publicité et visibilité Google.' },
   { id: 'pro',       univers: 'pro',    nom: 'Maintenance',   icon: 'tools',      badge: 'shield',     couleur: '#8b5cf6', services: ['maintenance'],
     accroche: 'Une informatique qui tourne, pour vous concentrer sur votre métier.' },
   { id: 'reseau',    univers: 'pro',    nom: 'Réseau',        icon: 'network',    badge: 'wifi',       couleur: '#06b6d4', services: ['reseaupro'],
@@ -379,6 +396,7 @@ const SYMPTOMES = [
   { id: 'ia',      label: 'Je veux apprendre à utiliser l’IA (ChatGPT)', items: { cours: ['ia'] } },
   { id: 'iapro',   label: 'Je veux utiliser l’IA dans mon entreprise', pack: 'ia' },
   { id: 'chatbot', label: 'Je veux un assistant qui répond à mes clients', items: { iapro: ['assistant'] } },
+  { id: 'posts',   label: 'Je veux publier sur tous mes réseaux sans y passer du temps', items: { reseaux: [], contenuia: [] } },
   { id: 'cam4g',   label: 'Je veux une caméra sans Wi-Fi (terrain, chantier)', items: { camera: ['solaire'] } },
   { id: 'net',     label: "Je n'ai plus internet",                    items: { network: ['router'] } },
   { id: 'surv',    label: 'Je veux surveiller ma maison',             pack: 'video' },
@@ -456,6 +474,11 @@ const ICONS = {
   chat: '<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/><path d="M8 11h.01M12 11h.01M16 11h.01"/>',
   box: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
   grid: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
+  instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8"/>',
+  tiktok: '<path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.5 2.6 2.4 4.4 5 4.6"/>',
+  youtube: '<rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="M10 9.2v5.6l4.8-2.8z"/>',
+  facebook: '<path d="M14 8h2.5V4.5H14A3.5 3.5 0 0 0 10.5 8v2.5H8V14h2.5v6.5H14V14h2.5l.5-3.5h-3V8.5a.5.5 0 0 1 .5-.5z"/>',
+  linkedin: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 10.5V17M8 7.5v.01M12 17v-3.5a2.5 2.5 0 0 1 5 0V17M12 10.5V17"/>',
   sparkles: '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
   satellite: '<path d="M4 10a9 9 0 0 0 10 10z"/><path d="M9 15l4-4"/><circle cx="13.5" cy="10.5" r="1.2"/><path d="M15 3a6 6 0 0 1 6 6M15 6.5a2.5 2.5 0 0 1 2.5 2.5"/>',
   alert: '<path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17v.5"/>',

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://formsubmit.co; form-action 'self' https://formsubmit.co; object-src 'none'; base-uri 'self'; upgrade-insecure-requests">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Outils gratuits : QR code, mot de passe, onduleur | IloTech</title>
+  <meta name="description" content="Outils gratuits IloTech : créer un QR code, générer un mot de passe solide, calculer l’onduleur qu’il vous faut contre les coupures de courant. Tout fonctionne dans votre navigateur.">
+  <link rel="canonical" href="https://ilo-tech.com/outils-gratuits.html">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta name="theme-color" content="#05070d">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:site_name" content="IloTech">
+  <meta property="og:title" content="Outils gratuits IloTech">
+  <meta property="og:description" content="QR code, mot de passe, onduleur : des outils simples et gratuits.">
+  <meta property="og:url" content="https://ilo-tech.com/outils-gratuits.html">
+  <meta property="og:image" content="https://ilo-tech.com/img/og-ilotech.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css?v=72">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"IloTech","item":"https://ilo-tech.com/"},{"@type":"ListItem","position":2,"name":"Conseils","item":"https://ilo-tech.com/conseils.html"},{"@type":"ListItem","position":3,"name":"Outils gratuits","item":"https://ilo-tech.com/outils-gratuits.html"}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"ItemList","name":"Outils gratuits IloTech","itemListElement":[{"@type":"ListItem","position":1,"name":"Générateur de QR code","url":"https://ilo-tech.com/outils-gratuits.html#o1"},{"@type":"ListItem","position":2,"name":"Générateur de mot de passe","url":"https://ilo-tech.com/outils-gratuits.html#o2"},{"@type":"ListItem","position":3,"name":"Calculateur d’onduleur","url":"https://ilo-tech.com/outils-gratuits.html#o3"}]}</script>
+</head>
+<body class="page-doc page-seo">
+  <header class="top">
+    <a class="brand" href="index.html" aria-label="IloTech — accueil">
+      <img class="logo" src="img/logo-ilo.png" alt="IloTech" width="64" height="38">
+      <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">IT</em></b><span class="mono">Ducos · Le Robert — Martinique</span></span>
+    </a>
+    <div class="top-actions"><a class="btn btn-head" href="conseils.html">Conseils</a><a class="btn btn-head" href="index.html">Prendre rendez-vous</a></div>
+  </header>
+
+  <main class="doc doc-wide">
+    <nav class="fil" aria-label="Fil d’Ariane"><a href="index.html">Accueil</a> › <a href="conseils.html">Conseils</a> › <span>Outils gratuits</span></nav>
+    <h1>Outils gratuits</h1>
+    <p class="lead">Des outils simples pour le quotidien. Tout se passe dans votre navigateur : rien n’est envoyé ni enregistré chez nous.</p>
+    <section class="outil" id="o1"><h2><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Générateur de QR code</h2>
+      <p class="muted">Pour votre carte de visite, votre vitrine, un menu ou le Wi-Fi des invités.</p>
+      <div class="outil-ligne"><label>Adresse ou texte<input id="qrTexte" value="https://ilo-tech.com" maxlength="500"></label><button type="button" class="btn btn-primary" id="qrBtn">Créer le QR code</button></div>
+      <div id="qrRendu" class="qr-rendu" aria-live="polite"></div><a id="qrDl" class="btn" hidden download="qr-code.png">Télécharger l’image</a></section>
+    <section class="outil" id="o2"><h2><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Générateur de mot de passe</h2>
+      <p class="muted">Un mot de passe différent et solide pour chaque compte : c’est la meilleure protection contre le piratage.</p>
+      <div class="outil-ligne"><label>Longueur <input id="mdpLong" type="number" min="12" max="64" value="16"></label>
+        <label class="p-check"><input id="mdpSym" type="checkbox" checked> Symboles</label><button type="button" class="btn btn-primary" id="mdpBtn">Générer</button></div>
+      <p class="mdp"><code id="mdpRes">—</code> <button type="button" class="btn btn-sm" id="mdpCopie">Copier</button></p></section>
+    <section class="outil" id="o3"><h2><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2"/><path d="m12 9-2.5 3.5h4L11 16"/></svg> Quel onduleur me faut-il ?</h2>
+      <p class="muted">Cochez ce que vous voulez garder allumé pendant une coupure de courant.</p>
+      <div id="ondListe" class="ond-liste"></div>
+      <p class="ond-res" id="ondRes" aria-live="polite"></p>
+      <p class="muted small">Estimation indicative. <a href="onduleur-coupure-courant-martinique.html">Nous choisissons et installons le bon modèle</a>.</p></section>
+    <h2>Besoin d’aide ?</h2>
+    <ul class="seo-liens"><li><a href="guide-arnaques-sms-martinique.html">Reconnaître les arnaques</a></li><li><a href="guide-coupures-courant-martinique.html">Protéger son matériel des coupures</a></li><li><a href="installation-starlink-martinique.html">Installation Starlink</a></li><li><a href="services.html">Tous nos services</a></li></ul>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="outils-gratuits.js?v=72"></script>
+  <footer class="seo-pied"><p class="reseaux">Suivez-nous : <a href="https://www.instagram.com/ilo.tech.97/" target="_blank" rel="noopener me" aria-label="IloTech sur instagram"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8"/></svg><span>Instagram</span></a><a href="https://www.tiktok.com/@ilo.tech" target="_blank" rel="noopener me" aria-label="IloTech sur tiktok"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.5 2.6 2.4 4.4 5 4.6"/></svg><span>TikTok</span></a><a href="https://www.youtube.com/@Ilo_Tech" target="_blank" rel="noopener me" aria-label="IloTech sur youtube"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="M10 9.2v5.6l4.8-2.8z"/></svg><span>YouTube</span></a></p><p>IloTech — entreprise individuelle · SIRET 104 702 436 00015 · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
+  <script src="data.js?v=72"></script>
+  <script src="outils.js?v=72"></script>
+</body>
+</html>
