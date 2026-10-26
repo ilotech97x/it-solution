@@ -597,7 +597,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
       <img class="logo" src="img/logo-ilo.png" alt="IloTech" width="64" height="38">
       <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">IT</em></b><span class="mono">Ducos · Le Robert — Martinique</span></span>
     </a>
-    <a class="studio-badge" href="https://ilotech97x.github.io/agence-marketing/" title="IloTech Studio : notre agence marketing et IA"><img src="img/studio-logo.svg" alt="" width="28" height="28"><span><b>IloTech Studio</b><small>Agence marketing &amp; IA</small></span></a>
+    <a class="studio-badge" href="https://studio.ilo-tech.com/" title="IloTech Studio : notre agence marketing et IA"><img src="img/studio-logo.svg" alt="" width="28" height="28"><span><b>IloTech Studio</b><small>Agence marketing &amp; IA</small></span></a>
     <div class="top-actions"><a class="btn btn-head" href="index.html?cat=${p.cat}">Prendre rendez-vous</a></div>
   </header>
 
@@ -631,7 +631,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
       </div>
     </section>
 
-    ${p.cat === 'immo' ? '<p class="seo-guide">Formules, exemples et prix détaillés sur notre site dédié : <a href="https://ilotech97x.github.io/immobilier/">IloTech Immobilier →</a></p>' : ''}
+    ${p.cat === 'immo' ? '<p class="seo-guide">Formules, exemples et prix détaillés sur notre site dédié : <a href="https://immo.ilo-tech.com/">IloTech Immobilier →</a></p>' : ''}
     <h2>Pourquoi choisir IloTech</h2>
     <ul class="seo-atouts">${p.pourquoi.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
 
@@ -705,11 +705,11 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
       <img class="logo" src="img/logo-ilo.png" alt="IloTech" width="64" height="38">
       <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">IT</em></b><span class="mono">Ducos · Le Robert — Martinique</span></span>
     </a>
-    <a class="studio-badge" href="https://ilotech97x.github.io/agence-marketing/" title="IloTech Studio : notre agence marketing et IA"><img src="img/studio-logo.svg" alt="" width="28" height="28"><span><b>IloTech Studio</b><small>Agence marketing &amp; IA</small></span></a>
+    <a class="studio-badge" href="https://studio.ilo-tech.com/" title="IloTech Studio : notre agence marketing et IA"><img src="img/studio-logo.svg" alt="" width="28" height="28"><span><b>IloTech Studio</b><small>Agence marketing &amp; IA</small></span></a>
     <div class="top-actions"><a class="btn btn-head" href="conseils.html">Conseils</a><a class="btn btn-head" href="index.html">Prendre rendez-vous</a></div>
   </header>
 `;
-const pied = () => `  <footer class="seo-pied">${reseauxHtml()}<p>IloTech — entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="https://ilotech97x.github.io/agence-marketing/">IloTech Studio, agence marketing</a> · <a href="https://ilotech97x.github.io/immobilier/">IloTech Immobilier</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
+const pied = () => `  <footer class="seo-pied">${reseauxHtml()}<p>IloTech — entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="https://studio.ilo-tech.com/">IloTech Studio, agence marketing</a> · <a href="https://immo.ilo-tech.com/">IloTech Immobilier</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
   <script src="data.js?v=${V}"></script>
   <script src="outils.js?v=${V}"></script>
 </body>
