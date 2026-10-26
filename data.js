@@ -334,10 +334,6 @@ const CATEGORIES = [
 const PHOTOS_CAT = { starlink: 'starlink-carre', ordi: 'reparation', camera: 'camera', ia: 'ia', drone: 'drone', marketing: 'reseaux', aide: 'seniors', immo: 'drone' };
 
 // Vitrines (page Services) : « ce que vous obtenez » (icône, texte) et 3 pastilles d'exemple par onglet
-// carrousel de l'accueil : [catégorie, titre affiché] ; photo = PHOTOS_CAT, texte = accroche + VITRINES
-const CARROUSEL = [['starlink', 'Installation Starlink'], ['ordi', 'Dépannage et réparation'], ['camera', 'Caméras de surveillance'],
-  ['ia', 'Intelligence artificielle'], ['immo', 'Drone et immobilier'], ['marketing', 'Réseaux sociaux et marketing'], ['aide', 'Cours et accompagnement']];
-
 const VITRINES = {
   ordi:      { obtenez: [['search', 'Diagnostic de la panne'], ['doc', 'Prix annoncé avant'], ['database', 'Fichiers préservés'], ['pin', 'Chez vous, en agence ou à distance']], puces: ['Démarrage en 14 s', 'Écran remplacé', 'PC silencieux'] },
   securite:  { obtenez: [['shield', 'Virus supprimés'], ['lock', 'Comptes récupérés'], ['phone', 'Double sécurité activée'], ['help', 'Conseils anti-arnaques']], puces: ['12 virus supprimés', 'Compte récupéré', 'Navigateur sain'] },

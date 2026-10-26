@@ -5,9 +5,9 @@
 
   const block = (s, c) => `
     <section class="svc-block carte-bloc" id="${s.id}" style="--t:${c.couleur}">
-      <div class="svc-media">${c.services[0] === s.id && photoCat(c) ? photoCat(c, 'carte-photo') : bandeau({ id: 'b-' + s.id, icon: s.icon, badge: c.badge, couleur: c.couleur })}<span class="svc-prix mono">${prix(s)}</span></div>
-      <h3>${ico(s.icon)} ${esc(s.nom)}</h3>
-      <p class="muted">${esc(s.desc)} — ${s.modes.map(m => where[m]).join(', ')}.${s.note ? ` ${esc(s.note)}` : ''}</p>
+      <div class="svc-tete"><div class="svc-media">${c.services[0] === s.id && photoCat(c) ? photoCat(c, 'carte-photo') : illustration({ id: 'b-' + s.id, icon: s.icon, badge: c.badge, couleur: c.couleur }, 'bande')}</div>
+        <div><h3>${ico(s.icon)} ${esc(s.nom)}</h3><span class="svc-prix mono">${prix(s)}</span>
+        <p class="muted">${esc(s.desc)} — ${s.modes.map(m => where[m]).join(', ')}.${s.note ? ` ${esc(s.note)}` : ''}</p></div></div>
       ${s.compris ? `<div class="svc-compris"><div><b>Compris</b><ul>${s.compris.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>${s.pasCompris ? `<div class="non"><b>Pas compris</b><ul>${s.pasCompris.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}</div>` : ''}
       <table class="price-table"><tbody>${s.options.map(o => `<tr><td>${esc(o[1])}</td><td class="mono">${o[2] ? '+' + eur(o[2]) + (s.mensuel ? '/mois' : '') : esc(o[3] || 'Gratuit')}</td></tr>`).join('')}</tbody></table>
     </section>`;
@@ -43,7 +43,7 @@
       </div>
       <div class="v-droite"><div class="v-panneau">
         <div class="v-scene">${scene(c)}</div>
-        ${v.puces.map((x, i) => `<span class="v-puce p${i}">${ico('sparkles')}${esc(x)}</span>`).join('')}
+        <div class="v-puces">${v.puces.map(x => `<span class="v-puce">${ico('sparkles')}${esc(x)}</span>`).join('')}</div>
       </div><p class="v-legende">Exemple illustratif</p></div>
     </article>`;
   };

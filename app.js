@@ -330,9 +330,9 @@ function vitrineCompacte(c) {
   const moins = ss.filter(x => x.base).sort((a, b) => a.base - b.base)[0];
   const pk = PACKS.find(x => Object.keys(x.items).some(id => c.services.includes(id)));
   return `<div class="cat-vitrine" style="--t:${c.couleur}">
-    <div class="cv-visuel">${scene(c)}${v.puces[0] ? `<span class="cv-puce">${ico('sparkles')}${esc(v.puces[0])}</span>` : ''}</div>
+    <div class="cv-visuel">${scene(c)}</div>
     <div class="cv-texte">
-      <div class="cv-titre"><span class="cv-icone">${ico(c.icon)}</span><b>${esc(c.nom)}</b>${c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</div>
+      <div class="cv-titre"><span class="cv-icone">${ico(c.icon)}</span><b>${esc(c.nom)}</b>${c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}${v.puces[0] ? `<em class="cv-tag">${ico('sparkles')}${esc(v.puces[0])}</em>` : ''}</div>
       <p class="cv-accroche">${esc(c.accroche)}</p>
       <ul class="cv-obtenez">${v.obtenez.map(([i, t]) => `<li>${ico(i)}<span>${esc(t)}</span></li>`).join('')}</ul>
     </div>
@@ -340,15 +340,15 @@ function vitrineCompacte(c) {
   </div>`;
 }
 
-// carte d'un service : en-tête illustré à la couleur de la catégorie, puis nom, description, prix
+// carte d'un service : image à gauche (photo de la catégorie pour le 1er service, sinon illustration), texte à droite
 function carteService(x, c, on, inPack) {
   const t = themeOf(x.id);
+  const media = c.services[0] === x.id && photoCat(c) ? photoCat(c, 'carte-photo') : illustration({ id: 's-' + x.id, icon: x.icon, badge: c.badge, couleur: t }, 'bande');
   return `<label class="tile service carte ${on ? 'on' : ''} ${inPack ? 'included' : ''}" style="--t:${t}">
     <input type="checkbox" name="svc" value="${x.id}" ${on ? 'checked' : ''} ${inPack ? 'disabled' : ''} onchange="toggle('${x.id}')">
-    <span class="carte-media">${c.services[0] === x.id && photoCat(c) ? photoCat(c, 'carte-photo') : bandeau({ id: 's-' + x.id, icon: x.icon, badge: c.badge, couleur: t })}</span>
-    <span class="carte-corps"><span class="box" aria-hidden="true"></span>
-      <span class="tile-text"><b>${x.nom.replace('Vidéosurveillance', 'Vidéo\u00ADsurveillance')}</b>${inPack ? '<small>✓ Inclus dans votre formule</small>'
-        : `<small><span class="carte-desc">${x.desc}</span><span class="price-row"><span class="mono">${fromPrice(x)}</span><span class="add">${on ? '✓ Ajouté' : '+ Ajouter'}</span></span></small>`}</span></span></label>`;
+    <span class="carte-media">${media}</span>
+    <span class="carte-corps"><b>${esc(x.nom)}</b><span class="carte-desc">${inPack ? '✓ Inclus dans votre formule' : esc(x.desc)}</span>
+      ${inPack ? '' : `<span class="price-row"><span class="mono">${fromPrice(x)}</span><span class="add">${on ? '✓ Ajouté' : '+ Ajouter'}</span></span>`}</span></label>`;
 }
 
 function packCard(p, on, action) {
@@ -528,6 +528,10 @@ function render() {
   renderSummary();
   save();
   if (key) document.querySelector(key)?.focus();
+  document.querySelectorAll('.univers [aria-selected="true"], .cats [aria-selected="true"]').forEach(b => {
+    const p = b.parentElement;
+    if (p.scrollWidth > p.clientWidth) p.scrollLeft = b.offsetLeft - p.offsetLeft - 12;
+  });
 }
 
 function renderStatic() {
@@ -940,44 +944,46 @@ if (state.step === 2) fetchSlots(state.d.date);
 carrousel();
 
 /* =====================================================================
-   ACCUEIL : carrousel « IloTech en images » (photo à gauche, texte à droite)
+   ACCUEIL : « IloTech en images », toutes les catégories défilent lentement de droite à gauche
+   (photo ou illustration à gauche, texte à droite ; pause au survol, au toucher et au clavier)
    ===================================================================== */
-function diapo([id, titre]) {
-  const c = CATEGORIES.find(x => x.id === id), v = VITRINES[id] || { obtenez: [] };
+function diapo(c, copie) {
   const moins = c.services.map(svc).filter(x => x.base).sort((a, b) => a.base - b.base)[0];
-  const seo = typeof PAGES_SEO !== 'undefined' && PAGES_SEO[id];
-  return `<article class="car-carte" style="--t:${c.couleur}">
-    <img src="img/photos/${PHOTOS_CAT[id]}.jpg" alt="${esc(titre)} (illustration)" width="410" height="464" loading="lazy" decoding="async">
-    <div class="car-txt">
-      <span class="car-pole">${ico(c.icon)}${esc(c.nom)}</span>
-      <h3>${esc(titre)}</h3>
-      <p>${esc(c.accroche)}</p>
-      <ul>${v.obtenez.map(([i, t]) => `<li>${ico(i)}<span>${esc(t)}</span></li>`).join('')}</ul>
-      <div class="car-bas"><span class="car-prix"><small>À partir de</small><b>${moins ? eur(moins.base) : 'Devis'}</b></span>
-        <button type="button" class="btn btn-primary" onclick="setCat('${id}');scrollTo({top:0,behavior:'smooth'})">Voir les tarifs</button>${seo ? `<a class="btn" href="${seo.url}">En savoir plus</a>` : ''}</div>
-    </div></article>`;
+  const u = UNIVERS.find(x => x.id === c.univers);
+  const media = PHOTOS_CAT[c.id] ? `<img src="img/photos/${PHOTOS_CAT[c.id]}.jpg" alt="" width="410" height="464" loading="lazy" decoding="async">` : scene(c);
+  return `<a class="car-carte" href="index.html?cat=${c.id}" style="--t:${c.couleur}"${copie ? ' aria-hidden="true" tabindex="-1"' : ''}
+    onclick="setCat('${c.id}');scrollTo({top:0,behavior:'smooth'});return false">
+    <span class="car-media">${media}</span>
+    <span class="car-txt"><span class="car-pole">${ico(c.icon)}${esc(u ? u.nom : '')}</span><b>${esc(c.nom)}</b><small>${esc(c.accroche)}</small>
+      <span class="car-bas"><span class="car-prix">${moins ? `dès <b>${eur(moins.base)}</b>` : 'Sur devis'}</span><span class="car-go">Voir →</span></span></span></a>`;
 }
 
-// défilement par glisser (scroll-snap), flèches, points, clavier ; lecture auto (pause au survol, au focus, au toucher)
 function carrousel() {
   const car = document.querySelector('[data-carrousel]');
   if (!car) return;
-  const piste = car.querySelector('.car-piste'), points = car.querySelector('.car-points');
-  piste.innerHTML = CARROUSEL.map(diapo).join('');
-  const n = CARROUSEL.length, pas = () => piste.clientWidth;
-  const index = () => Math.round(piste.scrollLeft / pas());
-  const aller = i => piste.scrollTo({ left: ((i + n) % n) * pas(), behavior: 'smooth' });
-  points.innerHTML = CARROUSEL.map(([, t], i) => `<button type="button" aria-label="${esc(t)} (${i + 1} sur ${n})"></button>`).join('');
-  const majPoints = () => [...points.children].forEach((b, i) => b.setAttribute('aria-current', i === index() ? 'true' : 'false'));
-  car.querySelector('.prec').addEventListener('click', () => aller(index() - 1));
-  car.querySelector('.suiv').addEventListener('click', () => aller(index() + 1));
-  [...points.children].forEach((b, i) => b.addEventListener('click', () => aller(i)));
-  piste.addEventListener('scroll', () => { clearTimeout(piste._t); piste._t = setTimeout(majPoints, 80); }, { passive: true });
-  piste.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); aller(index() + (e.key === 'ArrowRight' ? 1 : -1)); } });
-  majPoints();
+  const piste = car.querySelector('.car-piste');
+  const cats = CATEGORIES.filter(c => !c.bientot);
+  piste.innerHTML = cats.map(c => diapo(c)).join('') + cats.map(c => diapo(c, true)).join('');
+  let pause = false, reprise, pos = 0, avant = 0;
+  const arret = () => { pause = true; clearTimeout(reprise); };
+  const relance = () => { clearTimeout(reprise); reprise = setTimeout(() => { pause = false; pos = piste.scrollLeft; }, 1500); };
+  car.addEventListener('mouseenter', arret); car.addEventListener('mouseleave', relance);
+  car.addEventListener('focusin', arret); car.addEventListener('focusout', relance);
+  piste.addEventListener('touchstart', arret, { passive: true }); piste.addEventListener('touchend', relance);
+  const carte = () => (piste.firstElementChild ? piste.firstElementChild.offsetWidth + 16 : 300);
+  car.querySelector('.prec').addEventListener('click', () => { arret(); piste.scrollBy({ left: -carte(), behavior: 'smooth' }); relance(); });
+  car.querySelector('.suiv').addEventListener('click', () => { arret(); piste.scrollBy({ left: carte(), behavior: 'smooth' }); relance(); });
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  let pause = false;
-  ['mouseenter', 'focusin', 'touchstart'].forEach(t => car.addEventListener(t, () => { pause = true; }, { passive: true }));
-  ['mouseleave', 'focusout'].forEach(t => car.addEventListener(t, () => { pause = false; }));
-  setInterval(() => { if (!pause && !document.hidden) aller(index() + 1); }, 6000);
+  const tour = t => {
+    const dt = avant ? Math.min(t - avant, 50) : 0; avant = t;
+    if (!pause && !document.hidden) {
+      const moitie = piste.scrollWidth / 2;
+      if (Math.abs(piste.scrollLeft - pos) > 3) pos = piste.scrollLeft; // l'utilisateur a fait défiler
+      pos += dt * 0.035; // environ 35 pixels par seconde
+      if (pos >= moitie) pos -= moitie;
+      piste.scrollLeft = pos;
+    }
+    requestAnimationFrame(tour);
+  };
+  requestAnimationFrame(tour);
 }

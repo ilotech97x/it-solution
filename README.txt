@@ -141,7 +141,6 @@ PROSPECTION (prospection.html) — entreprises uniquement
   - SYMPTOMES   : « Dites-nous ce qui ne va pas »
   - VITRINES    : la présentation de chaque onglet (« Ce que vous obtenez », puces)
   - PHOTOS_CAT  : la photo de chaque onglet (img/photos/), affichée dans la 1re carte de service
-  - CARROUSEL   : les diapositives « IloTech en images » de l'accueil (photo + texte + prix, automatique)
   - ZONES, COMMUNES, HORAIRES, AGENCES, DELAIS, CRENEAUX
   - Rendez-vous : CONFIG.placesParCreneau (3 clients le matin, 3 l'après-midi, par agence ; même
     valeur que CAPACITE dans le script Google) et CONFIG.delaiMinJours (1 = pas de rendez-vous le jour même).
@@ -166,7 +165,7 @@ PROSPECTION (prospection.html) — entreprises uniquement
   outils.js                petits outils communs (prix, dates, téléphone)
   index.html  app.js  style.css          site client. L'accueil, de haut en bas :
                                          1. l'outil de rendez-vous (tient sur un écran sur PC)
-                                         2. « IloTech en images » : carrousel construit par app.js depuis CARROUSEL
+                                         2. « IloTech en images » : toutes les catégories défilent lentement (app.js, carrousel())
                                          3. « Nos autres sites » (Studio, Immobilier, Conseils), engagements, pied de page
   services.html  services.js             page Services et tarifs
   scenes.js                              illustrations (un exemple concret par catégorie)
@@ -187,4 +186,4 @@ PROSPECTION (prospection.html) — entreprises uniquement
   Les autres sites (dossiers voisins, créés par ..\sites\construire.py — ne pas modifier leur index.html à la main) :
   ..gence-marketing   IloTech Studio      https://ilotech97x.github.io/agence-marketing/
   ..\immobilier         IloTech Immobilier  https://ilotech97x.github.io/immobilier/
-  Numéro de version (?v=82) : il est lu dans index.html ; l'augmenter partout force les navigateurs à recharger.
+  Numéro de version (?v=83) : il est lu dans index.html ; l'augmenter partout force les navigateurs à recharger.
