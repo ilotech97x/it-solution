@@ -934,19 +934,19 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 /* =====================================================================
    BANDE « TOUS NOS SERVICES » : tout en haut, sur toute la largeur, défile lentement
    ===================================================================== */
-.bande{padding:12px 0 4px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--surface) 60%,transparent)}
-.bande .car-piste{padding:4px 16px 10px;-webkit-mask-image:none;mask-image:none}
-.bande .car-carte{flex:0 0 340px;height:112px;grid-template-columns:112px minmax(0,1fr);border-radius:16px;box-shadow:none}
-.bande .car-txt{gap:3px;padding:10px 12px}
-.bande .car-pole{font-size:10.5px;padding:2px 8px}
-.bande .car-txt>b{font-size:15.5px}
-.bande .car-txt small{font-size:12.5px;-webkit-line-clamp:2}
-.bande .car-bas{font-size:12.5px}
-.bande .car-prix b{font-size:15px}
-.bande .car-btn{top:calc(50% - 26px);width:38px;height:38px;font-size:20px}
-.bande .car-btn.prec{left:8px}.bande .car-btn.suiv{right:8px}
-.bande .car-media>.illu.scene{inset:auto 6px;width:calc(100% - 12px);border-radius:8px}
-@media (max-width:700px){.bande{padding-top:8px}.bande .car-piste{padding:2px 12px 8px}.bande .car-carte{flex-basis:290px;height:100px;grid-template-columns:96px minmax(0,1fr)}}
+.bande-services{padding:12px 0 4px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--surface) 60%,transparent)}
+.bande-services .car-piste{padding:4px 16px 10px;-webkit-mask-image:none;mask-image:none}
+.bande-services .car-carte{flex:0 0 340px;height:112px;grid-template-columns:112px minmax(0,1fr);border-radius:16px;box-shadow:none}
+.bande-services .car-txt{gap:3px;padding:10px 12px}
+.bande-services .car-pole{font-size:10.5px;padding:2px 8px}
+.bande-services .car-txt>b{font-size:15.5px}
+.bande-services .car-txt small{font-size:12.5px;-webkit-line-clamp:2}
+.bande-services .car-bas{font-size:12.5px}
+.bande-services .car-prix b{font-size:15px}
+.bande-services .car-btn{top:calc(50% - 26px);width:38px;height:38px;font-size:20px}
+.bande-services .car-btn.prec{left:8px}.bande-services .car-btn.suiv{right:8px}
+.bande-services .car-media>.illu.scene{inset:auto 6px;width:calc(100% - 12px);border-radius:8px}
+@media (max-width:700px){.bande-services{padding-top:8px}.bande-services .car-piste{padding:2px 12px 8px}.bande-services .car-carte{flex-basis:290px;height:100px;grid-template-columns:96px minmax(0,1fr)}}
 
 /* =====================================================================
    MENU DU SITE (bouton « Menu » de l'en-tête)
@@ -1000,5 +1000,14 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
   .top .top-actions .btn-menu,.top .top-actions .btn-theme{display:inline-flex}
   .top .top-actions #grandBtn{display:none}
 }
-.bande .car-carte{height:128px;grid-template-columns:120px minmax(0,1fr)}
-@media (max-width:700px){.bande .car-carte{height:112px;grid-template-columns:100px minmax(0,1fr)}.bande .car-pole{display:none}.bande .car-txt small{-webkit-line-clamp:2}}
+.bande-services .car-carte{height:128px;grid-template-columns:120px minmax(0,1fr)}
+@media (max-width:700px){.bande-services .car-carte{height:112px;grid-template-columns:100px minmax(0,1fr)}.bande-services .car-pole{display:none}.bande-services .car-txt small{-webkit-line-clamp:2}}
+
+/* l'outil reste la première chose visible : la bande de services passe sous l'outil */
+.bande-services{margin-top:8px;border-top:1px solid var(--line);border-bottom:0}
+/* mobile : vitrine compacte, les services apparaissent tout de suite */
+@media (max-width:700px){
+  .cat-vitrine .cv-visuel{display:none}
+  .cat-vitrine{padding:12px}
+  .cv-obtenez{display:none}
+}
