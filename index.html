@@ -23,7 +23,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "LocalBusiness", "@id": "https://ilo-tech.com/#ilotech", "name": "IloTech", "url": "https://ilo-tech.com/", "logo": "https://ilo-tech.com/img/logo-ilo.png", "image": "https://ilo-tech.com/img/og-ilotech.jpg", "email": "ilotech.contact@gmail.com", "priceRange": "€", "description": "Dépannage informatique, installation Starlink, caméras, Wi-Fi, sites web, maintenance et cybersécurité pour les entreprises et drone en Martinique.", "areaServed": {"@type": "AdministrativeArea", "name": "Martinique"}, "telephone": "+596696779902", "address": {"@type": "PostalAddress", "addressLocality": "Le Robert", "postalCode": "97231", "addressRegion": "Martinique", "addressCountry": "FR"}, "openingHoursSpecification": [{"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "opens": "08:00", "closes": "17:00"}, {"@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "08:00", "closes": "12:00"}], "department": [{"@type": "LocalBusiness", "name": "IloTech — Ducos", "telephone": "+596696779902", "priceRange": "€", "address": {"@type": "PostalAddress", "addressLocality": "Ducos", "postalCode": "97224", "addressRegion": "Martinique", "addressCountry": "FR"}, "openingHoursSpecification": [{"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "opens": "08:00", "closes": "17:00"}, {"@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "08:00", "closes": "12:00"}]}, {"@type": "LocalBusiness", "name": "IloTech — Le Robert", "telephone": "+596696482678", "priceRange": "€", "address": {"@type": "PostalAddress", "addressLocality": "Le Robert", "postalCode": "97231", "addressRegion": "Martinique", "addressCountry": "FR"}, "openingHoursSpecification": [{"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "opens": "08:00", "closes": "17:00"}, {"@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "08:00", "closes": "12:00"}]}], "hasOfferCatalog": {"@type": "OfferCatalog", "name": "Services IloTech", "itemListElement": [{"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Dépannage informatique"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Installation Starlink"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Installation de caméras de surveillance"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Installation Wi-Fi"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Réparation d’ordinateur portable"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Récupération de données"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Création de site internet"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Application mobile"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Maintenance informatique entreprise"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Cybersécurité"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Caisse enregistreuse"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Photo et vidéo par drone"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Cours d’informatique seniors"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Domotique"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Onduleur"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Intelligence artificielle pour entreprises"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Agence réseaux sociaux"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Contenus vidéo créés avec l’IA"}}]}, "sameAs": ["https://www.instagram.com/ilo.tech.97/", "https://www.tiktok.com/@ilo.tech", "https://www.youtube.com/@Ilo_Tech"]}</script>
   <script>try{if(localStorage.getItem('itTheme')==='light')document.documentElement.dataset.theme='light'}catch(e){}</script>
-  <link rel="stylesheet" href="style.css?v=89">
+  <link rel="stylesheet" href="style.css?v=90">
 </head>
 <body>
   <header class="top">
@@ -44,7 +44,7 @@
   <h1 class="sr-only">IloTech, dépannage informatique, installation Starlink, caméras, Wi-Fi et sites internet en Martinique (Ducos et Le Robert)</h1>
   <main class="layout" id="main">
     <section class="panel config" aria-labelledby="stepTitle">
-      <ol class="stepper" id="steps"></ol>
+      <nav class="parcours" id="steps" aria-label="Étapes de la demande"></nav>
       <div class="content" id="app" tabindex="-1"></div>
       <div class="nav" id="nav"></div>
     </section>
@@ -61,7 +61,7 @@
       <p id="savings" class="savings"></p>
       <div id="meta" class="meta"></div>
 
-      <div class="tarifs">
+      <div class="tarifs" id="tarifsBloc">
         <h3>Frais de déplacement</h3>
         <table id="tarifs"></table>
         <button type="button" class="link" onclick="openZones()">Voir les communes par zone</button>
@@ -73,26 +73,7 @@
         <li>Rendez-vous dès le lendemain</li>
       </ul>
       <p class="note">Prix indicatifs, confirmés après diagnostic.</p>
-      <p class="note neuf-note"><a href="installation-starlink-martinique.html" onclick="setCat('starlink');return false"><span class="neuf-tag">Nouveau</span> Installation Starlink : internet partout en Martinique →</a></p>
-      <p class="note" id="bientotNote"></p>
       <p id="avis" class="avis"></p>
-      <nav class="foot-links" aria-label="Liens utiles">
-        <a href="#" onclick="openZones();return false">Zones & déplacement</a>
-        <a href="#suivi">Suivre ma demande</a>
-        <a href="services.html">Nos services et tarifs</a>
-        <a href="installation-starlink-martinique.html">Installation Starlink</a>
-        <a href="conseils.html">Conseils</a>
-        <a href="outils-gratuits.html">Outils gratuits</a>
-        <a href="https://studio.ilo-tech.com/">Agence marketing (IloTech Studio)</a>
-        <a href="https://immo.ilo-tech.com/">Immobilier (IloTech Immobilier)</a>
-        <a href="https://www.instagram.com/ilo.tech.97/" target="_blank" rel="noopener me">Instagram</a>
-        <a href="https://www.tiktok.com/@ilo.tech" target="_blank" rel="noopener me">TikTok</a>
-        <a href="https://www.youtube.com/@Ilo_Tech" target="_blank" rel="noopener me">YouTube</a>
-        <a href="fiche-tarifs.html">Fiche tarifs (PDF)</a>
-        <a href="mentions-legales.html">Mentions légales</a>
-        <a href="confidentialite.html">Confidentialité</a>
-        <a href="gestion.html">Espace pro</a>
-      </nav>
     </aside>
   </main>
 
@@ -173,10 +154,10 @@
     <div id="zonesGrid" class="zones"></div>
   </dialog>
 
-  <script src="data.js?v=89"></script>
-  <script src="outils.js?v=89"></script>
-  <script src="scenes.js?v=89"></script>
-  <script src="pages-seo.js?v=89"></script>
-  <script src="app.js?v=89"></script>
+  <script src="data.js?v=90"></script>
+  <script src="outils.js?v=90"></script>
+  <script src="scenes.js?v=90"></script>
+  <script src="pages-seo.js?v=90"></script>
+  <script src="app.js?v=90"></script>
 </body>
 </html>

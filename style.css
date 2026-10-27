@@ -300,9 +300,6 @@ textarea{min-height:96px;resize:vertical}
 .garanties li::before{content:"✓ ";color:var(--ok);font-weight:700}
 .avis:empty{display:none}
 .avis{margin:0;font-size:14px;font-weight:600}
-.foot-links{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;padding-top:8px;border-top:1px solid var(--line)}
-.foot-links a{color:var(--muted)}
-.foot-links a:hover{color:var(--primary)}
 
 /* =====================================================================
    CONFIRMATION, DEVIS, SUIVI
@@ -451,7 +448,7 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
    ===================================================================== */
 @media print{
   body{background:#fff!important;color:#14202f;height:auto;overflow:visible;display:block}
-  .top,.stepper,.nav,.actions,.link,.mobilebar,.tarifs,.kind-toggle,.devis-status,.center{display:none!important}
+  .top,.parcours,.nav,.actions,.link,.mobilebar,.tarifs,.kind-toggle,.devis-status,.center{display:none!important}
   .layout{display:block;padding:0}
   .panel{border:0;box-shadow:none;background:#fff}
   .content{overflow:visible}
@@ -479,10 +476,6 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
 .pack .add{margin-left:auto;border-color:var(--t);color:var(--td,var(--t))}
 .pack.multi .add{border-image:none}
 .services .service .box{display:none}
-.howto{flex:1;margin:0;text-align:center;font-size:13px;color:var(--muted)}
-.howto b{display:inline-grid;place-items:center;width:20px;height:20px;margin:0 3px 0 8px;border-radius:50%;background:var(--primary);color:#fff;font-size:11.5px}
-.howto span{color:var(--ok)}
-.nav .err:not(:empty)+.howto{display:none}
 .stepper .n{display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:50%;background:var(--surface-3)}
 .stepper li.cur .n{background:var(--primary);color:#fff}
 .stepper li.done .n{background:var(--ok);color:#03140a}
@@ -496,8 +489,7 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
 .help-dialog .agency{gap:8px}
 .help-dialog .btn.big{min-height:52px;font-size:17px}
 .btn-aide-m{background:var(--orange);border-color:var(--orange);color:#1a1000}
-@media (max-width:1180px){.howto span{display:none}}
-@media (max-width:900px){.howto{display:none}.help-row{width:100%}.help-row .btn{flex:1}}
+@media (max-width:900px){.help-row{width:100%}.help-row .btn{flex:1}}
 @media (max-width:600px){
   .help-row .btn{font-size:13px;padding:6px 8px}
   .top-actions>#grandBtn,.top-actions>.btn-aide{display:inline-flex;flex:none}
@@ -513,11 +505,8 @@ body.grand{--muted:#c4cfe0;--faint:#9aa8bf}
 body.grand .pack-inclus li{white-space:normal}
 body.grand .nav{position:sticky;bottom:0;z-index:4}
 @media (max-width:900px){body.grand .layout{zoom:1.12}body.grand .nav{bottom:64px}}
-.howto{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
-.howto b{margin-left:6px}
 .price-row{flex-wrap:wrap;row-gap:4px}
 .price-row .mono{white-space:nowrap}
-body.grand .howto{display:none}
 body.grand .g5{grid-template-columns:repeat(3,minmax(0,1fr))}
 body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (max-width:900px){.toast{bottom:150px}}
@@ -558,7 +547,6 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 .pack-head .ico{width:20px;height:20px}
 .pack-inclus{font-size:12px;line-height:1.25}
 .pack-bottom .pack-now{font-size:17px}
-#bientotNote:empty{display:none}
 
 /* FAQ (page Services) */
 .faq{display:grid;gap:8px}
@@ -643,7 +631,6 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 /* En-tête sur une seule ligne, quelle que soit l'heure (« Fermé · ouvre… » est plus long que « Ouvert ») */
 .top .btn,.top .status{white-space:nowrap}
 @media (min-width:901px) and (max-width:1340px){#grandBtn span{display:none}.top .status{font-size:11.5px}.brand-text .mono{white-space:nowrap}}
-.neuf-note a{color:var(--text);text-decoration:none;font-weight:600}.neuf-note a:hover{text-decoration:underline}.neuf-note .neuf-tag{margin-right:4px;font-size:10.5px;padding:1px 7px}
 
 /* Réseaux sociaux (pied des pages) */
 .reseaux{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 8px}
@@ -744,27 +731,8 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 .v-prix{height:186px}.v-prix-2{white-space:normal;overflow:visible;padding:12px 18px 50px;line-height:1.35}.v-prix-1{top:72px}
 
 /* ===== Vitrine compacte de l'accueil (onglet choisi) ===== */
-.cat-vitrine{display:grid;grid-template-columns:200px minmax(0,1fr) auto;gap:18px;align-items:center;margin:4px 0 10px;padding:10px 16px 10px 10px;border-radius:18px;background:linear-gradient(120deg,color-mix(in srgb,var(--t) 16%,var(--surface-2)),var(--surface-2) 70%);border:1px solid color-mix(in srgb,var(--t) 35%,var(--line))}
-.cv-visuel{position:relative;align-self:stretch;display:flex;align-items:center}
-.cv-visuel .illu.scene{width:100%;border-radius:12px;box-shadow:0 8px 22px rgba(0,0,0,.35)}
 
-.cv-titre{display:flex;align-items:center;gap:8px}
-.cv-titre b{font-size:20px;letter-spacing:-.01em}
-.cv-icone{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:color-mix(in srgb,var(--t) 22%,transparent);color:var(--td,var(--t))}
-.cv-icone svg{width:18px;height:18px}
-.cv-accroche{margin:4px 0 8px;font-weight:600;font-size:14.5px;line-height:1.35}
-.cv-obtenez{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.cv-obtenez li{display:flex;align-items:center;gap:6px;font-size:12px;line-height:1.2;color:var(--muted)}
-.cv-obtenez svg{flex:none;width:24px;height:24px;padding:5px;border-radius:8px;background:color-mix(in srgb,var(--t) 16%,transparent);color:var(--td,var(--t))}
-.cv-prix{position:relative;display:flex;flex-direction:column;align-items:flex-end;gap:0;padding-right:4px}
-.cv-prix-2{transform:rotate(-5deg) translate(8px,6px);padding:6px 12px 14px;border-radius:12px;background:color-mix(in srgb,var(--t) 70%,#000);color:#fff;font-weight:700;font-size:11.5px;white-space:nowrap;opacity:.9}
-.cv-prix-1{position:relative;transform:rotate(-3deg);padding:8px 14px;border-radius:14px;background:linear-gradient(135deg,var(--t),color-mix(in srgb,var(--t) 65%,#000));color:#fff;box-shadow:0 10px 24px rgba(0,0,0,.35);white-space:nowrap}
-.cv-prix-1 small{display:block;font-size:11px;font-weight:600;opacity:.9}
-.cv-prix-1 b{font-size:26px;line-height:1.05}
-.cv-prix-1 em{font-style:normal;font-size:12px;font-weight:700;margin-left:2px}
 /* cartes : en-tête illustré seulement sur les grands écrans (la vitrine porte le visuel) */
-@media (max-width:900px){.cat-vitrine{grid-template-columns:minmax(0,1fr) auto;padding:10px}.cv-visuel{grid-column:1/-1}.cv-visuel .illu.scene{max-width:320px;margin:0 auto}.cv-obtenez{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.cv-titre .neuf{padding:1px 8px;border-radius:99px;background:#facc15;color:#1a1300;font:800 10px/1.6 var(--sans);font-style:normal;letter-spacing:.02em}
 @media (min-width:901px) and (max-width:1440px){#grandBtn span{display:none}.studio-badge span{display:none}.studio-badge{padding:4px}}
 
 /* ===== Accueil sur PC : tout l'outil est visible ; en-tête, récapitulatif et barre d'action restent à l'écran ===== */
@@ -875,8 +843,6 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 .univers:has([aria-selected="true"]) button:not([aria-selected="true"]),.cats:has([aria-selected="true"]) button:not([aria-selected="true"]){opacity:.62}
 .univers button:not([aria-selected="true"]):hover,.cats button:not([aria-selected="true"]):hover{opacity:1}
 .cats{padding:10px;border-radius:18px;background:color-mix(in srgb,var(--t) 9%,transparent);border:2px solid color-mix(in srgb,var(--t) 45%,transparent)}
-.cv-ici{display:block;margin:0 0 4px;color:var(--muted);font:700 12px/1.3 var(--sans);text-transform:uppercase;letter-spacing:.04em}
-.cv-ici b{color:var(--td,var(--t))}
 @media (max-width:1100px) and (min-width:701px){.univers button{flex-direction:column;justify-content:center;text-align:center;gap:6px;padding:8px 6px;font-size:13px}}
 @media (max-width:700px){
   .univers-row{margin:12px 0 10px}
@@ -890,8 +856,6 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
   .cats .neuf{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:9px}
 }
 @media (max-width:380px){.cats{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.cv-tag{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:2px 9px;border-radius:999px;background:color-mix(in srgb,var(--t) 18%,transparent);color:var(--td,var(--t));font:700 11.5px/1.6 var(--sans);font-style:normal;white-space:nowrap}
-.cv-tag .ico{width:13px;height:13px}
 
 /* =====================================================================
    CARTES DE SERVICE : image à gauche, texte à droite
@@ -1028,9 +992,6 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 .bande-services{margin-top:8px;border-top:1px solid var(--line);border-bottom:0}
 /* mobile : vitrine compacte, les services apparaissent tout de suite */
 @media (max-width:700px){
-  .cat-vitrine .cv-visuel{display:none}
-  .cat-vitrine{padding:12px}
-  .cv-obtenez{display:none}
 }
 
 /* =====================================================================
@@ -1068,8 +1029,6 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
   #price.flash{animation:allume .7s ease-out}
   @keyframes allume{30%{transform:scale(1.14);color:var(--primary);text-shadow:0 0 24px var(--primary)}}
   /* étiquette de prix qui flotte doucement */
-  .cv-prix-1{animation:flotte 4.5s ease-in-out infinite}
-  @keyframes flotte{50%{transform:rotate(-3deg) translateY(-5px)}}
   /* disponibilité en direct : point qui bat */
   .dispo .point{animation:bat 1.8s ease-out infinite}
   @keyframes bat{70%{box-shadow:0 0 0 9px transparent}100%{box-shadow:0 0 0 0 transparent}}
@@ -1117,3 +1076,47 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
   @keyframes rebondit{from{transform:translate(-50%,30px) scale(.9);opacity:0}}
   .univers button[aria-selected="true"] .u-ico{animation:saut .4s cubic-bezier(.3,1.6,.5,1)}
 }
+
+/* =====================================================================
+   FIL DES ÉTAPES (toujours visible) + barre de progression
+   - étape faite : ✓ verte, on peut y revenir ; étape pas encore accessible : 🔒
+   ===================================================================== */
+.parcours{padding:10px 20px 10px;border-bottom:1px solid var(--line);background:var(--surface-2);border-radius:var(--radius) var(--radius) 0 0}
+.parcours .stepper{padding:0;border:0;background:none;border-radius:0;gap:6px}
+.stepper li{padding:0;border:0}
+.stepper li button{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:4px 10px 4px 4px;border:2px solid transparent;border-radius:12px;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left}
+.stepper li button:hover{background:var(--surface-3)}
+.stepper li.cur button{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 12%,transparent)}
+.stepper li.lock{opacity:.55}
+.stepper li.lock button{cursor:not-allowed}
+.stepper li.lock .n{background:transparent;box-shadow:none;font-size:14px}
+.stepper li .t{display:inline!important}
+.parcours .quete{margin:8px 2px 0}
+.parcours .quete-txt{flex:1 1 auto;min-width:0}
+.quete-txt b{color:var(--text)}
+/* bandeau de l'onglet : une seule ligne */
+.cat-vitrine{display:flex;align-items:center;gap:12px;margin:2px 0 10px;padding:8px 12px;border-radius:14px;background:color-mix(in srgb,var(--t) 12%,var(--surface-2));border:1px solid color-mix(in srgb,var(--t) 35%,var(--line))}
+.cv-icone{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--t);color:#fff}
+.cv-icone svg{width:19px;height:19px;color:#fff}
+.cv-texte{flex:1;min-width:0;margin:0;font-size:14px;line-height:1.35}
+.cv-texte b{font-size:16px}
+.cv-ici{color:var(--muted);font-weight:600}
+.cv-accroche{display:block;color:var(--muted)}
+.cv-prix-1{flex:none;padding:6px 12px;border-radius:12px;background:linear-gradient(135deg,var(--t),color-mix(in srgb,var(--t) 62%,#000));color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4);white-space:nowrap}
+.cv-prix-1 small{font-size:12px;font-weight:600}
+.cv-prix-1 b{font-size:19px}
+.cv-prix-1 em{font-style:normal;font-size:12px;font-weight:700}
+/* formules */
+.pack-eco{padding:1px 7px;border-radius:99px;background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok);font:800 11.5px/1.5 var(--sans);font-style:normal}
+.sec-seul{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:12px 0 0;color:var(--muted);font-size:14px}
+.sec-seul .ico{width:18px;height:18px}
+@media (max-width:700px){
+  .parcours{padding:8px 10px}
+  .stepper li button{flex-direction:column;gap:3px;min-height:52px;padding:4px 2px;text-align:center;justify-content:center}
+  .stepper li .t{font-size:12px;line-height:1.1;white-space:normal}
+  .cv-accroche{display:none}
+  .cv-prix-1 b{font-size:16px}
+}
+
+@media (max-width:700px){.help-row{grid-template-columns:1fr}}
+.content h3.sec{margin-top:16px}

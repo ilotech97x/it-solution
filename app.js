@@ -256,6 +256,7 @@ function renderSummary() {
     + (n && state.step === 1 ? `<button type="button" class="btn btn-apercu" onclick="apercuDevis()">${ico('doc')} Voir mon devis tout de suite</button>` : '');
 
   $('kindToggle').hidden = !(typeof state.step === 'number' && state.step > 1);
+  if ($('tarifsBloc')) $('tarifsBloc').hidden = state.step === 1;
   $('kindToggle').innerHTML = `<button type="button" aria-pressed="${state.kind === 'rdv'}" onclick="setKind('rdv')">${ico('calendar')} Rendez-vous</button><button type="button" aria-pressed="${state.kind === 'devis'}" onclick="setKind('devis')">${ico('doc')} Devis</button>`;
 }
 
@@ -290,14 +291,48 @@ function selectionHTML() {
   return h;
 }
 
+// ce qu'il manque pour terminer une étape ('' = étape remplie)
+function manque(n) {
+  const { d } = state;
+  if (n === 1) return state.sel.length ? '' : 'Choisissez au moins un service ou une formule.';
+  if (n === 2) {
+    if (d.mode === 'site' && !d.commune) return 'Choisissez votre commune.';
+    if (state.kind !== 'rdv') return '';
+    if (!d.date) return 'Choisissez une date.';
+    if (d.date < premierJour()) return 'Les rendez-vous se prennent à partir de demain. Pour une urgence aujourd’hui, appelez-nous.';
+    return creneauxFor(d.date).some(([k, why]) => k === d.creneau && !why) ? '' : 'Choisissez un créneau disponible.';
+  }
+  if (!d.name.trim() || !d.phone.trim()) return 'Indiquez votre nom et votre téléphone.';
+  if (digits(d.phone).length < 10) return "Le numéro de téléphone n'est pas valide.";
+  return d.consent ? '' : 'Cochez la case d’accord pour être recontacté.';
+}
+// fil des étapes, toujours visible : on revient en arrière librement, on n'avance que si les étapes d'avant sont remplies
 function renderSteps() {
-  const inFlow = typeof state.step === 'number' && state.step > 1;
-  $('steps').hidden = !inFlow;
-  if (!inFlow) return;
-  $('steps').innerHTML = STEPS[state.kind].map((s, i) => {
-    const n = i + 1, cls = n === state.step ? 'cur' : n < state.step ? 'done' : '';
-    return `<li class="${cls}" ${n === state.step ? 'aria-current="step"' : ''}><span class="n">${n < state.step ? '✓' : n}</span><span class="t">${n === state.step ? `Étape ${n} sur ${STEPS[state.kind].length} : ` : ''}${s}</span></li>`;
+  const enParcours = typeof state.step === 'number';
+  $('steps').hidden = !enParcours;
+  if (!enParcours) return;
+  const steps = STEPS[state.kind], cur = state.step;
+  let libre = true, faites = 0;
+  const lis = steps.map((s, i) => {
+    const n = i + 1, ok = !manque(n), ouvert = libre;
+    if (ok && libre) faites++;
+    if (!ok) libre = false;
+    const cls = n === cur ? 'cur' : ok && ouvert ? 'done' : ouvert ? '' : 'lock';
+    return `<li class="${cls}"><button type="button" onclick="allerEtape(${n})" ${n === cur ? 'aria-current="step"' : ''} ${cls === 'lock' ? 'aria-disabled="true" title="Terminez d’abord l’étape précédente"' : ''}><span class="n">${cls === 'lock' ? '🔒' : ok && n !== cur ? '✓' : n}</span><span class="t">${s}</span></button></li>`;
   }).join('');
+  const m = manque(cur);
+  const aide = m ? m : cur < steps.length ? `✓ C'est bon ! Étape suivante : ${steps[cur].toLowerCase()} 🚀` : `✓ Tout est prêt : ${state.kind === 'rdv' ? 'réservez' : 'affichez votre devis'} 🎉`;
+  $('steps').innerHTML = `<ol class="stepper">${lis}</ol>
+    <div class="quete"><div class="quete-barre" aria-hidden="true"><span style="width:${Math.max(4, faites / steps.length * 100)}%"></span></div>
+    <span class="quete-txt"><b>Étape ${cur} sur ${steps.length}</b> · ${aide}</span></div>`;
+}
+function allerEtape(n) {
+  if (n === state.step) return;
+  for (let i = 1; i < n; i++) {
+    const m = manque(i);
+    if (m) { if (i !== state.step) i === 1 ? home() : goTo(i); return error(m); }
+  }
+  if (n === 1) home(); else { if (state.step === 1) stat('etape', state.kind); goTo(n); }
 }
 
 function renderNav() {
@@ -306,7 +341,7 @@ function renderNav() {
   if (s === 'chat' || s === 'suivi') { $('nav').innerHTML = `<button type="button" class="btn" onclick="home()">Retour aux services</button><p id="err" class="err" role="alert"></p>`; return; }
   if (s === 1) {
     $('nav').innerHTML = `<button type="button" class="btn btn-wa nav-wa" onclick="openChat()" aria-label="Discuter sur WhatsApp">${ico('chat')}<span>WhatsApp</span></button>
-      <p id="err" class="err" role="alert"></p><p class="howto"><b>1</b>Choisir <b>2</b>Le jour <b>3</b>Vos coordonnées<span> · gratuit</span></p>
+      <p id="err" class="err" role="alert"></p>
       <div class="nav-go"><button type="button" class="btn" onclick="start('devis')">${ico('doc')}<span class="lg">Connaître le prix</span><span class="sm">Prix</span></button>
       <button type="button" class="btn btn-primary" onclick="start('rdv')">${ico('calendar')}<span class="lg">Prendre rendez-vous</span><span class="sm">Rendez-vous</span></button></div>`;
     return;
@@ -327,21 +362,13 @@ function tile({ type = 'radio', name, value, checked, disabled, title, sub, icon
     <span class="tile-text"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</span>${price ? `<span class="price">${price}</span>` : ''}</label>`;
 }
 
-// vitrine compacte de l'onglet : visuel (dessin + photo + pastille), titre, accroche, « ce que vous obtenez », prix
+// bandeau de l'onglet : où l'on est, l'accroche, le prix de départ
 function vitrineCompacte(c) {
-  const v = (typeof VITRINES !== 'undefined' && VITRINES[c.id]) || { obtenez: [], puces: [] };
-  const ss = c.services.map(svc);
-  const moins = ss.filter(x => x.base).sort((a, b) => a.base - b.base)[0];
-  const pk = PACKS.find(x => Object.keys(x.items).some(id => c.services.includes(id)));
+  const moins = c.services.map(svc).filter(x => x.base).sort((a, b) => a.base - b.base)[0];
   return `<div class="cat-vitrine" style="--t:${c.couleur}">
-    <div class="cv-visuel">${scene(c)}</div>
-    <div class="cv-texte">
-      <p class="cv-ici">📍 Vous êtes ici : ${esc((UNIVERS.find(u => u.id === c.univers) || {}).court || '')} › <b>${esc(c.nom)}</b></p>
-      <div class="cv-titre"><span class="cv-icone">${ico(c.icon)}</span><b>${esc(c.nom)}</b>${c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}${v.puces[0] ? `<em class="cv-tag">${ico('sparkles')}${esc(v.puces[0])}</em>` : ''}</div>
-      <p class="cv-accroche">${esc(c.accroche)}</p>
-      <ul class="cv-obtenez">${v.obtenez.map(([i, t]) => `<li>${ico(i)}<span>${esc(t)}</span></li>`).join('')}</ul>
-    </div>
-    <div class="cv-prix">${pk ? `<span class="cv-prix-2">Formule ${eur(pk.prix)}</span>` : ''}<span class="cv-prix-1"><small>À partir de</small><b>${moins ? eur(moins.base) : 'Devis'}</b>${moins && moins.mensuel ? '<em>/mois</em>' : ''}</span></div>
+    <span class="cv-icone">${ico(c.icon)}</span>
+    <p class="cv-texte"><span class="cv-ici">${esc((UNIVERS.find(u => u.id === c.univers) || {}).court || '')} ›</span> <b>${esc(c.nom)}</b><span class="cv-accroche">${esc(c.accroche)}</span></p>
+    <span class="cv-prix-1"><small>dès</small> <b>${moins ? eur(moins.base) : 'Devis'}</b>${moins && moins.mensuel ? '<em>/mois</em>' : ''}</span>
   </div>`;
 }
 
@@ -363,7 +390,7 @@ function packCard(p, on, action) {
     <span class="pack-tag mono">${p.populaire ? '★ Le plus demandé' : cats.join(' + ')}</span>
     <span class="pack-head">${ico(p.icon)}<b>${p.nom}</b></span>
     <ul class="pack-inclus">${p.inclus.map(i => `<li>${i}</li>`).join('')}</ul>
-    <span class="pack-bottom"><b class="pack-now mono">${eur(p.prix)}</b><s class="mono" title="Prix des mêmes services pris un par un">${eur(value)}</s><span class="add">${on ? '✓ Choisi' : 'Choisir'}</span></span></button>`;
+    <span class="pack-bottom"><b class="pack-now mono">${eur(p.prix)}</b><s class="mono" title="Prix des mêmes services pris un par un">${eur(value)}</s>${value > p.prix ? `<em class="pack-eco">−${eur(value - p.prix)}</em>` : ''}<span class="add">${on ? '✓ Choisi' : 'Choisir'}</span></span></button>`;
 }
 
 /* =====================================================================
@@ -419,12 +446,8 @@ const VIEWS = {
       }
       return h;
     }
-    const nb = state.sel.length + (packValid() ? 1 : 0);
     return `<div class="pick-head"><h2 id="stepTitle">De quoi avez-vous besoin ?</h2>
-        <div class="help-row"><button type="button" class="btn btn-help" onclick="setTab('symptomes')">${ico('search')}<span>Dites-nous ce qui ne va pas</span></button>
-        <button type="button" class="btn btn-help call" onclick="openHelp()">${ico('phone')}<span>Appeler un technicien</span></button></div></div>
-      <div class="quete" aria-live="polite"><div class="quete-barre" aria-hidden="true"><span style="width:${nb ? 34 : 4}%"></span></div>
-        <span class="quete-txt">${nb ? `<b>${nb} choix</b> · plus que 2 étapes pour réserver 🚀` : 'Choisissez un service pour commencer ⭐'}</span></div>
+        <div class="help-row"><button type="button" class="btn btn-help" onclick="setTab('symptomes')">${ico('search')}<span>Je ne sais pas, j'explique mon problème</span></button></div></div>
       <div class="univers-row"><span class="univers" role="tablist" aria-label="Pôles">${UNIVERS.map(u => {
           const n = CATEGORIES.filter(c => c.univers === u.id && !c.bientot).flatMap(c => c.services).filter((id, i, a) => a.indexOf(id) === i && state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
           return `<button type="button" role="tab" style="--t:${u.couleur}" title="${esc(u.desc)}" aria-label="${esc(u.nom)}" aria-selected="${univOf(state.cat) === u.id}" onclick="setUniv('${u.id}')"><span class="u-ico">${ico(u.icon)}</span><span class="u-nom"><span class="u-long">${esc(u.nom)}</span><span class="u-court">${esc(u.court || u.nom)}</span></span>${n ? `<em class="count">${n}</em>` : ''}</button>`;
@@ -440,13 +463,12 @@ const VIEWS = {
           return carteService(x, CATEGORIES.find(c => c.id === state.cat), !inPack && state.sel.includes(x.id), inPack);
         }).join('')}</div>
       ${(() => {
-        const u = UNIVERS.find(x => x.id === univOf(state.cat));
-        const duPole = PACKS.filter(p => p.univers === u.id || (state.pack === p.id && packValid()));
-        const list = state.toutes ? PACKS : duPole.slice(0, 4);
-        if (!state.toutes && state.pack && !list.some(p => p.id === state.pack) && packValid()) list[3] = pack(state.pack);
-        return `<h3 class="sec">${ico('box')} Ou une formule tout compris <span class="muted">${state.toutes ? 'toutes les formules' : esc(u.nom)} · à prix fixe et moins cher</span>
-          <button type="button" class="link sec-toggle" onclick="state.toutes=!state.toutes;render()">${state.toutes ? 'Seulement ' + esc(u.nom) : `Voir toutes les formules (${PACKS.length})`}</button></h3>
-        <div class="grid g4 packs">${list.map(p => packCard(p, state.pack === p.id && packValid(), `selectPack('${p.id}')`)).join('')}</div>`;
+        const cat = CATEGORIES.find(c => c.id === state.cat);
+        const list = state.toutes ? PACKS : PACKS.filter(p => (state.pack === p.id && packValid()) || Object.keys(p.items).some(id => cat.services.includes(id))).slice(0, 3);
+        const bouton = `<button type="button" class="link sec-toggle" onclick="state.toutes=!state.toutes;render()">${state.toutes ? 'Moins de formules' : `Voir les ${PACKS.length} formules`}</button>`;
+        if (!list.length) return `<p class="sec sec-seul">${ico('box')} Formules tout compris à prix fixe ${bouton}</p>`;
+        return `<h3 class="sec">${ico('box')} ${state.toutes ? 'Toutes nos formules' : 'Ou la formule tout compris'} <span class="muted">prix fixe, moins cher que séparément</span>${bouton}</h3>
+        <div class="grid g3 packs">${list.map(p => packCard(p, state.pack === p.id && packValid(), `selectPack('${p.id}')`)).join('')}</div>`;
       })()}
 `;
   },
@@ -547,7 +569,6 @@ function render() {
 }
 
 function renderStatic() {
-  if ($('bientotNote')) $('bientotNote').innerHTML = BIENTOT.length ? `<span class="soon">Bientôt</span> ${BIENTOT.map(esc).join(' · ')}` : '';
   $('offertZones').textContent = CONFIG.deplacementOffertDes;
   $('tarifs').innerHTML = Object.entries(ZONES).map(([k, z]) => `<tr><td><span class="dot" style="--z:var(--z-${k})"></span>${z.nom}</td><td>${z.prix ? z.prix + ' €' : 'Offert'}</td></tr>`).join('')
     + `<tr><td>En agence ou à distance</td><td>Gratuit</td></tr>`;
@@ -578,7 +599,7 @@ function openZones() { $('zonesDialog').showModal(); }
 function setD(k, v, silent) {
   state.d[k] = v;
   if (k === 'mode' || k === 'commune' || k === 'agence') { state.d.creneau = ''; fetchSlots(state.d.date); }
-  if (silent) { renderSummary(); save(); } else render();
+  if (silent) { renderSummary(); renderSteps(); save(); } else render();
 }
 function setDate(v) {
   state.d.date = v;
@@ -611,7 +632,7 @@ function setKind(k) {
   render();
 }
 function start(kind) {
-  if (!state.sel.length) return error('Choisissez d’abord un service ou un pack.');
+  if (manque(1)) return error(manque(1));
   state.kind = kind;
   stat('etape', kind);
   goTo(2);
@@ -682,17 +703,8 @@ function goTo(step) {
   if (step === 2) fetchSlots(state.d.date);
 }
 function next() {
-  const { step, sel, d, kind } = state;
-  if (step === 1 && !sel.length) return error('Choisissez au moins un service ou un pack.');
-  if (step === 2) {
-    if (d.mode === 'site' && !d.commune) return error('Choisissez votre commune.');
-    if (kind === 'rdv') {
-      if (!d.date) return error('Choisissez une date.');
-      if (d.date < premierJour()) return error('Les rendez-vous se prennent à partir de demain. Pour une urgence aujourd’hui, appelez-nous.');
-      const ok = creneauxFor(d.date).some(([k, why]) => k === d.creneau && !why);
-      if (!ok) return error('Choisissez un créneau disponible.');
-    }
-  }
+  const { step, kind } = state;
+  if (manque(step)) return error(manque(step));
   if (step < STEPS[kind].length) goTo(step + 1);
 }
 function prev() { if (state.step > 2) goTo(state.step - 1); else home(); }
