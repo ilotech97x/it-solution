@@ -65,12 +65,12 @@ const SEGMENTS = {
     argument: 'la prise de rendez-vous en ligne, une caisse simple et un Wi-Fi pour vos clientes',
     questions: ['Comment vos clientes prennent-elles rendez-vous aujourd’hui ?', 'Avez-vous beaucoup de rendez-vous oubliés ?'] },
   bureau: { nom: 'Bureau / cabinet / agence', pluriel: 'cabinets et entreprises de services', couleur: '#2b8cff', base: 22,
-    naf: /^(62|63|66|69|70\.2|71|73|74|78|80|81|82)\./, mots: /conseil|comptab|expert|avocat|assurance|immobili|agence|architect|courtage|notaire|gestion|secretariat|communication|bureau d etudes|transport|logistique|nettoyage|securite privee|interim|formation professionnelle/,
+    naf: /^(66|69|70\.22|71|74|78|80|81|82)\./, mots: /comptab|expert comptable|avocat|assurance|immobili|architect|courtage|notaire|secretariat|bureau d etudes|transport|logistique|nettoyage|securite privee|interim|formation professionnelle/,
     offre: ['maintenance', 'sauvegarde', 'cyber', 'network'], appel: 'entre 9 h et 11 h',
     argument: 'des postes entretenus, des sauvegardes automatiques et une sécurité vérifiée, sans engagement',
     questions: ['Qui s’occupe de votre informatique aujourd’hui ?', 'Quand avez-vous vérifié vos sauvegardes pour la dernière fois ?', 'Avez-vous déjà reçu des emails frauduleux ?'] },
-  artisan: { nom: 'Artisan / BTP', pluriel: 'artisans et entreprises du bâtiment', couleur: '#14b8a6', base: 14,
-    naf: /^(41|42|43|16|25|33)\./, mots: /batiment|btp|maconn|plomb|electric|menuis|peint|renovation|construction|climatisation|carrelage|charpente|terrassement|artisan|paysag|serrur|vitr|soudure|froid/,
+  artisan: { nom: 'Artisan du bâtiment', pluriel: 'artisans et entreprises du bâtiment', couleur: '#14b8a6', base: 14,
+    naf: /^(41|42|43)\./, mots: /batiment|btp|maconn|plomb|electricien|menuis|peintre|peinture en batiment|renovation|construction|climatisation|carrelage|charpente|terrassement|paysag|serrur|vitrerie|froid/,
     offre: ['siteweb', 'install', 'sauvegarde'], appel: 'entre 7 h et 8 h, ou entre 17 h et 18 h',
     argument: 'un site vitrine pour être trouvé sur Google et un ordinateur prêt pour vos devis et factures',
     questions: ['Comment vos nouveaux clients vous trouvent-ils ?', 'Faites-vous vos devis sur ordinateur ou à la main ?'] },
@@ -90,7 +90,11 @@ const SEGMENTS = {
     questions: ['Qui s’occupe de votre informatique aujourd’hui ?', 'Avez-vous un site internet ?'] }
 };
 // Activités sans besoin informatique réel : écartées automatiquement (sociétés civiles immobilières, holdings…)
-const EXCLUS_NAF = /^(68\.20|64\.|70\.10|84\.|01\.|02\.|03\.)/;
+const EXCLUS_NAF = /^(68\.20|64\.|70\.10|84\.|01\.|02\.|03\.|62\.|63\.1|58\.2|61\.|73\.1|70\.21|95\.1|47\.4[12])/;
+// métier de l'informatique, du web ou de la communication : c'est un confrère, pas un client
+const CONFRERE = /informati|numerique|digital|\bweb\b|webmaster|logiciel|telecom|cyber|infogerance|systemes? d information|reseaux? informatique|agence (de )?(communication|marketing|web)|marketing digital|community manag|developpeur|developpement (web|logiciel|d applications?)|creation de sites?/;
+// indice plus faible : à vérifier à la main avant d'écrire
+const CONFRERE_PEUT_ETRE = /\btech\b|technolog|multimedia|electronique|\bdata\b|consult/;
 const EXCLUS_MOTS = /societe civile immobiliere|\bsci\b|holding|prise de participation|location de biens immobiliers|location de terrains|gestion de patrimoine|location de logement|acquisition.*immeubles|centre hospitalier|\bchu\b|hopital|mairie|prefecture|collectivite territoriale|gendarmerie|commissariat|securite sociale|france travail|vaccination|ville de|centre communal|communaute d agglomeration|conseil (departemental|regional)|ctm|cpam|caf/;
 
 function segmentDe({ naf = '', texte = '' }) {
@@ -100,9 +104,12 @@ function segmentDe({ naf = '', texte = '' }) {
   for (const [k, s] of Object.entries(SEGMENTS)) if (k !== 'autre' && t && s.mots.test(t)) return k;
   return 'autre';
 }
+// métiers du bâtiment dans OpenStreetMap (les autres artisans — luthier, potier, couturier… — ne sont PAS du BTP)
+const CRAFT_BTP = /^(builder|carpenter|electrician|plumber|painter|roofer|tiler|hvac|glaziery|stonemason|metal_construction|window_construction|plasterer|floorer|insulation|locksmith|scaffolder|joiner|gardener|landscaper|parquet_layer|stand_builder)$/;
 function segmentOSM(t) {
   const a = t.amenity, sh = t.shop;
   if (EXCLUS_MOTS.test(norm(t.name))) return 'exclu';
+  if (/^(computer|mobile_phone|electronics|telecommunication)$/.test(sh) || /^(it|telecommunication|advertising_agency)$/.test(t.office) || t.craft === 'electronics_repair') return 'exclu';
   if (/^(restaurant|cafe|bar|fast_food|ice_cream|pub|food_court)$/.test(a) || /^(bakery|pastry|confectionery)$/.test(sh)) return 'resto';
   if (/^(pharmacy|dentist|doctors|clinic|veterinary|hospital)$/.test(a) || t.healthcare || /^(optician|medical_supply|hearing_aids)$/.test(sh)) return 'sante';
   if (/^(hotel|guest_house|apartment|motel|hostel|chalet|camp_site)$/.test(t.tourism)) return 'hebergement';
@@ -112,10 +119,30 @@ function segmentOSM(t) {
   if (/^(kindergarten|driving_school|language_school|music_school|childcare)$/.test(a) || /^(association|ngo|educational_institution)$/.test(t.office)) return 'ecole';
   if (/^(government|diplomatic|political_party|religion)$/.test(t.office) || /^(place_of_worship|townhall|police|post_office|bank|atm)$/.test(a)) return 'exclu';
   if (t.office) return 'bureau';
-  if (t.craft) return 'artisan';
+  if (t.craft) return CRAFT_BTP.test(t.craft) ? 'artisan' : 'autre';
   if (sh) return 'commerce';
   return 'autre';
 }
+// l'activité est-elle connue avec certitude ? (sinon le message ne parle pas de son métier, et un humain vérifie avant l'envoi)
+const segSurOSM = (t, seg) => seg !== 'autre' && !(seg === 'bureau' && /^(company|yes)$/.test(t.office)) && !(seg === 'commerce' && t.shop === 'yes');
+function segmentSur(p) {
+  if (p.segVerifie) return true;
+  if (typeof p.segSur === 'boolean') return p.segSur;
+  return p.segment !== 'autre' && (p.source === 'annuaire' || p.source === 'bodacc' || p.source === 'manuel');
+}
+// raisons de relire le 1er message avant qu'il parte (vide = il peut partir tout seul)
+function aVerifier(p) {
+  if (p.verifie || (p.etape || 0) > 0) return [];
+  const t = norm([p.nom, p.activite, p.site, p.facebook, p.analyse?.titre, p.analyse?.description].join(' '));
+  const r = [];
+  if (CONFRERE.test(t)) r.push('Semble travailler dans l’informatique, le web ou la communication : c’est probablement un confrère');
+  else if (CONFRERE_PEUT_ETRE.test(t)) r.push('Son nom ou son site évoque la technologie ou le conseil : vérifiez qu’il n’est pas du métier');
+  if (!segmentSur(p)) r.push('Activité devinée, pas certaine : regardez son site ou sa page Facebook, puis choisissez l’activité');
+  if (p.groupe) r.push('Enseigne nationale ou groupe : les décisions se prennent ailleurs');
+  return r;
+}
+// site correct déjà en place : on ne lui propose ni site, ni visibilité
+const dejaEnLigne = p => !!p.site && !siteFaible(p);
 
 /* =====================================================================
    SCORE : plus il est haut, plus le prospect a de chances d'avoir besoin de nous MAINTENANT
@@ -169,8 +196,10 @@ function offreDe(p) {
   if (siteFaible(p)) ids = ['siteweb', 'maintweb', ...ids.filter(x => x !== 'siteweb')];
   // entreprise récente : elle doit se faire connaître
   if (ageJours(p.creation) !== null && ageJours(p.creation) <= 365) ids.splice(1, 0, 'marketing');
-  const pk = seg.pack && PACKS.find(x => x.id === seg.pack);
+  const pk = seg.pack && segmentSur(p) && PACKS.find(x => x.id === seg.pack);
   const inPack = pk ? Object.keys(pk.items) : [];
+  if (dejaEnLigne(p)) ids = ids.filter(id => !['siteweb', 'maintweb', 'marketing'].includes(id));
+  if (!ids.length) ids = ['maintenance', 'sauvegarde'];
   ids = [...new Set(ids)].filter(id => SERVICES.find(s => s.id === id) && !inPack.includes(id)).slice(0, 4);
   const valeur = (pk ? pk.prix : 0) + ids.filter(id => !inPack.includes(id)).reduce((t, id) => { const s = SERVICES.find(x => x.id === id); return t + (s.mensuel ? s.base * 12 : s.base); }, 0);
   return { services: ids, pack: pk ? pk.id : null, valeur };
@@ -289,7 +318,7 @@ async function sourceBodacc(jours) {
       out.push({
         id: siren ? 'siren:' + siren : 'bodacc:' + r.id, source: 'bodacc', siren,
         nom: enseigne && norm(enseigne) !== norm(nom) ? `${cap(enseigne)} (${nom})` : (enseigne ? cap(enseigne) : nom), prenom: pp ? cap(prenom) : '',
-        activite, segment: segmentDe({ texte: activite + ' ' + enseigne }),
+        activite, ...(seg => ({ segment: seg, segSur: seg !== 'autre' }))(segmentDe({ texte: activite + ' ' + enseigne })),
         commune: nomCommune(r.ville || adr.ville), adresse: [adr.numeroVoie, adr.typeVoie, adr.nomVoie].filter(Boolean).join(' '),
         creation: acte.dateCommencementActivite || (acte.creation && acte.creation.dateCommencementActivite) || r.dateparution,
         tel: '', email: '', site: ''
@@ -321,8 +350,9 @@ async function sourceOSM() {
     const lat = e.lat ?? e.center?.lat, lon = e.lon ?? e.center?.lon;
     const seg = segmentOSM(t);
     if (seg === 'exclu' || lat == null) return null;
+    const segSur = segSurOSM(t, seg);
     const type = t.amenity || t.shop || t.office || t.craft || t.tourism || t.healthcare || '';
-    return { id: `osm:${e.type}/${e.id}`, source: 'osm', nom: t.name, activite: type.replace(/_/g, ' '), segment: seg,
+    return { id: `osm:${e.type}/${e.id}`, source: 'osm', nom: t.name, activite: type.replace(/_/g, ' '), segment: seg, segSur,
       commune: t['addr:city'] ? nomCommune(t['addr:city']) : communeProche(lat, lon), lat, lon,
       adresse: [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' '),
       tel: (g('phone') || g('mobile')).split(';')[0].trim(), email: g('email').split(';')[0].trim(),
@@ -351,7 +381,7 @@ async function sourceAnnuaire(q, segment) {
       const d = (r.dirigeants || [])[0] || {};
       const ei = r.complements?.est_entrepreneur_individuel;
       out.push({ id: 'siren:' + r.siren, source: 'annuaire', siren: r.siren, nom: cap(r.nom_complet), prenom: ei && d.prenoms ? cap(d.prenoms.split(' ')[0]) : '',
-        activite: (r.libelle_activite_principale || naf), naf, segment: segmentDe({ naf, texte: r.nom_complet }),
+        activite: (r.libelle_activite_principale || naf), naf, ...(seg => ({ segment: seg, segSur: seg !== 'autre' }))(segmentDe({ naf, texte: r.nom_complet })),
         commune: nomCommune(et.libelle_commune), adresse: (et.adresse || '').replace(/\s*\d{5}.*$/, ''),
         lat: et.latitude ? Number(et.latitude) : null, lon: et.longitude ? Number(et.longitude) : null,
         creation: r.date_creation, effectif: r.tranche_effectif_salarie && r.tranche_effectif_salarie !== 'NN' ? r.tranche_effectif_salarie : '',
@@ -451,6 +481,8 @@ const SOURCE_PHRASE = { bodacc: 'l’annonce de création publiée au BODACC', o
 /* =====================================================================
    MESSAGES PERSONNALISÉS
    ===================================================================== */
+// « de Martin », « d’Esprit Guitare »
+const deNom = n => /^[aeiouyhéèêàâîôû]/i.test(n) ? `d’${n}` : `de ${n}`;
 function contexte(p) {
   const seg = SEGMENTS[p.segment] || SEGMENTS.autre;
   const ag = AGENCES[agenceDe(p)];
@@ -459,34 +491,37 @@ function contexte(p) {
   const pk = p.offre?.pack && PACKS.find(x => x.id === p.offre.pack);
   const v = hash(p.id) % 2;
   let accroche;
-  if (age !== null && age <= 365) accroche = v ? `Félicitations pour le lancement de ${nomCourt} !` : `Bravo pour la création de ${nomCourt}, et bienvenue dans l’aventure !`;
-  else if (p.site && p.analyse?.reason === 'injoignable') accroche = `Nous avons voulu consulter le site de ${nomCourt}, mais il ne s’affiche plus : vos clients tombent sur une page d’erreur.`;
-  else if (p.analyse?.ok && !p.analyse.mobile) accroche = `Nous avons regardé le site de ${nomCourt} : il s’affiche mal sur téléphone, alors que la plupart de vos clients vous cherchent depuis leur portable.`;
-  else if (p.analyse?.ok && p.analyse.annee && p.analyse.annee <= new Date().getFullYear() - 3) accroche = `Nous avons regardé le site de ${nomCourt} : il n’a pas l’air d’avoir été mis à jour depuis ${p.analyse.annee}.`;
-  else if ((p.site && /^http:/i.test(p.site)) || (p.analyse?.ok && !p.analyse.https)) accroche = `Nous avons remarqué que le site de ${nomCourt} s’affiche « non sécurisé » dans les navigateurs, ce qui peut faire fuir des clients.`;
+  if (age !== null && age <= 365) accroche = v ? `Félicitations pour le lancement ${deNom(nomCourt)} !` : `Bravo pour la création ${deNom(nomCourt)}, et bienvenue dans l’aventure !`;
+  else if (p.site && p.analyse?.reason === 'injoignable') accroche = `Nous avons voulu consulter le site ${deNom(nomCourt)}, mais il ne s’affiche plus : vos clients tombent sur une page d’erreur.`;
+  else if (p.analyse?.ok && !p.analyse.mobile) accroche = `Nous avons regardé le site ${deNom(nomCourt)} : il s’affiche mal sur téléphone, alors que la plupart de vos clients vous cherchent depuis leur portable.`;
+  else if (p.analyse?.ok && p.analyse.annee && p.analyse.annee <= new Date().getFullYear() - 3) accroche = `Nous avons regardé le site ${deNom(nomCourt)} : il n’a pas l’air d’avoir été mis à jour depuis ${p.analyse.annee}.`;
+  else if ((p.site && /^http:/i.test(p.site)) || (p.analyse?.ok && !p.analyse.https)) accroche = `Nous avons remarqué que le site ${deNom(nomCourt)} s’affiche « non sécurisé » dans les navigateurs, ce qui peut faire fuir des clients.`;
   else if (!p.site && p.sansSite) accroche = `Nous avons vu que ${nomCourt} n’a pas encore de site internet : c’est pourtant là que vos clients vous cherchent en premier.`;
-  else accroche = v ? `Nous nous permettons de vous contacter au sujet de l’informatique de ${nomCourt}.` : `Nous travaillons avec plusieurs ${seg.pluriel} en Martinique et pensons pouvoir vous être utiles.`;
+  else accroche = v || !segmentSur(p) || p.segment === 'autre' ? `Nous nous permettons de vous contacter au sujet de l’informatique ${deNom(nomCourt)}.` : `Nous travaillons avec plusieurs ${seg.pluriel} en Martinique et pensons pouvoir vous être utiles.`;
   const bonjour = p.prenom ? `Bonjour ${p.prenom}` : 'Bonjour';
   const moi = db.reglages.signature || 'L’équipe IloTech';
   const source = SOURCE_PHRASE[p.source] ? `Nous avons trouvé vos coordonnées sur ${SOURCE_PHRASE[p.source]}. ` : '';
   const offre = pk ? ` Par exemple notre formule « ${pk.nom} », à prix fixe annoncé à l’avance.` : '';
-  return { seg, ag, nomCourt, bonjour, moi, accroche, source, offre, signature: `${moi} — agence ${ag.de} · ${ag.tel}` };
+  const sur = segmentSur(p) && p.segment !== 'autre';
+  const equipe = sur ? `Nous équipons les ${seg.pluriel} de Martinique : ${seg.argument}.` : 'Nous aidons les entreprises de Martinique au quotidien pour leur informatique : dépannage, entretien des postes, réseau, sauvegardes et sécurité.';
+  const utile = sur ? seg.argument.split(',')[0] : 'dépannage, réseau, sauvegardes';
+  return { seg, ag, nomCourt, bonjour, moi, accroche, source, offre, equipe, utile, signature: `${moi} — agence ${ag.de} · ${ag.tel}` };
 }
 function messages(p) {
   const c = contexte(p);
   const etape = p.etape || 0;
   const optout = `${c.source}Si vous ne souhaitez pas être recontacté, dites-le nous simplement.`;
   let court;
-  if (etape === 0) court = `${c.bonjour},\n\n${c.accroche}\n\nIloTech est une entreprise informatique martiniquaise (agence ${c.ag.de}). Nous équipons les ${c.seg.pluriel} de Martinique : ${c.seg.argument}.${c.offre}\n\nLe devis est gratuit et sans engagement. Seriez-vous disponible 10 minutes cette semaine pour en parler ?\n\nNotre présentation : ${SITE}plaquette.html?src=whatsapp\n\n${c.signature}\n\n${optout}`;
+  if (etape === 0) court = `${c.bonjour},\n\n${c.accroche}\n\nIloTech est une entreprise informatique martiniquaise (agence ${c.ag.de}). ${c.equipe}${c.offre}\n\nLe devis est gratuit et sans engagement. Seriez-vous disponible 10 minutes cette semaine pour en parler ?\n\nNotre présentation : ${SITE}plaquette.html?src=whatsapp\n\n${c.signature}\n\n${optout}`;
   else if (etape === 1) court = `${c.bonjour}, nous nous permettons de revenir vers vous au sujet de notre message pour ${c.nomCourt}. Le devis reste gratuit et sans engagement : un créneau cette semaine vous conviendrait-il ?\n\n${c.signature}`;
-  else court = `${c.bonjour}, dernier petit message de notre part pour ${c.nomCourt} : si un jour vous avez besoin d’un informaticien qui se déplace en Martinique (${c.seg.argument.split(',')[0]}), gardez simplement ce numéro. Bonne continuation !\n\n${c.signature}`;
+  else court = `${c.bonjour}, dernier petit message de notre part pour ${c.nomCourt} : si un jour vous avez besoin d’un informaticien qui se déplace en Martinique (${c.utile}), gardez simplement ce numéro. Bonne continuation !\n\n${c.signature}`;
   const sujet = etape === 0 ? (hash(p.id) % 2 ? `${c.nomCourt} : votre informatique en Martinique` : `Une question pour ${c.nomCourt}`) : etape === 1 ? `Re : ${c.nomCourt}, devis gratuit` : `Dernier message — ${c.nomCourt}`;
   const services = (p.offre?.services || []).map(id => SERVICES.find(s => s.id === id)).filter(Boolean);
   const email = etape === 0
-    ? `${c.bonjour},\n\n${c.accroche}\n\nIloTech est une entreprise informatique martiniquaise installée à Ducos et au Robert. Nous équipons les ${c.seg.pluriel} de Martinique : ${c.seg.argument}.\n\nCe que nous pourrions vous apporter :\n${services.map(s => `• ${s.nom} : ${s.desc.toLowerCase()}`).join('\n')}\n${c.offre ? '\n' + c.offre.trim() + '\n' : ''}\nNous intervenons sur place ou à distance, et le devis est gratuit et sans engagement. Vous trouverez notre flyer en pièce jointe, et notre présentation complète ici : ${SITE}plaquette.html?src=email\n\nSeriez-vous disponible pour un échange de 10 minutes cette semaine ?\n\nBien cordialement,\n${c.moi}\nInformatique, réseaux, web et sécurité\nAgence ${c.ag.de} · ${c.ag.tel}\n${SITE}\n\n—\n${c.source}Pour ne plus recevoir de message de notre part, répondez simplement STOP.`
+    ? `${c.bonjour},\n\n${c.accroche}\n\nIloTech est une entreprise informatique martiniquaise installée à Ducos et au Robert. ${c.equipe}\n\nCe que nous pourrions vous apporter :\n${services.map(s => `• ${s.nom} : ${s.desc.toLowerCase()}`).join('\n')}\n${c.offre ? '\n' + c.offre.trim() + '\n' : ''}\nNous intervenons sur place ou à distance, et le devis est gratuit et sans engagement. Vous trouverez notre flyer en pièce jointe, et notre présentation complète ici : ${SITE}plaquette.html?src=email\n\nSeriez-vous disponible pour un échange de 10 minutes cette semaine ?\n\nBien cordialement,\n${c.moi}\nInformatique, réseaux, web et sécurité\nAgence ${c.ag.de} · ${c.ag.tel}\n${SITE}\n\n—\n${c.source}Pour ne plus recevoir de message de notre part, répondez simplement STOP.`
     : court + `\n\n—\nPour ne plus recevoir de message de notre part, répondez simplement STOP.`;
-  const appel = `PRÉSENTATION\n« ${c.bonjour}, je vous appelle de la part d’IloTech, l’entreprise informatique de ${c.ag.nom}. Je vous dérange deux minutes ? »\n\nACCROCHE\n« ${c.accroche} »\n\nQUESTIONS\n${c.seg.questions.map(q => '• ' + q).join('\n')}\n\nPROPOSITION\n« Nous équipons les ${c.seg.pluriel} : ${c.seg.argument}. Je peux passer voir votre installation et vous faire un devis gratuit, sans engagement.${c.offre} »\n\nOBJECTIONS\n• « J’ai déjà quelqu’un » → « Très bien ! Gardez notre numéro pour les urgences : nous intervenons sous 48 h. »\n• « Pas le temps » → « Je comprends. Quel moment vous arrangerait pour 10 minutes ? »\n• « C’est trop cher » → « Le devis est gratuit et le prix est annoncé avant toute intervention : vous savez tout avant. »\n• « Envoyez-moi un email » → « Avec plaisir, à quelle adresse ? »\n\nCONCLURE\nFixer un rendez-vous (jour + heure) ou une date de rappel.`;
-  const visite = `À dire en arrivant (30 secondes) :\n« ${c.bonjour}, je viens de la part d’IloTech, l’entreprise informatique de ${c.ag.nom}. ${c.accroche} Nous équipons les ${c.seg.pluriel} : ${c.seg.argument}. Je vous laisse ma carte : le devis est gratuit, il suffit d’un message WhatsApp au ${c.ag.tel}. »\n\nÀ regarder sur place : caisse, Wi-Fi client, caméras, ordinateur de l’accueil, présence sur Google Maps.`;
+  const appel = `PRÉSENTATION\n« ${c.bonjour}, je vous appelle de la part d’IloTech, l’entreprise informatique de ${c.ag.nom}. Je vous dérange deux minutes ? »\n\nACCROCHE\n« ${c.accroche} »\n\nQUESTIONS\n${c.seg.questions.map(q => '• ' + q).join('\n')}\n\nPROPOSITION\n« ${c.equipe} Je peux passer voir votre installation et vous faire un devis gratuit, sans engagement.${c.offre} »\n\nOBJECTIONS\n• « J’ai déjà quelqu’un » → « Très bien ! Gardez notre numéro pour les urgences : nous intervenons sous 48 h. »\n• « Pas le temps » → « Je comprends. Quel moment vous arrangerait pour 10 minutes ? »\n• « C’est trop cher » → « Le devis est gratuit et le prix est annoncé avant toute intervention : vous savez tout avant. »\n• « Envoyez-moi un email » → « Avec plaisir, à quelle adresse ? »\n\nCONCLURE\nFixer un rendez-vous (jour + heure) ou une date de rappel.`;
+  const visite = `À dire en arrivant (30 secondes) :\n« ${c.bonjour}, je viens de la part d’IloTech, l’entreprise informatique de ${c.ag.nom}. ${c.accroche} ${c.equipe} Je vous laisse ma carte : le devis est gratuit, il suffit d’un message WhatsApp au ${c.ag.tel}. »\n\nÀ regarder sur place : caisse, Wi-Fi client, caméras, ordinateur de l’accueil, présence sur Google Maps.`;
   return { whatsapp: court, sms: court.replace(/\n\n/g, '\n').slice(0, 600), email: { sujet, corps: email }, appel, visite };
 }
 
@@ -548,6 +583,7 @@ async function envoyerEmail(id, silencieux) {
   if (!scriptPret()) return silencieux ? false : aActiver();
   const p = parId(id); if (!p || !p.email) return false;
   if (estNoir(p)) { if (!silencieux) toast('Cette entreprise est sur la liste noire : pas d’envoi', true); return false; }
+  if (aVerifier(p).length) { if (!silencieux) toast('À vérifier avant d’envoyer : voir l’encadré « Avant d’envoyer » de la fiche', true); return false; }
   const m = messages(p);
   const sujet = !silencieux && $('fSujet') ? $('fSujet').value : m.email.sujet;
   const corps = !silencieux && $('fMsg') ? $('fMsg').value : m.email.corps;
@@ -564,7 +600,7 @@ async function envoyerEmail(id, silencieux) {
   }
 }
 // emails du jour : relances dues + nouveaux prospects du plan qui ont un email (séquence pas terminée)
-const emailsDuJour = () => { const { relances, choix } = plan(); return [...relances, ...choix].filter(p => p.email && (p.etape || 0) < 3).slice(0, db.reglages.maxEmails || 25); };
+const emailsDuJour = () => { const { relances, choix } = plan(); return [...relances, ...choix].filter(envoyable).slice(0, db.reglages.maxEmails || 25); };
 async function envoyerEmailsDuJour() {
   if (!scriptPret()) return aActiver();
   const list = emailsDuJour();
@@ -642,8 +678,9 @@ function ecarter(id) {
 }
 async function envoyerValides() {
   if (!scriptPret()) return aActiver();
-  const list = aValider();
-  if (!list.length || !confirm(`Envoyer les ${list.length} emails préparés ?\n\n${list.map(p => '• ' + p.nom + ' — ' + p.email).join('\n')}`)) return;
+  const list = aValider().filter(envoyable);
+  if (!list.length) return toast('Rien à envoyer : vérifiez d’abord les fiches marquées « À vérifier »', true);
+  if (!confirm(`Envoyer les ${list.length} emails préparés ?\n\n${list.map(p => '• ' + p.nom + ' — ' + p.email).join('\n')}`)) return;
   let ok = 0;
   for (let i = 0; i < list.length; i++) {
     chargement = `Envoi : ${i + 1} / ${list.length}…`; renderChargement();
@@ -667,6 +704,7 @@ function setStatut(id, s) {
 function majChamp(id, k, v) {
   const p = parId(id); if (!p) return;
   p[k] = typeof v === 'string' ? v.trim() : v;
+  if (k === 'segment') p.segVerifie = true;
   if (['site', 'sansSite', 'segment'].includes(k)) p.offre = offreDe(p);
   sauver(p); renderFiche(); render();
 }
@@ -708,7 +746,7 @@ const relanceTxt = p => !p.relance ? '' : p.relance < todayISO() ? `<span class=
 function ligne(p) {
   return `<button type="button" class="p-row" onclick="ouvrir('${esc(p.id)}')">
     ${badgeScore(p.score)}
-    <span class="p-main"><b>${esc(p.nom)}${estNoir(p) ? ' <span class="p-lnoire">Liste noire</span>' : estBlanc(p) ? ' <span class="p-lblanche">Prioritaire</span>' : ''}</b><small>${chipSeg(p.segment)} ${esc(p.commune || '')} · Agence ${AGENCES[agenceDe(p)].nom}</small></span>
+    <span class="p-main"><b>${esc(p.nom)}${estNoir(p) ? ' <span class="p-lnoire">Liste noire</span>' : estBlanc(p) ? ' <span class="p-lblanche">Prioritaire</span>' : ''}${!estNoir(p) && aVerifier(p).length ? ' <span class="p-averif">À vérifier</span>' : ''}</b><small>${chipSeg(p.segment)} ${esc(p.commune || '')} · Agence ${AGENCES[agenceDe(p)].nom}</small></span>
     <span class="p-sig">${signaux(p)}</span>
     <span class="p-side">${chipStatut(p.statut)}${relanceTxt(p)}</span></button>`;
 }
@@ -776,7 +814,7 @@ function listesHTML() {
 
 /* ---------- Sélection de plusieurs entreprises pour leur envoyer un email ---------- */
 const selection = new Set();
-const envoyable = p => !!(p && p.email && !['stop', 'client', 'perdu'].includes(p.statut) && (p.etape || 0) < 3 && !estNoir(p));
+const envoyable = p => !!(p && p.email && !['stop', 'client', 'perdu'].includes(p.statut) && (p.etape || 0) < 3 && !estNoir(p) && !aVerifier(p).length);
 const etapeNom = p => ['1er message', 'relance', 'dernière relance'][Math.min(p.etape || 0, 2)];
 function toggleSel(id) { selection.has(id) ? selection.delete(id) : selection.add(id); render(); }
 function selTout(ids, on) { ids.forEach(id => on ? selection.add(id) : selection.delete(id)); render(); }
@@ -908,10 +946,10 @@ const VUES = {
           <button type="button" class="btn btn-primary btn-sm p-toutenvoyer${scriptPret() ? '' : ' btn-off'}" onclick="envoyerValides()">Tout envoyer</button></h2>
         ${barreSel(attente)}
         <div class="p-list">${attente.map(p => ligneSel(p, `<div class="p-row res">${badgeScore(p.score)}
-          <span class="p-main"><b>${esc(p.nom)}</b><small>${chipSeg(p.segment)} ${esc(p.commune || '')} · ${esc(p.email)}</small></span>
+          <span class="p-main"><b>${esc(p.nom)}${aVerifier(p).length ? ' <span class="p-averif">À vérifier</span>' : ''}</b><small>${chipSeg(p.segment)} ${esc(p.commune || '')} · ${esc(p.email)}${aVerifier(p).length ? ' · ' + esc(aVerifier(p)[0]) : ''}</small></span>
           <span class="p-sig"></span>
-          <span class="p-side p-valider"><button type="button" class="btn btn-sm" onclick="canalOuvrir('${esc(p.id)}','email')">Voir l’email</button>
-            <button type="button" class="btn btn-sm btn-primary${scriptPret() ? '' : ' btn-off'}" onclick="envoyerEmail('${esc(p.id)}')">Envoyer</button>
+          <span class="p-side p-valider"><button type="button" class="btn btn-sm" onclick="canalOuvrir('${esc(p.id)}','email')">${aVerifier(p).length ? 'Vérifier' : 'Voir l’email'}</button>
+            ${aVerifier(p).length ? '' : `<button type="button" class="btn btn-sm btn-primary${scriptPret() ? '' : ' btn-off'}" onclick="envoyerEmail('${esc(p.id)}')">Envoyer</button>`}
             <button type="button" class="link" onclick="ecarter('${esc(p.id)}')">Écarter</button></span></div>`)).join('')}</div>` : ''}
       <div class="g-stats p-kpi">
         <span><b>${P.filter(p => p.statut === 'nouveau').length}</b> à contacter</span>
@@ -1084,6 +1122,7 @@ function renderFiche() {
     <div class="p-fiche">
       <section>
         <h3>Contacter <span class="muted">· ${etapes[Math.min(p.etape || 0, 3)]}${p.relance ? ` · relance prévue ${frDay(p.relance)}` : ''}</span></h3>
+        ${(() => { const r = aVerifier(p); return r.length ? `<div class="p-verif"><b>⚠ Avant d’envoyer</b><ul>${r.map(x => `<li>${esc(x)}</li>`).join('')}</ul>${p.analyse?.titre || p.analyse?.description ? `<p class="muted small">Son site dit : « ${esc([p.analyse.titre, p.analyse.description].filter(Boolean).join(' — ').slice(0, 220))} »</p>` : ''}<div class="actions left">${p.site ? `<a class="btn btn-sm" href="${esc(/^https?:/i.test(p.site) ? p.site : 'https://' + p.site)}" target="_blank" rel="noopener">Voir son site</a>` : ''}<button type="button" class="btn btn-sm" onclick="majChamp('${esc(p.id)}','verifie',true)">✓ J’ai vérifié, le message est adapté</button><button type="button" class="btn btn-sm g-danger" onclick="setStatut('${esc(p.id)}','perdu')">Pas une cible</button></div></div>` : ''; })()}
         <div class="g-tabs p-canaux">${[['whatsapp', 'WhatsApp'], ['sms', 'SMS'], ['email', 'Email'], ['appel', 'Script d’appel'], ['visite', 'Visite']].map(([k, l]) => `<button type="button" class="${canal === k ? 'on' : ''}" onclick="canal='${k}';renderFiche()">${l}</button>`).join('')}</div>
         ${canal === 'email' ? `<label class="p-lab">Objet<input id="fSujet" value="${esc(m.email.sujet)}"></label>` : ''}
         <textarea id="fMsg" class="p-msg ${canal === 'appel' || canal === 'visite' ? 'script' : ''}" ${canal === 'appel' || canal === 'visite' ? 'readonly' : ''}>${esc(txt)}</textarea>

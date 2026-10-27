@@ -194,3 +194,9 @@ button.p-chip:hover{border-color:var(--primary)}
 /* onglet « Envoyer des emails » */
 .p-envoi-rapide{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 18px;padding:16px;border-radius:12px;background:var(--surface-2,#f5f7fb);border:1px solid var(--line,#d5dce6)}
 .p-envoi-rapide div{display:grid;gap:2px}
+
+/* 1er message à vérifier avant l'envoi (activité incertaine, confrère possible) */
+.p-averif{margin-left:6px;padding:1px 7px;border-radius:99px;background:#f59e0b;color:#1a1300;font:800 10.5px/1.6 var(--sans,system-ui);vertical-align:middle}
+.p-verif{margin:0 0 12px;padding:10px 12px;border-radius:12px;border:1px solid #f59e0b;background:color-mix(in srgb,#f59e0b 12%,transparent)}
+.p-verif ul{margin:6px 0;padding-left:18px}
+.p-verif .actions{margin-top:6px;gap:6px;flex-wrap:wrap}
