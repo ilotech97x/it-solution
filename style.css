@@ -930,3 +930,75 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 .carte-media>.illu,.svc-media>.illu,.car-media>.illu{position:absolute;inset:0;width:100%;height:100%;max-width:none;aspect-ratio:auto;object-fit:cover;border-radius:0;box-shadow:none}
 .car-media>.illu.scene{inset:auto 10px;top:50%;width:calc(100% - 20px);height:auto;aspect-ratio:16/10;transform:translateY(-50%);border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.35)}
 .car-media:has(.scene){background:color-mix(in srgb,var(--t) 22%,#0b1324)}
+
+/* =====================================================================
+   BANDE « TOUS NOS SERVICES » : tout en haut, sur toute la largeur, défile lentement
+   ===================================================================== */
+.bande{padding:12px 0 4px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--surface) 60%,transparent)}
+.bande .car-piste{padding:4px 16px 10px;-webkit-mask-image:none;mask-image:none}
+.bande .car-carte{flex:0 0 340px;height:112px;grid-template-columns:112px minmax(0,1fr);border-radius:16px;box-shadow:none}
+.bande .car-txt{gap:3px;padding:10px 12px}
+.bande .car-pole{font-size:10.5px;padding:2px 8px}
+.bande .car-txt>b{font-size:15.5px}
+.bande .car-txt small{font-size:12.5px;-webkit-line-clamp:2}
+.bande .car-bas{font-size:12.5px}
+.bande .car-prix b{font-size:15px}
+.bande .car-btn{top:calc(50% - 26px);width:38px;height:38px;font-size:20px}
+.bande .car-btn.prec{left:8px}.bande .car-btn.suiv{right:8px}
+.bande .car-media>.illu.scene{inset:auto 6px;width:calc(100% - 12px);border-radius:8px}
+@media (max-width:700px){.bande{padding-top:8px}.bande .car-piste{padding:2px 12px 8px}.bande .car-carte{flex-basis:290px;height:100px;grid-template-columns:96px minmax(0,1fr)}}
+
+/* =====================================================================
+   MENU DU SITE (bouton « Menu » de l'en-tête)
+   ===================================================================== */
+.btn-menu .ico{width:18px;height:18px}
+.menu-site{width:min(1100px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:20px 24px 24px;border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--text)}
+.menu-site::backdrop,.apercu-devis::backdrop{background:rgba(3,6,12,.6);backdrop-filter:blur(3px)}
+.menu-grille{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:24px}
+.menu-grille h3{margin:4px 0 10px;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.menu-grille section>h3:not(:first-child){margin-top:18px}
+.menu-grille section>button{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 6px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);color:var(--text);font:600 15px var(--sans);text-align:left;cursor:pointer}
+.menu-grille section>button:hover{border-color:var(--t)}
+.menu-grille section>button .ico{flex:none;width:34px;height:34px;padding:7px;border-radius:10px;background:color-mix(in srgb,var(--t) 18%,transparent);color:var(--td,var(--t))}
+.menu-grille small{display:block;color:var(--muted);font-weight:400;font-size:12.5px;line-height:1.35}
+.menu-grille section>a{display:block;padding:8px 0;border-bottom:1px solid var(--line);color:var(--text);text-decoration:none;font-weight:600}
+.menu-grille section>a:hover{color:var(--primary)}
+.menu-agence{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 12px}
+.menu-agence b{grid-column:1/-1}
+.menu-grille section>.btn{width:100%;margin:0 0 6px;justify-content:flex-start}
+@media (max-width:860px){.menu-grille{grid-template-columns:minmax(0,1fr)}.menu-site{padding:16px}}
+
+/* =====================================================================
+   DEVIS : aperçu immédiat, conditions, bon pour accord
+   ===================================================================== */
+.apercu-devis{width:min(860px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:18px 22px;border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--text)}
+.btn-apercu{width:100%;margin-top:8px;justify-content:center}
+.devis-conditions{margin:12px 0 0;padding-left:18px;font-size:13px;color:var(--muted);display:grid;gap:3px}
+.devis-accord{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.devis-accord div{min-height:84px;padding:10px 12px;border:1px dashed var(--line-2);border-radius:10px;display:grid;align-content:start;gap:2px}
+.devis-accord small{color:var(--muted);font-size:12px}
+
+/* =====================================================================
+   MOBILE : en-tête sur une ligne, une seule barre d'action en bas
+   ===================================================================== */
+@media (max-width:700px){
+  .top{flex-wrap:nowrap;gap:8px;padding:8px 12px}
+  .top .studio-badge,.top .status,#grandBtn,.top .btn-aide,.top .head-contact{display:none}
+  .top .brand-text>span{display:none}
+  .top-actions{margin-left:auto;gap:6px}
+  .btn-menu span{display:inline}
+  .mobilebar{gap:8px}
+  .mobilebar .btn{min-height:44px;padding:8px 14px}
+  .mobilebar .btn-primary{flex:1;justify-content:center}
+  body[data-etape="1"] .config .nav{display:none}
+  .content{padding:14px 12px}
+  .pick-head h2{font-size:19px}
+  .help-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+  .help-row .btn-help{min-height:42px;font-size:13.5px;justify-content:center;text-align:center}
+}
+@media (max-width:700px){
+  .top .top-actions .btn-menu,.top .top-actions .btn-theme{display:inline-flex}
+  .top .top-actions #grandBtn{display:none}
+}
+.bande .car-carte{height:128px;grid-template-columns:120px minmax(0,1fr)}
+@media (max-width:700px){.bande .car-carte{height:112px;grid-template-columns:100px minmax(0,1fr)}.bande .car-pole{display:none}.bande .car-txt small{-webkit-line-clamp:2}}

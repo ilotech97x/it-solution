@@ -23,7 +23,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "LocalBusiness", "@id": "https://ilo-tech.com/#ilotech", "name": "IloTech", "url": "https://ilo-tech.com/", "logo": "https://ilo-tech.com/img/logo-ilo.png", "image": "https://ilo-tech.com/img/og-ilotech.jpg", "email": "ilotech.contact@gmail.com", "priceRange": "€", "description": "Dépannage informatique, installation Starlink, caméras, Wi-Fi, sites web, maintenance et cybersécurité pour les entreprises et drone en Martinique.", "areaServed": {"@type": "AdministrativeArea", "name": "Martinique"}, "telephone": "+596696779902", "address": {"@type": "PostalAddress", "addressLocality": "Le Robert", "postalCode": "97231", "addressRegion": "Martinique", "addressCountry": "FR"}, "openingHoursSpecification": [{"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "opens": "08:00", "closes": "17:00"}, {"@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "08:00", "closes": "12:00"}], "department": [{"@type": "LocalBusiness", "name": "IloTech — Ducos", "telephone": "+596696779902", "priceRange": "€", "address": {"@type": "PostalAddress", "addressLocality": "Ducos", "postalCode": "97224", "addressRegion": "Martinique", "addressCountry": "FR"}, "openingHoursSpecification": [{"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "opens": "08:00", "closes": "17:00"}, {"@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "08:00", "closes": "12:00"}]}, {"@type": "LocalBusiness", "name": "IloTech — Le Robert", "telephone": "+596696482678", "priceRange": "€", "address": {"@type": "PostalAddress", "addressLocality": "Le Robert", "postalCode": "97231", "addressRegion": "Martinique", "addressCountry": "FR"}, "openingHoursSpecification": [{"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "opens": "08:00", "closes": "17:00"}, {"@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "08:00", "closes": "12:00"}]}], "hasOfferCatalog": {"@type": "OfferCatalog", "name": "Services IloTech", "itemListElement": [{"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Dépannage informatique"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Installation Starlink"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Installation de caméras de surveillance"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Installation Wi-Fi"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Réparation d’ordinateur portable"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Récupération de données"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Création de site internet"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Application mobile"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Maintenance informatique entreprise"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Cybersécurité"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Caisse enregistreuse"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Photo et vidéo par drone"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Cours d’informatique seniors"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Domotique"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Onduleur"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Intelligence artificielle pour entreprises"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Agence réseaux sociaux"}}, {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Contenus vidéo créés avec l’IA"}}]}, "sameAs": ["https://www.instagram.com/ilo.tech.97/", "https://www.tiktok.com/@ilo.tech", "https://www.youtube.com/@Ilo_Tech"]}</script>
   <script>try{if(localStorage.getItem('itTheme')==='light')document.documentElement.dataset.theme='light'}catch(e){}</script>
-  <link rel="stylesheet" href="style.css?v=84">
+  <link rel="stylesheet" href="style.css?v=85">
 </head>
 <body>
   <header class="top">
@@ -37,8 +37,16 @@
       <button type="button" class="btn btn-head" id="grandBtn" aria-pressed="false" onclick="setGrand(!document.body.classList.contains('grand'))"><b class="aa">A<small>A</small></b><span>Texte plus grand</span></button>
       <button type="button" class="btn btn-head btn-aide" onclick="openHelp()"><span>Besoin d'aide ?</span></button>
       <span id="headContact" class="head-contact"></span>
+      <button type="button" class="btn btn-head btn-menu" onclick="ouvrirMenu()" aria-haspopup="dialog" aria-controls="menuSite"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menu</span></button>
     </div>
   </header>
+
+  <section class="bande" aria-label="Tous nos services">
+    <div class="carrousel" data-carrousel>
+      <div class="car-piste" tabindex="0" role="region" aria-label="Tous nos services, défilement automatique"></div>
+      <button type="button" class="car-btn prec" aria-label="Services précédents">‹</button><button type="button" class="car-btn suiv" aria-label="Services suivants">›</button>
+    </div>
+  </section>
 
   <h1 class="sr-only">IloTech, dépannage informatique, installation Starlink, caméras, Wi-Fi et sites internet en Martinique (Ducos et Le Robert)</h1>
   <main class="layout" id="main">
@@ -99,11 +107,6 @@
       <header class="ap-tete"><span class="ap-sur">IloTech en images</span>
         <h2 id="carTitre">L’informatique, le web et l’IA, partout en Martinique</h2>
         <p>Dépannage, Starlink, caméras, sites internet, intelligence artificielle, drone : un seul interlocuteur, deux agences, à Ducos et au Robert.</p></header>
-      <div class="carrousel" data-carrousel>
-        <div class="car-piste" tabindex="0" role="region" aria-label="Tous nos services, défilement automatique"></div>
-        <button type="button" class="car-btn prec" aria-label="Image précédente">‹</button><button type="button" class="car-btn suiv" aria-label="Image suivante">›</button>
-      </div>
-      <p class="ap-note">Illustrations.</p>
     </section>
 
     <section class="ap-bloc" aria-labelledby="sitesTitre">
@@ -139,10 +142,15 @@
 
   <div class="mobilebar">
     <button type="button" class="mobile-sel" onclick="showSel()"><span id="mobileCount">Total estimé</span><b id="mobilePrice" class="mono">—</b></button>
-    <button type="button" class="btn btn-aide-m" onclick="openHelp()"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg> Aide</button>
+    <button type="button" class="btn" onclick="apercuDevis()">Prix</button>
+    <button type="button" class="btn btn-primary" onclick="start('rdv')">Rendez-vous</button>
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="menuSite" class="menu-site" aria-label="Menu du site"></dialog>
+
+  <dialog id="apercuDevis" class="apercu-devis" aria-label="Aperçu de votre devis"></dialog>
 
   <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpTitle">
     <div class="dialog-head">
@@ -164,10 +172,10 @@
     <div id="zonesGrid" class="zones"></div>
   </dialog>
 
-  <script src="data.js?v=84"></script>
-  <script src="outils.js?v=84"></script>
-  <script src="scenes.js?v=84"></script>
-  <script src="pages-seo.js?v=84"></script>
-  <script src="app.js?v=84"></script>
+  <script src="data.js?v=85"></script>
+  <script src="outils.js?v=85"></script>
+  <script src="scenes.js?v=85"></script>
+  <script src="pages-seo.js?v=85"></script>
+  <script src="app.js?v=85"></script>
 </body>
 </html>

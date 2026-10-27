@@ -249,7 +249,8 @@ function renderSummary() {
       meta.push(`Encore <b>${eur(CONFIG.deplacementOffertDes - r.presta)}</b> pour un déplacement offert<div class="progress"><span style="width:${pct}%"></span></div>`);
     }
   }
-  $('meta').innerHTML = meta.map(m => `<div>${m}</div>`).join('');
+  $('meta').innerHTML = meta.map(m => `<div>${m}</div>`).join('')
+    + (n && state.step === 1 ? `<button type="button" class="btn btn-apercu" onclick="apercuDevis()">${ico('doc')} Voir mon devis tout de suite</button>` : '');
 
   $('kindToggle').hidden = !(typeof state.step === 'number' && state.step > 1);
   $('kindToggle').innerHTML = `<button type="button" aria-pressed="${state.kind === 'rdv'}" onclick="setKind('rdv')">${ico('calendar')} Rendez-vous</button><button type="button" aria-pressed="${state.kind === 'devis'}" onclick="setKind('devis')">${ico('doc')} Devis</button>`;
@@ -523,6 +524,7 @@ function render() {
   const key = a && a.name ? `[name="${a.name}"][value="${a.value}"]` : a && a.id && $('app').contains(a) ? '#' + a.id : null;
   $('app').innerHTML = VIEWS[state.step]();
   $('app').dataset.view = String(state.step);
+  document.body.dataset.etape = String(state.step);
   renderSteps();
   renderNav();
   renderSummary();
@@ -892,32 +894,82 @@ function renderSuccess(lead, received, google) {
   finishScreen();
 }
 
-function renderDevis(lead, received, google) {
-  const ag = AGENCES[lead.agence];
-  const r = lead.estimate;
+// document du devis : sert à l'aperçu immédiat (sans coordonnées) et au devis final
+function devisDoc(r, { ref, agence, client, validite, apercu }) {
+  const ag = AGENCES[agence];
   const row = (label, detail, value) => `<tr><td>${esc(label)}${detail ? `<small>${esc(detail)}</small>` : ''}</td><td>${value}</td></tr>`;
   let rows = r.lines.map(l => row(l.label, l.detail, (l.old ? `<s>${eur(l.old)}</s> ` : '') + (l.prix || l.mensuel ? lineVal(l) : 'Gratuit'))).join('');
-  if (r.deplLabel) rows += row(r.deplLabel, lead.mode === 'site' ? lead.commune : '', r.offert ? `<s>${eur(r.deplPlein)}</s> Offert` : r.depl ? eur(r.depl) : 'Gratuit');
-  $('app').innerHTML = `
-    <div class="devis-status ${received ? 'ok' : ''}">${received ? `✓ Votre demande de devis est transmise à l'agence <b>${ag.de}</b>. Une copie vous est envoyée par email.` : `Envoyez ce devis à l'agence <b>${ag.de}</b> sur WhatsApp pour qu'un technicien le confirme.`}</div>
-    <div class="actions devis-actions">
-      <a class="btn btn-wa" href="${waUrl(ag.tel, lead.recap)}" target="_blank" rel="noopener">${ico('chat')} ${received ? 'Discuter' : 'Envoyer'} sur WhatsApp</a>
-      <button type="button" class="btn" onclick="print()">${ico('doc')} Imprimer / PDF</button>
-      <button type="button" class="btn btn-primary" onclick="devisToRdv()">${ico('calendar')} Prendre rendez-vous</button>
-    </div>
-    <article class="devis" id="devisDoc">
+  if (r.deplLabel) rows += row(r.deplLabel, client.commune || '', r.offert ? `<s>${eur(r.deplPlein)}</s> Offert` : r.depl ? eur(r.depl) : 'Gratuit');
+  return `<article class="devis" id="devisDoc">
       <header class="devis-head">
-        <div class="devis-brand"><img class="devis-logo" src="img/logo-ilo.png" alt=""><div><b>${ENTREPRISE.nomCommercial}</b><small>Agence ${ag.de} · ${esc(ag.tel)}</small><small>${ENTREPRISE.exploitant} · SIRET ${ENTREPRISE.siret}</small><small>${ENTREPRISE.adresse}</small></div></div>
-        <div class="mono devis-meta"><b>DEVIS ESTIMATIF</b><span>N° ${esc(lead.ref)}</span><span>Émis le ${new Date().toLocaleDateString('fr-FR')}</span><span>Valable jusqu'au ${parseISO(lead.validite).toLocaleDateString('fr-FR')}</span></div>
+        <div class="devis-brand"><img class="devis-logo" src="img/logo-ilo.png" alt=""><div><b>${ENTREPRISE.nomCommercial}</b><small>Agence ${ag.de} · ${esc(ag.tel)}</small><small>${ENTREPRISE.exploitant} · SIRET ${ENTREPRISE.siret}</small></div></div>
+        <div class="mono devis-meta"><b>${apercu ? 'APERÇU DU DEVIS' : 'DEVIS ESTIMATIF'}</b><span>N° ${esc(ref)}</span><span>Émis le ${new Date().toLocaleDateString('fr-FR')}</span><span>Valable jusqu'au ${parseISO(validite).toLocaleDateString('fr-FR')}</span></div>
       </header>
-      <div class="devis-client"><span class="mono">CLIENT</span><b>${esc(lead.name)}</b><span>${esc(lead.phone)} · ${esc(lead.email)}</span><span>${esc(lead.lieu)}</span>${lead.appareil ? `<span>Appareil : ${esc(lead.appareil)}</span>` : ''}</div>
+      <div class="devis-client"><span class="mono">CLIENT</span>${client.nom ? `<b>${esc(client.nom)}</b><span>${esc(client.contact)}</span><span>${esc(client.lieu)}</span>${client.appareil ? `<span>Appareil : ${esc(client.appareil)}</span>` : ''}`
+        : '<span class="muted">À compléter : vos coordonnées sont demandées pour recevoir le devis officiel.</span>'}</div>
       <table class="devis-table"><thead><tr><th>Désignation</th><th>Prix</th></tr></thead><tbody>${rows}</tbody>
         <tfoot><tr><td>Total estimé${r.savings ? `<small>dont ${eur(r.savings)} d'économie</small>` : ''}</td><td>${priceText(r)}</td></tr></tfoot></table>
-      <p class="devis-note">${CONFIG.mentionPrix ? esc(CONFIG.mentionPrix) + '. ' : ''}${CONFIG.paiement3fois && r.min >= CONFIG.paiement3fois ? 'Paiement possible en 3 fois sans frais. ' : ''}Estimation établie en ligne à partir des informations fournies. Le prix définitif est confirmé après diagnostic, avant toute intervention. Aucun engagement.</p>
-    </article>
+      <ul class="devis-conditions">
+        <li>${CONFIG.mentionPrix ? esc(CONFIG.mentionPrix) + '.' : ''} Prix en euros, définitif après diagnostic et confirmé avant toute intervention.</li>
+        <li>Aucun acompte pour un dépannage ; pièces éventuelles annoncées avant d'être commandées.${CONFIG.paiement3fois && r.min >= CONFIG.paiement3fois ? ' Paiement possible en 3 fois sans frais.' : ''}</li>
+        <li>Devis gratuit et sans engagement, valable ${CONFIG.validiteDevis} jours.</li>
+      </ul>
+      ${apercu ? '' : `<div class="devis-accord"><div><span class="mono">BON POUR ACCORD</span><small>Date et signature du client</small></div><div><span class="mono">${ENTREPRISE.nomCommercial}</span><small>Agence ${ag.de}</small></div></div>`}
+    </article>`;
+}
+
+function renderDevis(lead, received, google) {
+  const ag = AGENCES[lead.agence];
+  $('app').innerHTML = `
+    <div class="devis-status ${received ? 'ok' : ''}">${received ? `✓ Votre demande de devis est transmise à l'agence <b>${ag.de}</b>. Une copie vous est envoyée par email.` : `Envoyez ce devis à l'agence <b>${ag.de}</b> sur WhatsApp pour qu'elle le confirme.`}</div>
+    <div class="actions devis-actions">
+      <button type="button" class="btn btn-primary" onclick="devisToRdv()">${ico('calendar')} J'accepte : prendre rendez-vous</button>
+      <a class="btn btn-wa" href="${waUrl(ag.tel, lead.recap)}" target="_blank" rel="noopener">${ico('chat')} ${received ? 'Discuter' : 'Envoyer'} sur WhatsApp</a>
+      <button type="button" class="btn" onclick="print()">${ico('doc')} Imprimer / PDF</button>
+    </div>
+    ${devisDoc(lead.estimate, { ref: lead.ref, agence: lead.agence, validite: lead.validite,
+      client: { nom: lead.name, contact: [lead.phone, lead.email].filter(Boolean).join(' · '), lieu: lead.lieu, appareil: lead.appareil, commune: lead.mode === 'site' ? lead.commune : '' } })}
     <p class="center"><button type="button" class="link" onclick="reset()">Faire une nouvelle demande</button></p>`;
   document.body.classList.add('print-devis');
   finishScreen();
+}
+
+// aperçu immédiat, sans rien remplir : le client voit son devis, l'imprime, l'envoie, ou demande le devis officiel
+function apercuDevis() {
+  const r = calc(), dlg = $('apercuDevis');
+  if (!r.lines.length) { toast('Choisissez d’abord un service ou une formule'); return; }
+  const ag = agenceKey();
+  const recap = `Bonjour IloTech, voici ma sélection : ${r.lines.map(l => l.label).join(', ')}. Total estimé : ${priceText(r)}.`;
+  dlg.innerHTML = `<div class="dialog-head"><h2>Votre devis en un coup d’œil</h2><button type="button" class="btn" onclick="this.closest('dialog').close()">Fermer</button></div>
+    ${devisDoc(r, { ref: 'aperçu', agence: ag, client: {}, validite: iso(new Date(Date.now() + CONFIG.validiteDevis * 86400000)), apercu: true })}
+    <div class="actions devis-actions">
+      <button type="button" class="btn btn-primary" onclick="$('apercuDevis').close();start('devis')">${ico('doc')} Recevoir le devis officiel (gratuit)</button>
+      <button type="button" class="btn" onclick="$('apercuDevis').close();start('rdv')">${ico('calendar')} Prendre rendez-vous</button>
+      <a class="btn btn-wa" href="${waUrl(AGENCES[ag].tel, recap)}" target="_blank" rel="noopener">${ico('chat')} Envoyer sur WhatsApp</a>
+    </div>`;
+  dlg.showModal(); stat('apercu_devis');
+}
+
+// menu du site (toutes tailles d'écran) : pôles, ressources, autres sites, contact, réglages d'affichage
+function ouvrirMenu() {
+  const dlg = $('menuSite');
+  const lien = (href, t, sub = '') => `<a href="${href}">${t}${sub ? `<small>${sub}</small>` : ''}</a>`;
+  dlg.innerHTML = `<div class="dialog-head"><h2>Menu</h2><button type="button" class="btn" onclick="this.closest('dialog').close()">Fermer</button></div>
+    <div class="menu-grille">
+      <section><h3>Nos services</h3>${UNIVERS.map(u => `<button type="button" style="--t:${u.couleur}" onclick="$('menuSite').close();setUniv('${u.id}');scrollTo({top:0,behavior:'smooth'})">${ico(u.icon)}<span>${esc(u.nom)}<small>${esc(u.desc)}</small></span></button>`).join('')}</section>
+      <section><h3>Infos et outils</h3>
+        ${lien('services.html', 'Tous les services et tarifs')}${lien('installation-starlink-martinique.html', 'Installation Starlink', 'Internet partout en Martinique')}
+        ${lien('conseils.html', 'Conseils et guides')}${lien('outils-gratuits.html', 'Outils gratuits', 'QR code, mot de passe…')}
+        ${lien('fiche-tarifs.html', 'Fiche tarifs à imprimer')}<a href="#" onclick="$('menuSite').close();openSuivi();return false">Suivre ma demande</a>
+        <h3>Nos autres sites</h3>${lien('https://studio.ilo-tech.com/', 'IloTech Studio', 'Agence marketing et IA')}${lien('https://immo.ilo-tech.com/', 'IloTech Immobilier', 'Photos, drone, annonces')}</section>
+      <section><h3>Nous contacter</h3>${Object.values(AGENCES).map(a => `<div class="menu-agence"><b>Agence ${a.de}</b>
+          <a class="btn btn-primary" href="${telUrl(a.tel)}">${ico('phone')} ${esc(a.tel)}</a>
+          <a class="btn btn-wa" href="${waUrl(a.tel, "Bonjour IloTech, j'aimerais un renseignement.")}" target="_blank" rel="noopener">${ico('chat')} WhatsApp</a></div>`).join('')}
+        <h3>Affichage</h3>
+        <button type="button" class="btn" onclick="setGrand(!document.body.classList.contains('grand'))"><b class="aa">A<small>A</small></b> Texte plus grand</button>
+        <button type="button" class="btn" onclick="setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light')">Mode clair / sombre</button></section>
+    </div>`;
+  dlg.showModal();
 }
 
 function devisToRdv() { state.kind = 'rdv'; goTo(2); }
