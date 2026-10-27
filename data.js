@@ -331,7 +331,8 @@ const CATEGORIES = [
 
 // Annoncés sous les onglets (« Bientôt ») — retirez une ligne quand le service est lancé.
 // photos (illustrations) par onglet : img/photos/<nom>.jpg — affichées à la place du dessin quand elles existent
-const PHOTOS_CAT = { starlink: 'starlink-carre', ordi: 'reparation', camera: 'camera', ia: 'ia', drone: 'drone', marketing: 'reseaux', aide: 'seniors', immo: 'drone' };
+const PHOTOS_CAT = { starlink: 'starlink-carre', ordi: 'reparation', camera: 'camera', ia: 'ia', drone: 'drone', marketing: 'reseaux', aide: 'seniors', immo: 'immo',
+  securite: 'securite', donnees: 'donnees', install: 'install', mobile: 'mobile', gaming: 'gaming', domo: 'domo', wifi: 'wifi', multimedia: 'multimedia', web: 'web', appli: 'appli', prog: 'prog', pro: 'pro', reseau: 'reseau', cloud: 'cloud', cyber: 'cyber', caisse: 'caisse' };
 
 // Vitrines (page Services) : « ce que vous obtenez » (icône, texte) et 3 pastilles d'exemple par onglet
 const VITRINES = {
