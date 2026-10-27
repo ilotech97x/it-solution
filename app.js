@@ -113,13 +113,13 @@ function creneauxFor(date, agence = agenceKey()) {
 const places = (date, k, agence = agenceKey()) => { const r = slotCache[date + '|' + agence]; return r && typeof r[k] === 'number' ? r[k] : null; };
 
 // interroge le planning pour savoir quels créneaux sont complets
-async function fetchSlots(date) {
+async function fetchSlots(date, agence = agenceKey()) {
   if (!CONFIG.endpoint || !date) return;
-  const key = date + '|' + agenceKey();
+  const key = date + '|' + agence;
   if (slotCache[key]) return;
   slotCache[key] = {};
   try {
-    const res = await fetch(`${CONFIG.endpoint}?action=slots&date=${date}&agence=${agenceKey()}`);
+    const res = await fetch(`${CONFIG.endpoint}?action=slots&date=${date}&agence=${agence}`);
     const data = await res.json();
     if (data.ok) {
       const cap = data.capacite || CONFIG.placesParCreneau;
@@ -235,7 +235,10 @@ function renderSummary() {
   $('mobileCount').textContent = n ? `Ma sélection (${n})` : 'Total estimé';
 
   const txt = priceText(r);
-  $('price').textContent = txt;
+  if ($('price').textContent !== txt) {
+    $('price').textContent = txt;
+    try { const p = $('price'); p.classList.remove('flash'); void p.offsetWidth; p.classList.add('flash'); } catch (e) {}
+  }
   $('mobilePrice').textContent = txt;
   $('savings').innerHTML = r.savings ? `Vous économisez <b>${eur(r.savings)}</b> avec le pack` : '';
 
@@ -345,7 +348,7 @@ function vitrineCompacte(c) {
 function carteService(x, c, on, inPack) {
   const t = themeOf(x.id);
   const media = c.services[0] === x.id && photoCat(c) ? photoCat(c, 'carte-photo') : illustration({ id: 's-' + x.id, icon: x.icon, badge: c.badge, couleur: t }, 'bande');
-  return `<label class="tile service carte ${on ? 'on' : ''} ${inPack ? 'included' : ''}" style="--t:${t}">
+  return `<label class="tile service carte ${on ? 'on' : ''} ${inPack ? 'included' : ''} ${x.id === dernierAjout ? 'vient' : ''}" style="--t:${t}">
     <input type="checkbox" name="svc" value="${x.id}" ${on ? 'checked' : ''} ${inPack ? 'disabled' : ''} onchange="toggle('${x.id}')">
     <span class="carte-media">${media}</span>
     <span class="carte-corps"><b>${esc(x.nom)}</b><span class="carte-desc">${inPack ? '✓ Inclus dans votre formule' : esc(x.desc)}</span>
@@ -522,6 +525,9 @@ function render() {
   // garde le focus clavier sur le même élément après mise à jour
   const a = document.activeElement;
   const key = a && a.name ? `[name="${a.name}"][value="${a.value}"]` : a && a.id && $('app').contains(a) ? '#' + a.id : null;
+  const vueCle = state.step + '|' + state.cat;
+  try { $('app').classList.toggle('anime', vueCle !== derniereVue); } catch (e) {}
+  derniereVue = vueCle;
   $('app').innerHTML = VIEWS[state.step]();
   $('app').dataset.view = String(state.step);
   document.body.dataset.etape = String(state.step);
@@ -611,6 +617,7 @@ function openChat() {
   if (!state.d.chatCommune && state.d.commune) state.d.chatCommune = state.d.commune;
   goTo('chat');
 }
+let dernierAjout = null, derniereVue = '';
 function toggle(id) {
   const { sel } = state;
   const adding = !sel.includes(id);
@@ -619,7 +626,9 @@ function toggle(id) {
   if (!packValid()) state.pack = null;
   state.symptoms = [];
   fixMode();
+  dernierAjout = adding ? id : null;
   render();
+  dernierAjout = null;
   toast(adding ? `✓ « ${esc(svc(id).nom)} » ajouté à votre sélection` : `« ${esc(svc(id).nom)} » retiré`);
 }
 // un pack s'ajoute aux services déjà cochés (un seul pack à la fois)
@@ -1039,3 +1048,37 @@ function carrousel() {
   };
   requestAnimationFrame(tour);
 }
+
+/* =====================================================================
+   VIE DE LA PAGE : prochaine disponibilité en direct, apparition des sections au défilement
+   ===================================================================== */
+// lit le vrai planning (places restantes par agence) et affiche le premier créneau libre
+let dispo = null;
+async function chercherDispo() {
+  if (!CONFIG.endpoint) return;
+  for (let i = 0, d = premierJour(); i < 10; i++, d = addDays(d, 1)) {
+    if (!HORAIRES[parseISO(d).getDay()]) continue;
+    await Promise.all(Object.keys(AGENCES).map(a => fetchSlots(d, a)));
+    const libres = Object.keys(AGENCES).flatMap(a => creneauxFor(d, a).filter(([, why]) => !why).map(([k]) => ({ a, k, n: places(d, k, a) })));
+    if (libres.length) { dispo = { d, libres }; break; }
+  }
+  renderDispo();
+}
+function renderDispo() {
+  const el = $('dispo');
+  if (!el || !dispo) return;
+  const k = dispo.libres[0].k;
+  const jour = dispo.d === addDays(todayISO(), 1) ? 'Demain' : shortDate(dispo.d);
+  const ags = dispo.libres.filter(x => x.k === k).map(x => `${AGENCES[x.a].nom}${typeof x.n === 'number' ? ` (${x.n} place${x.n > 1 ? 's' : ''})` : ''}`);
+  el.innerHTML = `<span class="point" aria-hidden="true"></span><span>Prochain rendez-vous : <b>${jour}, ${CRENEAUX[k].label.toLowerCase()}</b><small>${ags.join(' · ')}</small></span>`;
+  el.hidden = false;
+}
+
+function reveler() {
+  if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('vu'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.bande-services, .accueil-plus .ap-tete, .site-carte, .engagements > div, .pied-grille > div').forEach((el, i) => {
+    el.classList.add('reveal'); el.style.setProperty('--d', (i % 4) * 80 + 'ms'); io.observe(el);
+  });
+}
+try { reveler(); chercherDispo(); } catch (e) {}

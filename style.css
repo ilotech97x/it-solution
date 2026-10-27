@@ -1011,3 +1011,52 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
   .cat-vitrine{padding:12px}
   .cv-obtenez{display:none}
 }
+
+/* =====================================================================
+   ANIMATIONS (toutes coupées si l'appareil demande moins d'animations)
+   ===================================================================== */
+.dispo{display:flex;align-items:center;gap:10px;margin:0 0 4px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--ok) 12%,transparent);border:1px solid color-mix(in srgb,var(--ok) 40%,transparent);font-size:14px}
+.dispo b{color:var(--text)}
+.dispo small{display:block;color:var(--muted);font-size:12.5px}
+.dispo .point{flex:none;width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 60%,transparent)}
+.top{position:relative}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease var(--d,0ms),transform .6s cubic-bezier(.2,.7,.2,1) var(--d,0ms)}
+.reveal.vu{opacity:1;transform:none}
+@media (prefers-reduced-motion:no-preference){
+  /* liseré lumineux qui glisse sous l'en-tête */
+  .top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--primary),var(--cyan),#a855f7,transparent);background-size:200% 100%;animation:liseré 6s linear infinite;pointer-events:none}
+  @keyframes liseré{from{background-position:200% 0}to{background-position:-200% 0}}
+  /* changement d'onglet : la vitrine, les cartes et les formules arrivent en cascade */
+  #app.anime .cat-vitrine,#app.anime .services .service.carte,#app.anime .packs .pack{animation:entree .5s cubic-bezier(.2,.7,.2,1) both}
+  #app.anime .services .service.carte:nth-child(1){animation-delay:.05s}
+  #app.anime .services .service.carte:nth-child(2){animation-delay:.1s}
+  #app.anime .services .service.carte:nth-child(3){animation-delay:.15s}
+  #app.anime .services .service.carte:nth-child(4){animation-delay:.2s}
+  #app.anime .services .service.carte:nth-child(n+5){animation-delay:.25s}
+  #app.anime .packs .pack{animation-delay:.25s}
+  #app.anime .packs .pack:nth-child(2){animation-delay:.3s}
+  #app.anime .packs .pack:nth-child(3){animation-delay:.35s}
+  #app.anime .packs .pack:nth-child(4){animation-delay:.4s}
+  @keyframes entree{from{opacity:0;transform:translateY(14px) scale(.98)}}
+  /* carte ajoutée : halo + bouton qui « saute » */
+  .service.carte.vient{animation:halo .9s ease-out}
+  .service.carte.vient .add{animation:saut .4s cubic-bezier(.3,1.6,.5,1)}
+  @keyframes halo{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--t) 70%,transparent)}to{box-shadow:0 0 0 16px transparent}}
+  @keyframes saut{40%{transform:scale(1.25)}}
+  /* le total s'allume quand il change */
+  #price.flash{animation:allume .7s ease-out}
+  @keyframes allume{30%{transform:scale(1.14);color:var(--primary);text-shadow:0 0 24px var(--primary)}}
+  /* étiquette de prix qui flotte doucement */
+  .cv-prix-1{animation:flotte 4.5s ease-in-out infinite}
+  @keyframes flotte{50%{transform:rotate(-3deg) translateY(-5px)}}
+  /* disponibilité en direct : point qui bat */
+  .dispo .point{animation:bat 1.8s ease-out infinite}
+  @keyframes bat{70%{box-shadow:0 0 0 9px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  /* photos des cartes : léger zoom au survol ; bouton principal : reflet */
+  .carte-media>img,.car-media>img{transition:transform .6s cubic-bezier(.2,.7,.2,1)}
+  .service.carte:hover .carte-media>img,.car-carte:hover .car-media>img{transform:scale(1.07)}
+  .btn-primary{position:relative;overflow:hidden}
+  .btn-primary::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-120%);transition:transform .7s}
+  .btn-primary:hover::after{transform:translateX(120%)}
+}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
