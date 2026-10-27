@@ -185,3 +185,12 @@ button.p-chip:hover{border-color:var(--primary)}
 .p-quand{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
 .p-quand input{min-height:32px;padding:2px 6px;font-size:13px;width:auto}
 @media (max-width:900px){.p-envoyes .p-act{white-space:normal}}
+
+/* bandeau « cet ordinateur n'est pas connecté » */
+.p-connexion{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:0 0 16px;padding:14px 16px;border-radius:12px;background:#fff7e0;border:1.5px solid #f59e0b;color:#3b2a00}
+.p-connexion div{flex:1 1 320px;display:grid;gap:2px}
+.p-connexion span{font-size:14px}
+.p-connexion input{flex:0 1 220px;min-height:40px;padding:6px 10px;border:1px solid #d1a54a;border-radius:8px;font:inherit}
+/* onglet « Envoyer des emails » */
+.p-envoi-rapide{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 18px;padding:16px;border-radius:12px;background:var(--surface-2,#f5f7fb);border:1px solid var(--line,#d5dce6)}
+.p-envoi-rapide div{display:grid;gap:2px}

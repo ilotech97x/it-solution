@@ -836,6 +836,31 @@ async function envoyerSelection() {
   chargement = ''; toast(`${ok} email${ok > 1 ? 's' : ''} envoyé${ok > 1 ? 's' : ''}`); render();
 }
 
+/* ---------- Connexion de cet ordinateur au moteur (prospects, listes et envois partagés) ---------- */
+function bandeauConnexion() {
+  if (!CONFIG.endpoint || cle) return '';
+  return `<form class="p-connexion" onsubmit="event.preventDefault();connecter($('pCleBandeau').value)">
+    <div><b>🔒 Cet ordinateur n’est pas connecté</b>
+      <span>Entrez le code de l’espace pro pour retrouver les prospects et la liste noire communs à tous vos ordinateurs, et pour pouvoir envoyer les emails.</span></div>
+    <input id="pCleBandeau" type="password" autocomplete="current-password" placeholder="Code de l’espace pro" required>
+    <button class="btn btn-primary">Connecter</button></form>`;
+}
+async function connecter(v) {
+  cle = String(v || '').trim(); if (!cle) return;
+  try { localStorage.setItem('itGestionCle', cle); } catch (e) {}
+  await synchroniser();
+  toast(cle ? 'Ordinateur connecté : prospects et listes synchronisés' : 'Code incorrect', !cle);
+  render();
+}
+
+// tout ce qui peut partir maintenant : relances dues, puis prospects jamais contactés qui ont un email
+function aEnvoyer() {
+  const t = todayISO();
+  const relances = db.prospects.filter(p => envoyable(p) && p.statut !== 'nouveau' && !p.repondu && p.relance && p.relance <= t);
+  const neufs = db.prospects.filter(p => envoyable(p) && p.statut === 'nouveau' && !(p.etape > 0)).sort((a, b) => b.score - a.score);
+  return [...relances.map(p => ({ p, type: 'relance' })), ...neufs.map(p => ({ p, type: 'neuf' }))];
+}
+
 function plan() {
   const t = todayISO();
   const relances = db.prospects.filter(p => ACTIFS.includes(p.statut) && p.relance && p.relance <= t).sort((a, b) => a.relance.localeCompare(b.relance) || b.score - a.score);
@@ -848,6 +873,24 @@ function plan() {
 }
 
 const VUES = {
+  emails() {
+    const l = aEnvoyer(), rel = l.filter(x => x.type === 'relance').map(x => x.p), neufs = l.filter(x => x.type === 'neuf').map(x => x.p);
+    const jour = emailsDuJour();
+    return `<h2>Envoyer des emails</h2>
+      <p class="muted">Chaque email est personnalisé et sans prix. La liste noire est respectée automatiquement, et la relance suivante se programme toute seule. Limite : ${db.reglages.maxEmails || 25} emails par jour.</p>
+      <div class="p-envoi-rapide">
+        <div><b>${jour.length ? `${jour.length} email${jour.length > 1 ? 's' : ''} prêt${jour.length > 1 ? 's' : ''} pour aujourd’hui` : 'Rien de prévu aujourd’hui'}</b>
+          <span class="muted">Les relances dues, puis les meilleurs nouveaux prospects (Ducos et Le Robert à parts égales).</span></div>
+        <button type="button" class="btn btn-primary${scriptPret() ? '' : ' btn-off'}" onclick="envoyerEmailsDuJour()" ${jour.length && !chargement ? '' : 'disabled'}>${ico('mail')} Envoyer les emails du jour</button>
+      </div>
+      <h3>Ou choisissez vous-même</h3>
+      ${barreSel([...rel, ...neufs], false)}
+      <h3>Relances à faire <span class="muted">(${rel.length})</span></h3>
+      ${rel.length ? rel.map(p => ligneSel(p)).join('') : '<p class="muted">Aucune relance due.</p>'}
+      <h3>Jamais contactés, avec email <span class="muted">(${neufs.length})</span></h3>
+      ${neufs.length ? neufs.slice(0, 60).map(p => ligneSel(p)).join('') : `<p class="muted">Aucun. <button type="button" class="link" onclick="setVue('trouver')">Trouver des prospects</button></p>`}
+      ${neufs.length > 60 ? `<p class="muted">Et ${neufs.length - 60} autres dans « Mes prospects ».</p>` : ''}`;
+  },
   jour() {
     const P = db.prospects, t = todayISO(), mois = t.slice(0, 7);
     const contactes = P.filter(p => p.statut !== 'nouveau' && p.statut !== 'stop');
@@ -1008,9 +1051,9 @@ const VUES = {
 
 function render() {
   const n = db.prospects.length, rel = plan().relances.length;
-  $('pTabs').innerHTML = [['jour', `Aujourd’hui${rel ? ` <em>${rel}</em>` : ''}`], ['trouver', 'Trouver des prospects'], ['liste', `Mes prospects (${n})`], ['envoyes', 'Emails envoyés'], ['carte', 'Carte'], ['reglages', 'Réglages']]
+  $('pTabs').innerHTML = [['jour', `Aujourd’hui${rel ? ` <em>${rel}</em>` : ''}`], ['trouver', 'Trouver des prospects'], ['emails', `✉ Envoyer des emails${aEnvoyer().length ? ` <em>${aEnvoyer().length}</em>` : ''}`], ['liste', `Mes prospects (${n})`], ['envoyes', 'Emails envoyés'], ['carte', 'Carte'], ['reglages', 'Réglages']]
     .map(([k, l]) => `<button type="button" class="${vue === k ? 'on' : ''}" onclick="setVue('${k}')">${l}</button>`).join('');
-  $('pVue').innerHTML = (vue !== 'trouver' ? `<p id="chargement" class="p-load">${esc(chargement)}</p>` : '') + VUES[vue]();
+  $('pVue').innerHTML = bandeauConnexion() + (vue !== 'trouver' ? `<p id="chargement" class="p-load">${esc(chargement)}</p>` : '') + VUES[vue]();
   renderSync();
 }
 function setVue(v) { vue = v; render(); window.scrollTo(0, 0); }
