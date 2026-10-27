@@ -868,6 +868,15 @@ body.grand .g4{grid-template-columns:repeat(3,minmax(0,1fr))}
 .cats button[aria-selected="true"] .c-ico .ico{color:#fff}
 .univers .count,.cats .count{position:absolute;top:-9px;right:-6px;min-width:22px;padding:0 6px;border-radius:11px;border:2px solid var(--surface);background:var(--ok);color:#03140a;font:800 11px/18px var(--sans);font-style:normal;text-align:center}
 .cats .neuf{padding:1px 7px;border-radius:99px;background:#facc15;color:#1a1300;font:800 10px/1.5 var(--sans);font-style:normal}
+/* onglet actif bien visible : tuile pleine de sa couleur, les autres en retrait, catégories encadrées de la couleur du pôle */
+.univers button[aria-selected="true"],.cats button[aria-selected="true"]{background:linear-gradient(160deg,var(--t),color-mix(in srgb,var(--t) 62%,#000));border-color:color-mix(in srgb,var(--t) 55%,#000);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:0 8px 20px -8px var(--t)}
+.univers button[aria-selected="true"] .u-ico,.cats button[aria-selected="true"] .c-ico{background:#fff;box-shadow:none}
+.univers button[aria-selected="true"] .u-ico .ico,.cats button[aria-selected="true"] .c-ico .ico{color:color-mix(in srgb,var(--t) 75%,#000)}
+.univers:has([aria-selected="true"]) button:not([aria-selected="true"]),.cats:has([aria-selected="true"]) button:not([aria-selected="true"]){opacity:.62}
+.univers button:not([aria-selected="true"]):hover,.cats button:not([aria-selected="true"]):hover{opacity:1}
+.cats{padding:10px;border-radius:18px;background:color-mix(in srgb,var(--t) 9%,transparent);border:2px solid color-mix(in srgb,var(--t) 45%,transparent)}
+.cv-ici{display:block;margin:0 0 4px;color:var(--muted);font:700 12px/1.3 var(--sans);text-transform:uppercase;letter-spacing:.04em}
+.cv-ici b{color:var(--td,var(--t))}
 @media (max-width:1100px) and (min-width:701px){.univers button{flex-direction:column;justify-content:center;text-align:center;gap:6px;padding:8px 6px;font-size:13px}}
 @media (max-width:700px){
   .univers-row{margin:12px 0 10px}

@@ -336,6 +336,7 @@ function vitrineCompacte(c) {
   return `<div class="cat-vitrine" style="--t:${c.couleur}">
     <div class="cv-visuel">${scene(c)}</div>
     <div class="cv-texte">
+      <p class="cv-ici">📍 Vous êtes ici : ${esc((UNIVERS.find(u => u.id === c.univers) || {}).court || '')} › <b>${esc(c.nom)}</b></p>
       <div class="cv-titre"><span class="cv-icone">${ico(c.icon)}</span><b>${esc(c.nom)}</b>${c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}${v.puces[0] ? `<em class="cv-tag">${ico('sparkles')}${esc(v.puces[0])}</em>` : ''}</div>
       <p class="cv-accroche">${esc(c.accroche)}</p>
       <ul class="cv-obtenez">${v.obtenez.map(([i, t]) => `<li>${ico(i)}<span>${esc(t)}</span></li>`).join('')}</ul>
@@ -428,7 +429,7 @@ const VIEWS = {
           const n = CATEGORIES.filter(c => c.univers === u.id && !c.bientot).flatMap(c => c.services).filter((id, i, a) => a.indexOf(id) === i && state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
           return `<button type="button" role="tab" style="--t:${u.couleur}" title="${esc(u.desc)}" aria-label="${esc(u.nom)}" aria-selected="${univOf(state.cat) === u.id}" onclick="setUniv('${u.id}')"><span class="u-ico">${ico(u.icon)}</span><span class="u-nom"><span class="u-long">${esc(u.nom)}</span><span class="u-court">${esc(u.court || u.nom)}</span></span>${n ? `<em class="count">${n}</em>` : ''}</button>`;
         }).join('')}</span></div>
-      <div class="cats" role="tablist" aria-label="Type de besoin">${CATEGORIES.filter(c => !c.bientot && c.univers === univOf(state.cat)).map(c => {
+      <div class="cats" role="tablist" aria-label="Type de besoin" style="--t:${(UNIVERS.find(u => u.id === univOf(state.cat)) || {}).couleur}">${CATEGORIES.filter(c => !c.bientot && c.univers === univOf(state.cat)).map(c => {
         const n = c.services.filter(id => state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
         return `<button type="button" role="tab" style="--t:${c.couleur}" aria-selected="${state.cat === c.id}" onclick="setCat('${c.id}')"><span class="c-ico">${ico(c.icon)}</span><span class="c-nom">${c.nom}</span>${n ? `<em class="count">${n}</em>` : c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</button>`;
       }).join('')}</div>
