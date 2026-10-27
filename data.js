@@ -268,11 +268,11 @@ const SERVICES = [
 // bientot : true = onglet affiché mais pas encore disponible
 // Univers : regroupent les onglets (ligne du titre « À la carte »)
 const UNIVERS = [
-  { id: 'info',   nom: 'Informatique',     icon: 'monitor',   badge: 'tools',    couleur: '#2b8cff', desc: 'Dépannage, installation, sécurité, fichiers et cours, chez vous, en agence ou à distance.' },
-  { id: 'maison', nom: 'Maison connectée', icon: 'home',      badge: 'wifi',     couleur: '#22c55e', desc: 'Caméras, alarme, domotique et Wi-Fi dans toute la maison.' },
-  { id: 'web',    nom: 'Web, IA & marketing',  icon: 'globe',     badge: 'trending', couleur: '#6366f1', desc: 'Sites web, intelligence artificielle, boutiques en ligne, applications et stratégie pour trouver des clients.' },
-  { id: 'pro',    nom: 'Entreprises',      icon: 'briefcase', badge: 'shield',   couleur: '#8b5cf6', desc: 'Maintenance informatique, cybersécurité et caisse pour les commerces et les bureaux.' },
-  { id: 'crea',   nom: 'Drone & immobilier',       icon: 'drone',     badge: 'camera',   couleur: '#38bdf8', desc: 'Photos et vidéos aériennes, inspection de toiture, et tout pour vendre ou louer un bien.' }
+  { id: 'info',   court: 'Informatique', nom: 'Informatique',     icon: 'monitor',   badge: 'tools',    couleur: '#2b8cff', desc: 'Dépannage, installation, sécurité, fichiers et cours, chez vous, en agence ou à distance.' },
+  { id: 'maison', court: 'Maison', nom: 'Maison connectée', icon: 'home',      badge: 'wifi',     couleur: '#22c55e', desc: 'Caméras, alarme, domotique et Wi-Fi dans toute la maison.' },
+  { id: 'web',    court: 'Web & IA', nom: 'Web, IA & marketing',  icon: 'globe',     badge: 'trending', couleur: '#6366f1', desc: 'Sites web, intelligence artificielle, boutiques en ligne, applications et stratégie pour trouver des clients.' },
+  { id: 'pro',    court: 'Entreprises', nom: 'Entreprises',      icon: 'briefcase', badge: 'shield',   couleur: '#8b5cf6', desc: 'Maintenance informatique, cybersécurité et caisse pour les commerces et les bureaux.' },
+  { id: 'crea',   court: 'Drone & immo', nom: 'Drone & immobilier',       icon: 'drone',     badge: 'camera',   couleur: '#38bdf8', desc: 'Photos et vidéos aériennes, inspection de toiture, et tout pour vendre ou louer un bien.' }
 ];
 
 // accroche : la phrase qui parle au client ; badge : petit pictogramme de l'illustration

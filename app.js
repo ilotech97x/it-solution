@@ -418,16 +418,19 @@ const VIEWS = {
       }
       return h;
     }
+    const nb = state.sel.length + (packValid() ? 1 : 0);
     return `<div class="pick-head"><h2 id="stepTitle">De quoi avez-vous besoin ?</h2>
         <div class="help-row"><button type="button" class="btn btn-help" onclick="setTab('symptomes')">${ico('search')}<span>Dites-nous ce qui ne va pas</span></button>
         <button type="button" class="btn btn-help call" onclick="openHelp()">${ico('phone')}<span>Appeler un technicien</span></button></div></div>
+      <div class="quete" aria-live="polite"><div class="quete-barre" aria-hidden="true"><span style="width:${nb ? 34 : 4}%"></span></div>
+        <span class="quete-txt">${nb ? `<b>${nb} choix</b> · plus que 2 étapes pour réserver 🚀` : 'Choisissez un service pour commencer ⭐'}</span></div>
       <div class="univers-row"><span class="univers" role="tablist" aria-label="Pôles">${UNIVERS.map(u => {
           const n = CATEGORIES.filter(c => c.univers === u.id && !c.bientot).flatMap(c => c.services).filter((id, i, a) => a.indexOf(id) === i && state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
-          return `<button type="button" role="tab" style="--t:${u.couleur}" title="${esc(u.desc)}" aria-selected="${univOf(state.cat) === u.id}" onclick="setUniv('${u.id}')">${ico(u.icon)}${u.nom}${n ? `<em class="count">${n}</em>` : ''}</button>`;
+          return `<button type="button" role="tab" style="--t:${u.couleur}" title="${esc(u.desc)}" aria-label="${esc(u.nom)}" aria-selected="${univOf(state.cat) === u.id}" onclick="setUniv('${u.id}')"><span class="u-ico">${ico(u.icon)}</span><span class="u-nom"><span class="u-long">${esc(u.nom)}</span><span class="u-court">${esc(u.court || u.nom)}</span></span>${n ? `<em class="count">${n}</em>` : ''}</button>`;
         }).join('')}</span></div>
       <div class="cats" role="tablist" aria-label="Type de besoin">${CATEGORIES.filter(c => !c.bientot && c.univers === univOf(state.cat)).map(c => {
         const n = c.services.filter(id => state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
-        return `<button type="button" role="tab" style="--t:${c.couleur}" aria-selected="${state.cat === c.id}" onclick="setCat('${c.id}')">${ico(c.icon)}<span>${c.nom}</span>${n ? `<em class="count">${n}</em>` : c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</button>`;
+        return `<button type="button" role="tab" style="--t:${c.couleur}" aria-selected="${state.cat === c.id}" onclick="setCat('${c.id}')"><span class="c-ico">${ico(c.icon)}</span><span class="c-nom">${c.nom}</span>${n ? `<em class="count">${n}</em>` : c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</button>`;
       }).join('')}</div>
       ${vitrineCompacte(CATEGORIES.find(c => c.id === state.cat))}
       <div class="grid g5 services" role="tabpanel">${CATEGORIES.find(c => c.id === state.cat).services.map(id => {
@@ -629,7 +632,8 @@ function toggle(id) {
   dernierAjout = adding ? id : null;
   render();
   dernierAjout = null;
-  toast(adding ? `✓ « ${esc(svc(id).nom)} » ajouté à votre sélection` : `« ${esc(svc(id).nom)} » retiré`);
+  toast(adding ? `${['🎉 Super choix !', '👍 Bien joué !', '⚡ Excellent !', '✨ Parfait !'][state.sel.length % 4]} « ${esc(svc(id).nom)} » est dans votre sélection` : `« ${esc(svc(id).nom)} » retiré`);
+  if (adding) { try { const c = document.querySelector('.service.carte.on input[value="' + id + '"]'); const r = c && c.closest('.carte').getBoundingClientRect(); if (r) confettis(r.left + r.width / 2, r.top + r.height / 2, 18); } catch (e) {} }
 }
 // un pack s'ajoute aux services déjà cochés (un seul pack à la fois)
 function selectPack(id) {
@@ -884,6 +888,7 @@ function finishScreen() {
 function renderSuccess(lead, received, google) {
   const ag = AGENCES[lead.agence];
   const txt = lead.recap;
+  setTimeout(() => { try { if (received) confettis(innerWidth / 2, innerHeight / 3, 70); } catch (e) {} }, 150);
   $('app').innerHTML = `<div class="success">
       <div class="okmark ${received ? '' : 'warn'}" aria-hidden="true">${received ? '✓' : '!'}</div>
       <h2 id="stepTitle">${received ? `Merci ${esc(lead.name)}, votre demande est bien reçue` : 'Dernière étape : envoyez-nous votre demande'}</h2>
@@ -1082,3 +1087,17 @@ function reveler() {
   });
 }
 try { reveler(); chercherDispo(); } catch (e) {}
+
+// petits confettis (réussite, ajout) ; rien si l'appareil demande moins d'animations
+function confettis(x, y, n) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const couleurs = ['#2b8cff', '#22c55e', '#facc15', '#f97316', '#ec4899', '#a855f7', '#22d3ee'];
+  const zone = document.createElement('div'); zone.className = 'confettis'; zone.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('i'), a = Math.random() * Math.PI * 2, v = 60 + Math.random() * (n > 30 ? 260 : 120);
+    p.style.cssText = `left:${x}px;top:${y}px;background:${couleurs[i % couleurs.length]};--dx:${Math.cos(a) * v}px;--dy:${Math.sin(a) * v - 60}px;--r:${Math.random() * 720 - 360}deg;animation-delay:${Math.random() * 80}ms`;
+    zone.appendChild(p);
+  }
+  document.body.appendChild(zone);
+  setTimeout(() => zone.remove(), 1400);
+}
