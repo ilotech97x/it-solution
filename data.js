@@ -331,6 +331,8 @@ const CATEGORIES = [
 
 // Annoncés sous les onglets (« Bientôt ») — retirez une ligne quand le service est lancé.
 // photos (illustrations) par onglet : img/photos/<nom>.jpg — affichées à la place du dessin quand elles existent
+// photos (illustrations) par service : img/photos/svc-<id>.jpg ; sans photo, la carte prend celle de l'onglet (1re carte) ou un dessin
+const PHOTOS_SVC = { abonnement: 1, alarme: 1, boost: 1, comptes: 1, contenuia: 1, cyber: 1, emulation: 1, gamer: 1, hwfixe: 1, hwportable: 1, maintweb: 1, printer: 1, recup: 1, reseaux: 1, sitepirate: 1, stockage: 1 };
 const PHOTOS_CAT = { starlink: 'starlink-carre', ordi: 'reparation', camera: 'camera', ia: 'ia', drone: 'drone', marketing: 'reseaux', aide: 'seniors', immo: 'immo',
   securite: 'securite', donnees: 'donnees', install: 'install', mobile: 'mobile', gaming: 'gaming', domo: 'domo', wifi: 'wifi', multimedia: 'multimedia', web: 'web', appli: 'appli', prog: 'prog', pro: 'pro', reseau: 'reseau', cloud: 'cloud', cyber: 'cyber', caisse: 'caisse' };
 

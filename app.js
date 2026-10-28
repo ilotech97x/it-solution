@@ -375,7 +375,8 @@ function vitrineCompacte(c) {
 // carte d'un service : image à gauche (photo de la catégorie pour le 1er service, sinon illustration), texte à droite
 function carteService(x, c, on, inPack) {
   const t = themeOf(x.id);
-  const media = c.services[0] === x.id && photoCat(c) ? photoCat(c, 'carte-photo') : illustration({ id: 's-' + x.id, icon: x.icon, badge: c.badge, couleur: t }, 'bande');
+  const media = PHOTOS_SVC[x.id] ? `<img class="illu photo carte-photo" src="img/photos/svc-${x.id}.jpg" alt="${esc(x.nom)} (illustration)" width="410" height="464" loading="lazy" decoding="async">`
+    : c.services[0] === x.id && photoCat(c) ? photoCat(c, 'carte-photo') : illustration({ id: 's-' + x.id, icon: x.icon, badge: c.badge, couleur: t }, 'bande');
   return `<label class="tile service carte ${on ? 'on' : ''} ${inPack ? 'included' : ''} ${x.id === dernierAjout ? 'vient' : ''}" style="--t:${t}">
     <input type="checkbox" name="svc" value="${x.id}" ${on ? 'checked' : ''} ${inPack ? 'disabled' : ''} onchange="toggle('${x.id}')">
     <span class="carte-media">${media}</span>

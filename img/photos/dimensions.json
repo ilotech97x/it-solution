@@ -102,5 +102,69 @@
  "immo": [
   410,
   464
+ ],
+ "svc-abonnement": [
+  410,
+  464
+ ],
+ "svc-alarme": [
+  410,
+  464
+ ],
+ "svc-boost": [
+  410,
+  464
+ ],
+ "svc-comptes": [
+  410,
+  464
+ ],
+ "svc-contenuia": [
+  410,
+  464
+ ],
+ "svc-cyber": [
+  410,
+  464
+ ],
+ "svc-emulation": [
+  410,
+  464
+ ],
+ "svc-gamer": [
+  410,
+  464
+ ],
+ "svc-hwfixe": [
+  410,
+  464
+ ],
+ "svc-hwportable": [
+  410,
+  464
+ ],
+ "svc-maintweb": [
+  410,
+  464
+ ],
+ "svc-printer": [
+  410,
+  464
+ ],
+ "svc-recup": [
+  410,
+  464
+ ],
+ "svc-reseaux": [
+  410,
+  464
+ ],
+ "svc-sitepirate": [
+  410,
+  464
+ ],
+ "svc-stockage": [
+  410,
+  464
  ]
 }
