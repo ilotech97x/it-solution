@@ -155,7 +155,7 @@
       r(26, 164, 70, 14, c, 7) + t(61, 174, 'Visite vidéo', { s: 8, a: 'middle', c: '#fff', b: 1 })) +
     r(220, 40, 88, 130, '#ffffff', 12) + t(264, 62, 'Livré', { s: 11, b: 1, a: 'middle' }) +
     [['15 photos', 82], ['Vue drone', 104], ['Vidéo', 126], ['Annonce', 148]].map(([l, y]) => ok(234, y - 4) + t(244, y, l, { s: 9.5 })).join('');
-  const POLE = { info: 'ordi', maison: 'camera', web: 'web', pro: 'pro', crea: 'drone' };
+  const POLE = { info: 'ordi', maison: 'camera', web: 'web', pro: 'pro', crea: 'drone', continuite: 'onduleur', gestion: 'caisse' };
 
   window.scene = function (o, cls = '') {
     const id = S[o.id] ? o.id : POLE[o.id];

@@ -260,7 +260,39 @@ const SERVICES = [
     options: [['touch', 'Écran tactile', 190], ['drawer', 'Tiroir-caisse', 79], ['scanner', 'Lecteur code-barres', 59], ['printer', 'Imprimante ticket', 79], ['stock', 'Gestion des stocks', 49], ['tpe', 'Liaison terminal CB', 39]] },
   { id: 'maintenance', icon: 'tools', nom: 'Maintenance informatique', desc: 'Assistance et entretien du parc', base: 49, modes: ['site', 'distance'], appareil: true,
     compris: ['Assistance par téléphone et à distance', 'Mises à jour et antivirus suivis', 'Un interlocuteur qui connaît votre parc'], pasCompris: ['Matériel et licences'],
-    options: [['pc', 'Entretien des postes', 30], ['security', 'Antivirus des postes', 25], ['server', 'Serveur', 89], ['check', 'Bilan de santé du parc', 19]] }
+    options: [['pc', 'Entretien des postes', 30], ['security', 'Antivirus des postes', 25], ['server', 'Serveur', 89], ['check', 'Bilan de santé du parc', 19]] },
+  // --- Continuité d'activité : cyclones, coupures, orages (spécifique aux Antilles)
+  { id: 'cyclone', icon: 'battery', nom: 'Plan cyclone & continuité', desc: 'Sauvegardes, secours internet, redémarrage', base: 190, modes: ['site', 'distance'],
+    note: 'Saison cyclonique, coupures de courant, orages : votre activité continue, ou repart en quelques heures au lieu de quelques semaines. Matériel (onduleurs, parafoudres, routeur 4G) conseillé et chiffré séparément.',
+    compris: ['Bilan des risques : coupures, foudre, eau, vol, panne', 'Sauvegarde hors de vos locaux, vérifiée', 'Procédure écrite : avant, pendant et après un cyclone', 'Liste de redémarrage : qui fait quoi, dans quel ordre'],
+    pasCompris: ['Matériel (onduleurs, parafoudres, routeur 4G, Starlink)', 'Abonnements (sauvegarde en ligne, forfait 4G)'],
+    options: [['secours', 'Internet de secours automatique (4G ou Starlink)', 99], ['cloud', 'Sauvegarde en ligne hors de l’île, chiffrée', 49], ['onduleurs', 'Onduleurs posés et réglés (serveur, caisse, box)', 59],
+      ['foudre', 'Protection foudre et surtensions (conseil et pose)', 49], ['test', 'Test de restauration réel, une fois par an', 79], ['prio', 'Intervention prioritaire après un cyclone (par an)', 99]] },
+  // --- Gestion : facturation électronique et logiciels de gestion
+  { id: 'efacture', icon: 'doc', nom: 'Facturation électronique', desc: 'Être en règle pour 2026-2027', base: 149, modes: ['distance', 'site'],
+    note: 'Depuis le 1er septembre 2026, toute entreprise assujettie à la TVA doit pouvoir recevoir des factures électroniques ; les PME et micro-entreprises devront aussi les émettre au 1er septembre 2027. La Martinique est concernée. Nous mettons tout en place ; les questions comptables et fiscales restent à voir avec votre expert-comptable.',
+    compris: ['Point sur votre situation et vos échéances', 'Choix d’une plateforme agréée adaptée à votre taille', 'Création des comptes et réglages', 'Prise en main (1 h) : recevoir, envoyer, archiver'],
+    pasCompris: ['Abonnement à la plateforme agréée (souvent gratuit ou quelques euros par mois)', 'Conseil comptable ou fiscal'],
+    options: [['reprise', 'Reprise de vos clients, articles et modèles de facture', 79], ['liaison', 'Liaison avec votre caisse ou votre logiciel de comptabilité', 149],
+      ['equipe', 'Formation d’une personne de plus', 49], ['suivi', 'Suivi pendant 3 mois (questions, réglages)', 49]] },
+  { id: 'erp', icon: 'grid', nom: 'Logiciel de gestion', desc: 'Devis, factures, stock et clients au même endroit', base: 290, modes: ['distance', 'site'],
+    note: 'Fini les devis sur Word et le stock sur Excel : un seul logiciel (Odoo ou équivalent) réglé pour votre métier, compatible avec la facture électronique. Abonnement au logiciel non inclus.',
+    compris: ['Analyse de votre façon de travailler', 'Choix et réglage du logiciel', 'Modèles de devis et factures à votre nom', 'Formation de 2 h de l’équipe'],
+    pasCompris: ['Abonnement au logiciel', 'Développements spécifiques (voir Programmation)'],
+    options: [['import', 'Import de vos fichiers Excel ou de l’ancien logiciel', 149], ['stock', 'Gestion du stock et des achats', 190], ['crm', 'Suivi des clients et relances (CRM)', 190],
+      ['boutique', 'Boutique en ligne reliée au stock', 290], ['suivi', 'Assistance pendant 3 mois', 99]] },
+  // --- Téléphonie d'entreprise
+  { id: 'telephonie', icon: 'phone', nom: 'Standard téléphonique', desc: 'Un numéro fixe qui sonne sur vos mobiles', base: 99, modes: ['distance', 'site'],
+    note: 'Un standard téléphonique dans le cloud : vos clients appellent un seul numéro, l’appel arrive sur le bon téléphone, même en déplacement. Abonnement chez l’opérateur non inclus.',
+    compris: ['Choix d’une offre adaptée', 'Numéro fixe (nouveau ou conservé)', 'Accueil vocal et horaires d’ouverture', 'Renvoi vers les mobiles de l’équipe'],
+    pasCompris: ['Abonnement chez l’opérateur', 'Téléphones de bureau (sur devis)'],
+    options: [['svi', 'Menu vocal (« tapez 1 pour… »)', 49], ['postes', 'Téléphones de bureau réglés (par poste)', 19], ['messagerie', 'Messages vocaux reçus par email', 0, 'Inclus'], ['whatsapp', 'WhatsApp Business partagé par l’équipe', 49]] },
+  // --- Conformité RGPD
+  { id: 'rgpd', icon: 'shield', nom: 'Mise en conformité RGPD', desc: 'Données clients, site, cookies', base: 190, modes: ['distance', 'site'],
+    note: 'Ce que la loi demande pour les données de vos clients et salariés, mis en place simplement. Ce n’est pas du conseil juridique : en cas de litige, faites appel à un avocat.',
+    compris: ['Inventaire des données que vous gardez (registre)', 'Mentions légales et politique de confidentialité du site', 'Bandeau cookies conforme', 'Accès et mots de passe vérifiés'],
+    pasCompris: ['Conseil juridique', 'Délégué à la protection des données externalisé'],
+    options: [['contrats', 'Clauses pour vos devis et contrats', 59], ['salaries', 'Information des salariés (modèle)', 39], ['form', 'Sensibilisation de l’équipe (1 h)', 99]] }
 ];
 
 // Onglets « À la carte » : un onglet = un type de besoin, chaque service n'est qu'à un seul endroit
@@ -271,7 +303,7 @@ const UNIVERS = [
   { id: 'info',   court: 'Informatique', nom: 'Informatique',     icon: 'monitor',   badge: 'tools',    couleur: '#2b8cff', desc: 'Dépannage, installation, sécurité, fichiers et cours, chez vous, en agence ou à distance.' },
   { id: 'maison', court: 'Maison', nom: 'Maison connectée', icon: 'home',      badge: 'wifi',     couleur: '#22c55e', desc: 'Caméras, alarme, domotique et Wi-Fi dans toute la maison.' },
   { id: 'web',    court: 'Web & IA', nom: 'Web, IA & marketing',  icon: 'globe',     badge: 'trending', couleur: '#6366f1', desc: 'Sites web, intelligence artificielle, boutiques en ligne, applications et stratégie pour trouver des clients.' },
-  { id: 'pro',    court: 'Entreprises', nom: 'Entreprises',      icon: 'briefcase', badge: 'shield',   couleur: '#8b5cf6', desc: 'Maintenance informatique, cybersécurité et caisse pour les commerces et les bureaux.' },
+  { id: 'pro',    court: 'Entreprises', nom: 'Entreprises',      icon: 'briefcase', badge: 'shield',   couleur: '#8b5cf6', desc: 'Maintenance, cybersécurité, plan cyclone, facture électronique, téléphonie et caisse pour les commerces et les bureaux.' },
   { id: 'crea',   court: 'Drone & immo', nom: 'Drone & immobilier',       icon: 'drone',     badge: 'camera',   couleur: '#38bdf8', desc: 'Photos et vidéos aériennes, inspection de toiture, et tout pour vendre ou louer un bien.' }
 ];
 
@@ -313,12 +345,16 @@ const CATEGORIES = [
     accroche: 'Votre agence marketing : réseaux sociaux, vidéos créées avec l’IA, publicité et visibilité Google.' },
   { id: 'pro',       univers: 'pro',    nom: 'Maintenance',   icon: 'tools',      badge: 'shield',     couleur: '#8b5cf6', services: ['maintenance'],
     accroche: 'Une informatique qui tourne, pour vous concentrer sur votre métier.' },
-  { id: 'reseau',    univers: 'pro',    nom: 'Réseau',        icon: 'network',    badge: 'wifi',       couleur: '#06b6d4', services: ['reseaupro'],
-    accroche: 'Un réseau rapide et fiable pour toute l’équipe.' },
+  { id: 'reseau',    univers: 'pro',    nom: 'Réseau & téléphone', icon: 'network', badge: 'wifi',       couleur: '#06b6d4', services: ['reseaupro', 'telephonie'],
+    accroche: 'Un réseau rapide et fiable, et un numéro fixe qui sonne sur vos mobiles.' },
   { id: 'cloud',     univers: 'pro',    nom: 'Emails & cloud', icon: 'mail',      badge: 'cloud',      couleur: '#3b82f6', services: ['cloudpro'],
     accroche: 'Des emails à votre nom et des fichiers partagés, partout.' },
-  { id: 'cyber',     univers: 'pro',    nom: 'Cybersécurité', icon: 'lock',       badge: 'search',     couleur: '#f43f5e', services: ['cyberexpress', 'cyber'],
+  { id: 'cyber',     univers: 'pro',    nom: 'Cybersécurité', icon: 'lock',       badge: 'search',     couleur: '#f43f5e', services: ['cyberexpress', 'cyber', 'rgpd'],
     accroche: 'Vérifiez vos accès et vos sites avant qu’un pirate ne le fasse.' },
+  { id: 'continuite', univers: 'pro',  nom: 'Plan cyclone',  icon: 'battery',    badge: 'shield',     couleur: '#0ea5e9', services: ['cyclone'], nouveau: true,
+    accroche: 'Cyclone, coupure, orage : votre activité continue, ou repart en quelques heures.' },
+  { id: 'gestion',   univers: 'pro',    nom: 'Factures & gestion', icon: 'doc',     badge: 'receipt',    couleur: '#10b981', services: ['efacture', 'erp'], nouveau: true,
+    accroche: 'Facture électronique obligatoire : soyez en règle, et gérez devis, stock et clients au même endroit.' },
   { id: 'caisse',    univers: 'pro',    nom: 'Caisse',        icon: 'receipt',    badge: 'zap',        couleur: '#facc15', services: ['pos'],
     accroche: 'Une caisse simple, rapide et fiable pour votre commerce.' },
   { id: 'drone',     univers: 'crea',   nom: 'Drone',         icon: 'drone',      badge: 'camera',     couleur: '#38bdf8', services: ['drone'],
@@ -360,6 +396,8 @@ const VITRINES = {
   cloud:     { obtenez: [['mail', 'Emails à votre nom'], ['cloud', 'Microsoft 365 / Google'], ['calendar', 'Agendas partagés'], ['smartphone', 'Sur tous les appareils']], puces: ['contact@votre-nom', 'Anciens emails repris', 'Fichiers partagés'] },
   cyber:     { obtenez: [['search', 'Contrôle express'], ['doc', 'Rapport clair'], ['shield', 'Corrections ciblées'], ['repeat', 'Contre-vérification']], puces: ['4/5 vérifiés', 'Emails protégés', 'Priorités claires'] },
   caisse:    { obtenez: [['receipt', 'Caisse tactile'], ['printer', 'Tickets imprimés'], ['store', 'Stock suivi'], ['battery', 'Pas d’arrêt aux coupures']], puces: ['Paiement CB relié', 'Équipe formée', 'Ventes du jour'] },
+  continuite:{ obtenez: [['battery', 'Onduleurs et parafoudres'], ['wifi', 'Internet de secours'], ['cloud', 'Sauvegarde hors de l’île'], ['doc', 'Procédure écrite']], puces: ['Redémarrage en 2 h', 'Bascule 4G auto', 'Test annuel'] },
+  gestion:   { obtenez: [['doc', 'Factures électroniques'], ['receipt', 'Devis et factures à votre nom'], ['store', 'Stock suivi'], ['users', 'Équipe formée']], puces: ['En règle 2026-2027', 'Fini Excel', 'Relances auto'] },
   drone:     { obtenez: [['drone', '30 min de vol'], ['camera', 'Photos HD retouchées'], ['home', 'Toiture vue de près'], ['zap', 'Livré sous 48 h']], puces: ['Vue mer', 'Inspection toiture', 'Clip 4K'] },
   immo:      { obtenez: [['camera', 'Photos intérieures'], ['drone', 'Vue aérienne du bien'], ['globe', 'Page du bien à partager'], ['lock', 'Location saisonnière équipée']], puces: ['Annonce prête', 'Visite en vidéo', 'Serrure connectée'] },
 };
@@ -417,7 +455,14 @@ const PACKS = [
   { id: 'saison',  univers: 'crea', icon: 'lock', pour: 'Immobilier', nom: 'Louer en saisonnier', prix: 349,
     inclus: ['Photos + vue drone', 'Serrure connectée et Wi-Fi', 'Livret d’accueil QR code'], items: { immobilier: ['serrure', 'wifi', 'guide'] } },
   { id: 'aerien',  univers: 'crea', icon: 'drone',    pour: 'Drone', nom: 'Vue aérienne de mon bien', prix: 229,
-    inclus: ['Photos aériennes HD', 'Vidéo montée', 'Idéal location, vente, commerce'], items: { drone: ['photo', 'video'] } }
+    inclus: ['Photos aériennes HD', 'Vidéo montée', 'Idéal location, vente, commerce'], items: { drone: ['photo', 'video'] } },
+  // Continuité et conformité (besoins forts des Antilles)
+  { id: 'cyclonemaison', univers: 'maison', icon: 'battery', pour: 'Maison', nom: 'Ma maison prête pour les cyclones', prix: 99,
+    inclus: ['Onduleur réglé (PC, box, TV)', 'Sauvegarde automatique', 'Copie en ligne de vos photos'], items: { ups: ['auto', 'box'], sauvegarde: ['auto', 'cloud'] } },
+  { id: 'cyclonepro', univers: 'pro', icon: 'battery', pour: 'Plan cyclone', nom: 'Entreprise prête pour les cyclones', prix: 290,
+    inclus: ['Plan et procédure écrits', 'Internet de secours automatique', 'Sauvegarde hors de l’île'], items: { cyclone: ['secours', 'cloud'] } },
+  { id: 'efacture', univers: 'pro', icon: 'doc', pour: 'Factures & gestion', nom: 'Facture électronique en règle', prix: 199,
+    inclus: ['Plateforme agréée choisie et réglée', 'Clients et articles repris', '3 mois de suivi'], items: { efacture: ['reprise', 'suivi'] } }
 ];
 
 // « Décrire mon problème » : chaque situation sélectionne un pack, ou des services / options
@@ -443,6 +488,11 @@ const SYMPTOMES = [
   { id: 'iapro',   label: 'Je veux utiliser l’IA dans mon entreprise', pack: 'ia' },
   { id: 'chatbot', label: 'Je veux un assistant qui répond à mes clients', items: { iapro: ['assistant'] } },
   { id: 'immo',    label: 'Je vends ou je loue un bien (photos, vidéo, annonce)', items: { immobilier: [] } },
+  { id: 'cyclone', label: 'Je veux que mon entreprise tienne pendant un cyclone', pack: 'cyclonepro' },
+  { id: 'cyclmais', label: 'Je veux protéger mon matériel et mes photos (cyclones, coupures)', pack: 'cyclonemaison' },
+  { id: 'efact',   label: 'Je dois passer à la facture électronique', pack: 'efacture' },
+  { id: 'gestion', label: 'Je fais mes devis et factures sur Word ou Excel', items: { erp: [] } },
+  { id: 'standard', label: 'Je rate des appels de clients', items: { telephonie: [] } },
   { id: 'posts',   label: 'Je veux publier sur tous mes réseaux sans y passer du temps', items: { reseaux: [], contenuia: [] } },
   { id: 'cam4g',   label: 'Je veux une caméra sans Wi-Fi (terrain, chantier)', items: { camera: ['solaire'] } },
   { id: 'net',     label: "Je n'ai plus internet",                    items: { network: ['router'] } },

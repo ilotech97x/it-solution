@@ -185,6 +185,38 @@ const PAGES = [
       ['Combien de temps tient un onduleur ?', 'De quelques minutes à une demi-heure selon le modèle et les appareils branchés : assez pour finir son travail ou passer une micro-coupure sans rien sentir.'],
       ['Un onduleur protège-t-il de la foudre ?', 'Il protège des surtensions courantes. Pour les orages violents, débrancher reste la meilleure protection ; nous vous conseillons aussi des protections adaptées.']
     ] },
+  { slug: 'plan-cyclone-continuite-informatique-martinique', cat: 'continuite', scene: 'onduleur', services: ['cyclone', 'ups', 'sauvegarde', 'starlink'],
+    titre: 'Plan cyclone et continuité informatique en Martinique | IloTech',
+    desc: 'Cyclones, coupures de courant, orages : plan de continuité informatique pour les entreprises de Martinique. Sauvegarde hors de l’île, internet de secours 4G ou Starlink, onduleurs, procédure de redémarrage.',
+    h1: 'Plan cyclone : votre entreprise continue de tourner',
+    accroche: 'Après un cyclone ou une longue coupure, certaines entreprises repartent en deux heures, d’autres en trois semaines. La différence se prépare avant la saison.',
+    intro: [
+      'En Martinique, la saison cyclonique, les coupures de courant et les orages font partie du quotidien. Un serveur noyé, un disque grillé par la foudre ou une box coupée pendant des jours peuvent bloquer la facturation, la caisse et les rendez-vous.',
+      'Nous préparons votre entreprise : sauvegarde vérifiée hors de vos locaux et hors de l’île, internet de secours qui prend le relais tout seul (4G ou Starlink), onduleurs et protections contre les surtensions, et une procédure écrite simple pour savoir quoi faire avant, pendant et après.'
+    ],
+    exemple: { titre: 'Exemple : un cabinet comptable au Lamentin', avant: ['Sauvegarde sur un disque posé à côté du serveur', 'Internet coupé à chaque panne de box', 'Aucune consigne écrite'], apres: ['Copie chiffrée hors de l’île, testée chaque année', 'Bascule 4G automatique en moins d’une minute', 'Procédure d’une page affichée au bureau'] },
+    pourquoi: ['Plan adapté à votre taille', 'Sauvegarde testée, pas seulement installée', 'Internet de secours automatique', 'Intervention prioritaire après un cyclone (option)'],
+    faq: [
+      ['Quand faut-il s’y prendre ?', 'Avant le début de la saison cyclonique, idéalement au printemps. Mais il n’est jamais trop tard : un plan simple se met en place en quelques jours.'],
+      ['Une sauvegarde sur disque externe ne suffit-elle pas ?', 'Elle protège d’une panne, pas d’un cyclone, d’un vol ou d’un incendie, puisque le disque est au même endroit. Il faut aussi une copie ailleurs, chiffrée, et vérifier qu’on sait la restaurer.'],
+      ['Faut-il acheter Starlink ?', 'Pas forcément : une box 4G ou 5G suffit souvent comme secours. Starlink est utile quand le réseau mobile tombe aussi, ou dans les zones mal couvertes.']
+    ] },
+  { slug: 'facturation-electronique-martinique', cat: 'gestion', scene: 'caisse', services: ['efacture', 'erp', 'pos'],
+    titre: 'Facturation électronique en Martinique : être en règle | IloTech',
+    desc: 'Facture électronique obligatoire : réception depuis le 1er septembre 2026, émission pour les PME et micro-entreprises au 1er septembre 2027. Choix de la plateforme agréée, réglages et formation en Martinique.',
+    h1: 'Facture électronique : soyez en règle, simplement',
+    accroche: 'Depuis le 1er septembre 2026, votre entreprise doit pouvoir recevoir des factures électroniques. En septembre 2027, il faudra aussi les envoyer. On s’occupe de la partie technique.',
+    intro: [
+      'La réforme de la facturation électronique concerne toutes les entreprises assujetties à la TVA, en Martinique comme dans l’Hexagone. Depuis le 1er septembre 2026, chacune doit pouvoir recevoir des factures électroniques par une plateforme agréée ; les PME et micro-entreprises devront aussi les émettre au 1er septembre 2027.',
+      'Nous faisons le point avec vous, choisissons une plateforme adaptée à votre taille et à votre budget, réglons les comptes, reprenons vos clients et articles, et vous formons. Si vous faites encore vos devis sur Word ou Excel, c’est aussi le bon moment pour passer à un logiciel de gestion qui fait tout au même endroit.'
+    ],
+    exemple: { titre: 'Exemple : un artisan à Ducos', avant: ['Devis sur Word, factures sur Excel', 'Factures envoyées en PDF par email', 'Échéances de la réforme mal connues'], apres: ['Plateforme agréée choisie et réglée', 'Devis et factures dans un seul logiciel', 'Prêt pour 2027, une année en avance'] },
+    pourquoi: ['Calendrier expliqué simplement', 'Plateforme adaptée à votre taille', 'Liaison avec votre caisse ou votre comptabilité', 'Travail main dans la main avec votre expert-comptable'],
+    faq: [
+      ['Suis-je concerné en Martinique ?', 'Oui : la Martinique applique la TVA, les entreprises qui y sont assujetties suivent le même calendrier que dans l’Hexagone. Votre expert-comptable peut confirmer votre cas précis.'],
+      ['Un PDF envoyé par email, est-ce une facture électronique ?', 'Non. Une facture électronique au sens de la réforme est un fichier structuré, transmis par une plateforme agréée. Le simple PDF ne suffira plus.'],
+      ['Combien ça coûte ?', 'La mise en place commence à 149 €, et de nombreuses plateformes proposent une offre gratuite ou à quelques euros par mois pour les petites entreprises.']
+    ] },
   { slug: 'cours-informatique-seniors-martinique', cat: 'aide', scene: 'aide', services: ['cours', 'abonnement'],
     titre: 'Cours d’informatique seniors en Martinique | IloTech',
     desc: 'Cours d’informatique à domicile en Martinique pour seniors et débutants : WhatsApp, appels vidéo, photos, banque en ligne, démarches, arnaques et intelligence artificielle. Dès 35 € l’heure.',
