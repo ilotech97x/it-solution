@@ -217,6 +217,54 @@ const PAGES = [
       ['Un PDF envoyé par email, est-ce une facture électronique ?', 'Non. Une facture électronique au sens de la réforme est un fichier structuré, transmis par une plateforme agréée. Le simple PDF ne suffira plus.'],
       ['Combien ça coûte ?', 'La mise en place commence à 149 €, et de nombreuses plateformes proposent une offre gratuite ou à quelques euros par mois pour les petites entreprises.']
     ] },
+  { slug: 'accompagnement-numerique-seniors-domicile-martinique', cat: 'aide', scene: 'aide', services: ['seniors', 'cours'], nouveau: true,
+    titre: 'Accompagnement numérique des seniors à domicile en Martinique | IloTech',
+    desc: 'Une visite par mois à domicile pour vos parents en Martinique : démarches en ligne, téléphone et tablette, messages douteux vérifiés, compte rendu à la famille. Dès 39 € par mois.',
+    h1: 'Vos parents accompagnés, chaque mois, à la maison',
+    accroche: 'Quand on vit loin, on s’inquiète : une démarche bloquée, un SMS douteux, une tablette qui ne marche plus. Chaque mois, on passe, on règle, et on vous tient au courant.',
+    intro: [
+      'La Martinique compte de plus en plus de seniors, et beaucoup d’enfants vivent dans l’Hexagone ou ailleurs. Les démarches passent presque toutes par internet, et les arnaques visent d’abord les personnes âgées.',
+      'Avec l’accompagnement mensuel, la même personne passe chaque mois à domicile : démarches en ligne (impôts, Ameli, CAF, banque), téléphone et tablette à jour, messages douteux vérifiés ensemble, et réponses aux questions du mois. Après chaque visite, la famille reçoit un petit compte rendu.'
+    ],
+    exemple: { titre: 'Exemple : Madame L., 81 ans, au François', avant: ['Démarches faites à distance par sa fille à Paris', 'Peur de répondre au téléphone', 'Tablette oubliée dans un tiroir'], apres: ['Visite chaque mois, toujours la même personne', 'Messages douteux vérifiés ensemble', 'Appels vidéo avec la famille chaque semaine'] },
+    pourquoi: ['Toujours le même interlocuteur', 'Compte rendu envoyé à la famille', 'Sans engagement de longue durée', 'Tarif réduit sur les dépannages'],
+    faq: [
+      ['Qui peut souscrire ?', 'La personne elle-même ou un membre de sa famille, même s’il vit hors de Martinique. Le compte rendu peut être envoyé par WhatsApp ou par email.'],
+      ['Que se passe-t-il entre deux visites ?', 'Avec l’option aide par téléphone, on répond aux questions à tout moment aux heures d’ouverture. Sinon, on note tout pour la visite suivante.'],
+      ['Est-ce la même chose que la téléassistance ?', 'Non. La téléassistance alerte en cas de chute. Notre accompagnement aide à utiliser le téléphone, la tablette et internet, et à éviter les arnaques. Les deux se complètent.']
+    ] },
+  { slug: 'location-saisonniere-connectee-martinique', cat: 'immo', scene: 'immo', services: ['locsaison', 'immobilier', 'starlink'], nouveau: true,
+    titre: 'Location saisonnière connectée en Martinique : gérer son gîte à distance | IloTech',
+    desc: 'Serrure à code par séjour, climatisation coupée à distance, alertes fuite, fumée et bruit, Wi-Fi voyageurs avec secours 4G : équipement des gîtes et meublés de tourisme en Martinique.',
+    h1: 'Votre location saisonnière, gérée depuis votre téléphone',
+    accroche: 'Une clé perdue, une clim qui tourne pendant trois jours dans un logement vide, une fuite découverte au séjour suivant : avec un logement connecté, vous le savez tout de suite.',
+    intro: [
+      'La Martinique compte près de 9 000 meublés de tourisme, et beaucoup de propriétaires vivent loin de leur logement. Chaque arrivée, chaque oubli et chaque panne demande alors un déplacement ou un appel à la conciergerie.',
+      'Nous équipons votre logement pour le gérer à distance : serrure à code avec un code différent par séjour, climatisation pilotée et coupée entre deux voyageurs, détecteurs de fumée, de fuite d’eau et de bruit qui vous alertent, Wi-Fi fiable avec secours 4G, et caméra à l’entrée, à l’extérieur seulement.'
+    ],
+    exemple: { titre: 'Exemple : deux studios aux Trois-Îlets', avant: ['Remise des clés à chaque arrivée', 'Climatisation oubliée allumée entre deux séjours', 'Wi-Fi coupé, avis négatifs'], apres: ['Code envoyé automatiquement avant l’arrivée', 'Clim coupée à distance au départ', 'Wi-Fi stable avec secours 4G'] },
+    pourquoi: ['Pensé pour les propriétaires qui vivent loin', 'Compatible avec votre conciergerie', 'Matériel chiffré avant la pose', 'Intervention entre deux séjours (option)'],
+    faq: [
+      ['Faut-il changer toute la porte ?', 'Non, dans la plupart des cas on remplace seulement le cylindre ou on ajoute une serrure à code sur la porte existante.'],
+      ['A-t-on le droit de filmer les voyageurs ?', 'Une caméra peut surveiller l’entrée depuis l’extérieur, à condition de le signaler dans l’annonce. Jamais à l’intérieur du logement.'],
+      ['Et en cas de coupure internet ?', 'La serrure à code continue de fonctionner, et le secours 4G prend le relais pour le Wi-Fi et les alertes.']
+    ] },
+  { slug: 'formation-cybersecurite-salaries-martinique', cat: 'cyber', scene: 'cyber', services: ['formation', 'cyberexpress', 'cyber'], nouveau: true,
+    titre: 'Formation cybersécurité des salariés en Martinique | IloTech',
+    desc: 'Former votre équipe aux arnaques en Martinique : faux emails, SMS et appels, mots de passe, double authentification, IA au travail. Demi-journée sur place, faux email test et bilan.',
+    h1: 'Une équipe qui ne se fait plus piéger',
+    accroche: 'La plupart des piratages commencent par un clic sur un faux message. Une demi-journée suffit pour que toute l’équipe sache les reconnaître.',
+    intro: [
+      'Collectivités, communes et entreprises de Martinique ont déjà été touchées par des rançongiciels, et les signalements d’arnaques en ligne augmentent. Le point d’entrée est presque toujours le même : un email, un SMS ou un appel qui semble venir d’un fournisseur, d’une banque ou d’un collègue.',
+      'Notre formation se fait dans vos locaux, avec vos outils et des exemples locaux : reconnaître les faux messages, choisir et protéger ses mots de passe, activer la double authentification, utiliser l’IA sans divulguer de données, et savoir quoi faire en cas de doute. En option, un faux email piégé est envoyé à l’équipe pour mesurer les progrès.'
+    ],
+    exemple: { titre: 'Exemple : une agence de 6 personnes à Fort-de-France', avant: ['3 personnes sur 6 cliquent sur le faux email', 'Mots de passe partagés sur un post-it', 'Personne ne sait qui prévenir'], apres: ['Faux email signalé par toute l’équipe', 'Gestionnaire de mots de passe en place', 'Procédure affichée : qui appeler, quoi faire'] },
+    pourquoi: ['Exemples locaux et concrets', 'Sur place, avec vos outils', 'Faux email test et bilan chiffré', 'Fiche mémo pour chaque participant'],
+    faq: [
+      ['Combien de temps dure la formation ?', 'Une demi-journée, jusqu’à 8 personnes. Pour une équipe plus grande, on organise plusieurs groupes.'],
+      ['Le faux email est-il dangereux ?', 'Non. C’est un message inoffensif qui mesure seulement qui clique. Les résultats sont présentés de façon anonyme.'],
+      ['Faut-il un audit avant ?', 'Ce n’est pas obligatoire. Le contrôle sécurité express est un bon complément pour vérifier les postes en même temps.']
+    ] },
   { slug: 'cours-informatique-seniors-martinique', cat: 'aide', scene: 'aide', services: ['cours', 'abonnement'],
     titre: 'Cours d’informatique seniors en Martinique | IloTech',
     desc: 'Cours d’informatique à domicile en Martinique pour seniors et débutants : WhatsApp, appels vidéo, photos, banque en ligne, démarches, arnaques et intelligence artificielle. Dès 35 € l’heure.',
