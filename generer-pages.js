@@ -265,6 +265,38 @@ const PAGES = [
       ['Le faux email est-il dangereux ?', 'Non. C’est un message inoffensif qui mesure seulement qui clique. Les résultats sont présentés de façon anonyme.'],
       ['Faut-il un audit avant ?', 'Ce n’est pas obligatoire. Le contrôle sécurité express est un bon complément pour vérifier les postes en même temps.']
     ] },
+  { slug: 'conseil-informatique-dsi-externalise-martinique', cat: 'conseil', scene: 'pro', services: ['conseil', 'dsi', 'data'], distance: true, nouveau: true,
+    titre: 'Conseil informatique et DSI à temps partagé en Martinique | IloTech',
+    desc: 'Conseil numérique pour les TPE et PME de Martinique : bilan, plan sur 12 mois, responsable informatique à temps partagé, tableaux de bord, aide au montage des dossiers (Pass Numérique, programmes européens).',
+    h1: 'Un responsable informatique, sans l’embaucher',
+    accroche: 'Site, logiciels, sécurité, téléphones, fournisseurs : quand personne ne pilote l’informatique, on paie trop et on avance peu. On vous donne un plan clair, et on le suit avec vous.',
+    intro: [
+      'La plupart des TPE et PME de Martinique n’ont pas de responsable informatique. Les décisions se prennent au cas par cas, souvent sur les conseils du vendeur, et les abonnements s’accumulent.',
+      'Nous commençons par un bilan d’une demi-journée, puis vous remettons un plan sur 12 mois, chiffré et classé par priorité. Ensuite, si vous le souhaitez, nous jouons le rôle de responsable informatique à temps partagé : une demi-journée par mois pour suivre le plan, les fournisseurs et les achats. Des aides publiques, comme le Pass Numérique de la CTM, financent parfois une partie : nous vérifions celles qui s’appliquent et montons le dossier avec vous.'
+    ],
+    exemple: { titre: 'Exemple : une PME de 12 personnes au Lamentin', avant: ['5 abonnements logiciels qui se recoupent', 'Aucun plan, achats faits dans l’urgence', 'Chiffres de vente regroupés à la main chaque mois'], apres: ['2 abonnements supprimés, budget connu', 'Plan sur 12 mois suivi chaque mois', 'Tableau de bord des ventes à jour tout seul'] },
+    pourquoi: ['Indépendant des vendeurs de matériel', 'Plan chiffré et par priorité', 'Aide au montage des dossiers d’aide', 'Sur place en Martinique ou à distance'],
+    faq: [
+      ['À partir de quelle taille est-ce utile ?', 'Dès 3 ou 4 postes, ou dès que l’informatique coûte plus de quelques centaines d’euros par mois. Le bilan seul suffit souvent aux petites structures.'],
+      ['Est-ce que vous vendez du matériel ?', 'Nous pouvons le fournir, mais le conseil reste indépendant : nous comparons aussi les devis de vos fournisseurs habituels.'],
+      ['Quelles aides existent ?', 'Le Pass Numérique de la Collectivité Territoriale de Martinique peut prendre en charge une partie d’un projet numérique pour les entreprises de moins de 30 salariés, sous conditions. D’autres appels à projets ouvrent régulièrement : nous vous prévenons.']
+    ] },
+  { slug: 'suivi-consommation-electrique-climatisation-martinique', cat: 'continuite', scene: 'domo', services: ['energie', 'domotique', 'ups'], nouveau: true,
+    titre: 'Réduire sa facture d’électricité : suivi et climatisation connectée en Martinique | IloTech',
+    desc: 'Voir ce qui consomme, appareil par appareil, et piloter la climatisation à distance : suivi de consommation électrique pour maisons, commerces et bureaux en Martinique.',
+    h1: 'Voyez ce qui consomme, et coupez ce qui tourne pour rien',
+    accroche: 'Une climatisation oubliée dans un bureau vide, un vieux congélateur, un chauffe-eau mal réglé : sans mesure, impossible de savoir où part l’argent.',
+    intro: [
+      'En Martinique, la climatisation pèse lourd sur la facture d’électricité des maisons, des commerces et des bureaux. Pourtant, rares sont ceux qui savent combien consomme chaque appareil.',
+      'Nous posons une mesure de consommation en temps réel, visible sur votre téléphone, puis nous repérons les appareils les plus gourmands. La climatisation peut être programmée et coupée à distance, et une alerte vous prévient en cas de surconsommation. Si le tableau électrique doit être ouvert, la pose est faite par un électricien partenaire.'
+    ],
+    exemple: { titre: 'Exemple : un commerce à Fort-de-France', avant: ['Clims allumées la nuit et le dimanche', 'Facture qui grimpe sans explication', 'Aucune idée de ce qui consomme'], apres: ['Clims coupées automatiquement à la fermeture', 'Consommation visible sur le téléphone', 'Alerte en cas de pic anormal'] },
+    pourquoi: ['Mesure réelle, pas des estimations', 'Climatisation pilotée à distance', 'Matériel chiffré avant la pose', 'Compatible avec une installation solaire'],
+    faq: [
+      ['Combien peut-on économiser ?', 'Cela dépend de vos habitudes. La mesure sert justement à le savoir : vous voyez les appareils qui consomment le plus et l’effet de chaque réglage.'],
+      ['Faut-il changer mes climatiseurs ?', 'Non. La plupart se pilotent avec un petit module ou une télécommande connectée.'],
+      ['Et si j’ai des panneaux solaires ?', 'Nous pouvons suivre la production et la consommation au même endroit, pour utiliser l’énergie au bon moment.']
+    ] },
   { slug: 'cours-informatique-seniors-martinique', cat: 'aide', scene: 'aide', services: ['cours', 'abonnement'],
     titre: 'Cours d’informatique seniors en Martinique | IloTech',
     desc: 'Cours d’informatique à domicile en Martinique pour seniors et débutants : WhatsApp, appels vidéo, photos, banque en ligne, démarches, arnaques et intelligence artificielle. Dès 35 € l’heure.',
@@ -517,6 +549,38 @@ const PAGES = [
       ['Pour qui est le pack immobilier ?', 'Agences immobilières, propriétaires qui vendent seuls, et loueurs de gîtes, villas et appartements saisonniers.'],
       ['Peut-on faire voler le drone partout ?', 'Non : certaines zones sont interdites ou réglementées (aéroport, sites protégés). Nous vérifions avant de confirmer la séance.'],
       ['Combien coûte le pack immobilier ?', 'Le pack commence à {immobilier} pour les photos intérieures et la vue aérienne ; vidéo, page web du bien et équipement des locations sont en option.']
+    ] },
+  { slug: 'creation-site-internet-guadeloupe-guyane', cat: 'web', scene: 'web', services: ['siteweb', 'maintweb', 'reseaux'], distance: true, pasDeLienCat: true,
+    titre: 'Création de site internet en Guadeloupe et en Guyane, à distance | IloTech',
+    desc: 'Site internet pour les entreprises de Guadeloupe, de Guyane et de Saint-Martin, réalisé à distance par une équipe antillaise : site vitrine, boutique, fiche Google, maintenance. Visio, prix fixé avant de commencer.',
+    h1: 'Votre site internet, fait aux Antilles, pour la Guadeloupe et la Guyane',
+    accroche: 'Une équipe qui connaît les réalités des Antilles, à une visio de vous : même fuseau horaire, même façon de travailler, prix fixé avant de commencer.',
+    intro: [
+      'IloTech est une entreprise informatique martiniquaise. Pour les sites internet, tout se fait à distance : un premier échange en visio, une maquette à valider, puis la mise en ligne. Nos clients de Guadeloupe, de Guyane et de Saint-Martin sont accompagnés exactement comme ceux de Martinique.',
+      'Site d’une page, site vitrine ou boutique en ligne : adapté au téléphone, avec bouton WhatsApp, fiche Google et suivi des visites. Le site vous appartient, les accès vous sont remis, et la maintenance peut continuer chaque mois si vous le souhaitez.'
+    ],
+    exemple: { titre: 'Exemple : un restaurant à Sainte-Anne (Guadeloupe)', avant: ['Pas de site, seulement une page Facebook', 'Menu envoyé en photo par WhatsApp', 'Invisible sur Google'], apres: ['Site d’une page avec menu et réservation', 'Fiche Google complète', 'Bouton WhatsApp sur chaque page'] },
+    pourquoi: ['Même fuseau horaire, échanges en visio', 'Prix fixé avant de commencer', 'Le site vous appartient', 'Paiement en 3 fois sans frais dès 500 €'],
+    faq: [
+      ['Comment se passe le travail à distance ?', 'Un appel vidéo pour comprendre votre activité, une maquette à valider, des retouches, puis la mise en ligne. Vous envoyez photos et textes par WhatsApp ou email.'],
+      ['Intervenez-vous sur place en Guadeloupe ?', 'Les sites, l’IA et le marketing se font entièrement à distance. Pour le matériel (ordinateurs, caméras, réseau), nous intervenons en Martinique.'],
+      ['Combien coûte un site ?', 'Un site d’une page commence à {siteweb}. Le devis est gratuit et le prix fixé avant de commencer.']
+    ] },
+  { slug: 'facturation-electronique-guadeloupe-guyane', cat: 'gestion', scene: 'caisse', services: ['efacture', 'erp', 'data'], distance: true, pasDeLienCat: true,
+    titre: 'Facturation électronique en Guadeloupe et en Guyane : mise en place à distance | IloTech',
+    desc: 'Facture électronique obligatoire : choix de la plateforme agréée, réglages, reprise des clients et formation, à distance, pour les entreprises de Guadeloupe et de Guyane assujetties à la TVA.',
+    h1: 'Facture électronique : la mise en place, à distance',
+    accroche: 'Réception obligatoire depuis le 1er septembre 2026, émission pour les PME et micro-entreprises au 1er septembre 2027. Tout se règle en visio, sans déplacement.',
+    intro: [
+      'La réforme de la facturation électronique concerne les entreprises assujetties à la TVA. La Guadeloupe applique la TVA comme la Martinique : les entreprises qui y sont assujetties suivent le même calendrier que dans l’Hexagone. En Guyane, la TVA n’est pas appliquée pour le moment : votre expert-comptable vous dira si et comment la réforme vous concerne.',
+      'Nous faisons le point avec vous en visio, choisissons une plateforme agréée adaptée à votre taille, réglons les comptes, reprenons vos clients et articles, et vous formons. Si vos devis sont encore sur Word ou Excel, nous pouvons aussi mettre en place un logiciel de gestion complet.'
+    ],
+    exemple: { titre: 'Exemple : un artisan à Baie-Mahault', avant: ['Factures faites sur Excel', 'Échéances de la réforme mal connues', 'Pas le temps de comparer les plateformes'], apres: ['Plateforme agréée choisie et réglée', 'Clients et articles repris', 'Prêt pour 2027, en avance'] },
+    pourquoi: ['Tout se fait en visio', 'Calendrier expliqué simplement', 'Plateforme adaptée à votre taille', 'Travail avec votre expert-comptable'],
+    faq: [
+      ['Suis-je concerné en Guadeloupe ?', 'Oui, si votre entreprise est assujettie à la TVA. Votre expert-comptable peut confirmer votre cas précis.'],
+      ['Et en Guyane ?', 'La TVA n’y est pas appliquée pour le moment. Demandez à votre expert-comptable ce que la réforme implique pour votre entreprise ; un logiciel de facturation reste utile dans tous les cas.'],
+      ['Combien ça coûte ?', 'La mise en place commence à {efacture}. De nombreuses plateformes ont une offre gratuite ou à quelques euros par mois pour les petites entreprises.']
     ] }
 ];
 
@@ -597,7 +661,7 @@ const GUIDES = [
 
 /* ---------- Gabarit ---------- */
 const prixDe = s => s.base ? 'dès ' + eur(s.base) + (s.mensuel ? '/mois' : '') : 'Gratuit';
-const remplir = t => t.replace(/\{(\w+)\}/g, (m, id) => svc(id) ? prixDe(svc(id)) : m);
+const remplir = t => t.replace(/\{(\w+)\}/g, (m, id) => svc(id) ? prixDe(svc(id)) : m).replace(/ à dès /g, ' à ');
 const catDe = id => CATEGORIES.find(c => c.id === id);
 const lien = p => p.slug + '.html';
 // photos réalistes (illustrations) : img/photos/<nom>.jpg, affichées seulement si le fichier existe
@@ -923,4 +987,22 @@ ${urls.map(([u, pr, f]) => `  <url><loc>${SITE}${u}</loc><lastmod>${jour}</lastm
 `);
 // liste des pages pour les liens de la page Services
 fs.writeFileSync(path.join(dir, 'pages-seo.js'), `// Généré par generer-pages.js : catégorie -> page dédiée (liens « En savoir plus »)\nconst PAGES_SEO = ${JSON.stringify(Object.fromEntries(PAGES.filter(p => !p.pasDeLienCat).map(p => [p.cat, { url: lien(p), titre: p.h1 }]).reverse()))};\n`);
+// llms.txt : présentation du site pour les assistants IA (ChatGPT, Perplexity, Copilot, Gemini)
+fs.writeFileSync(path.join(dir, 'llms.txt'), `# IloTech
+
+> Entreprise informatique martiniquaise (EI Erwan Labiche), deux agences : Ducos (0696 77 99 02) et Le Robert (0696 48 26 78). Interventions à domicile dans toute la Martinique, en agence ou à distance ; sites, IA, marketing et facture électronique aussi à distance pour la Guadeloupe, la Guyane et Saint-Martin. Devis gratuit, prix annoncé avant toute intervention, rendez-vous en ligne sur ${SITE}.
+
+## Services
+${CATEGORIES.map(c => `- ${c.nom} : ${c.services.map(id => svc(id)).filter(Boolean).map(x => `${x.nom} (${prixDe(x)})`).join(', ')}`).join('\n')}
+
+## Pages détaillées
+${PAGES.map(p => `- [${p.h1}](${SITE}${p.slug}.html) : ${p.desc}`).join('\n')}
+
+## Guides
+${GUIDES.map(x => `- [${x.h1 || x.slug}](${SITE}${x.slug}.html)`).join('\n')}
+
+## Contact
+- Rendez-vous en ligne : ${SITE}
+- WhatsApp et téléphone : Ducos 0696 77 99 02, Le Robert 0696 48 26 78
+`);
 console.log(`${PAGES.length} pages service, ${GUIDES.length} guides, conseils.html, 404.html, sitemap.xml (${urls.length} adresses)`);

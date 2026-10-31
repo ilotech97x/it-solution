@@ -196,7 +196,7 @@ const SERVICES = [
     pasCompris: ['Tests à la main des comptes et formulaires (voir l’audit)', 'Corrections (sur devis)'],
     options: [['site2', 'Site web supplémentaire', 39], ['appel', 'Explication du rapport au téléphone (20 min)', 0, 'Offert']] },
   { id: 'cyber', icon: 'lock', nom: 'Audit cybersécurité', desc: 'Vérifications autorisées, corrections', base: 290, modes: ['distance', 'site'],
-    note: 'Uniquement sur vos propres systèmes ou avec autorisation écrite. Rapport clair : constats expliqués et corrections ciblées.',
+    note: 'Uniquement sur vos propres systèmes ou avec autorisation écrite. Rapport clair : constats expliqués et corrections ciblées. Des aides publiques (Pass Numérique de la CTM, programmes européens) financent parfois une partie : nous vérifions celles qui s’appliquent et montons le dossier avec vous.',
     compris: ['Accord écrit sur ce qui est vérifié', 'Vérifications à la main (comptes, formulaires, sauvegardes)', 'Rapport classé par priorité', 'Contre-vérification après vos corrections'],
     pasCompris: ['Attaques destructives : rien n’est supprimé ni bloqué', 'Certification officielle'],
     options: [['site', 'Vérification d’un site web supplémentaire', 150], ['email', 'Sécurité des emails (SPF, DMARC)', 90], ['acces', 'Revue des accès et mots de passe', 120],
@@ -325,7 +325,32 @@ const SERVICES = [
     note: 'Prix par poste et par mois. Pas d’achat à avancer : le PC est livré prêt, entretenu, et remplacé en cas de panne. Durée à définir ensemble.',
     compris: ['PC portable ou fixe prêt à l’emploi', 'Mises à jour et antivirus suivis', 'Remplacement en cas de panne', 'Assistance à distance'],
     pasCompris: ['Licences de logiciels métier'],
-    options: [['ecran', 'Écran, clavier et souris en plus', 9], ['m365', 'Messagerie Microsoft 365 gérée', 8], ['sauve', 'Sauvegarde en ligne du poste', 5]] }
+    options: [['ecran', 'Écran, clavier et souris en plus', 9], ['m365', 'Messagerie Microsoft 365 gérée', 8], ['sauve', 'Sauvegarde en ligne du poste', 5]] },
+  // --- Conseil, DSI à temps partagé et données (demande forte des PME, peu d'offre locale accessible)
+  { id: 'conseil', icon: 'briefcase', nom: 'Conseil & plan numérique', desc: 'Par où commencer, quel budget, quelles aides', base: 390, modes: ['site', 'distance'],
+    note: 'Un regard extérieur sur votre informatique et vos outils, puis un plan clair sur 12 mois, chiffré et classé par priorité. Des aides publiques (Pass Numérique de la CTM, programmes européens) financent parfois une partie : nous vérifions celles qui s’appliquent et montons le dossier avec vous.',
+    compris: ['Entretien et visite (demi-journée)', 'Bilan : matériel, logiciels, sécurité, site, réseaux', 'Plan sur 12 mois, chiffré et par priorité', 'Restitution d’1 h avec le dirigeant'],
+    pasCompris: ['Réalisation des actions (chiffrée à part)'],
+    options: [['aides', 'Montage du dossier d’aide (Pass Numérique, appel à projets)', 190], ['cahier', 'Cahier des charges d’un projet (site, logiciel, application)', 290],
+      ['devis', 'Comparaison des devis de vos fournisseurs', 149]] },
+  { id: 'dsi', icon: 'briefcase', nom: 'Responsable informatique à temps partagé', desc: 'Votre DSI, une demi-journée par mois', base: 290, mensuel: true, modes: ['site', 'distance'],
+    note: 'Le savoir-faire d’un responsable informatique, sans l’embaucher : suivi du plan, des fournisseurs et des achats, et un point chaque mois avec le dirigeant.',
+    compris: ['Une demi-journée par mois, sur place ou à distance', 'Suivi du plan et des fournisseurs', 'Avis avant chaque achat ou abonnement', 'Point mensuel avec le dirigeant'],
+    pasCompris: ['Interventions techniques (voir Maintenance)'],
+    options: [['jour', 'Une journée par mois au lieu d’une demi-journée', 250], ['prio', 'Joignable en priorité pour les urgences', 49]] },
+  { id: 'data', icon: 'trending', nom: 'Tableaux de bord & données', desc: 'Vos chiffres clés, à jour tout seuls', base: 290, modes: ['distance', 'site'],
+    note: 'Ventes, marges, stock, rendez-vous : vos chiffres rassemblés depuis la caisse, Excel ou votre logiciel, dans un tableau de bord lisible sur le téléphone.',
+    compris: ['Choix des 5 à 10 chiffres qui comptent', 'Connexion à vos sources (caisse, Excel, logiciel)', 'Tableau de bord sur PC et téléphone', 'Prise en main (1 h)'],
+    pasCompris: ['Abonnement éventuel à l’outil de tableau de bord'],
+    options: [['source', 'Source de données en plus', 99], ['nettoyage', 'Nettoyage et regroupement de vos fichiers Excel', 149],
+      ['alerte', 'Alertes automatiques (stock bas, baisse des ventes)', 79], ['ia', 'Poser des questions à vos chiffres en langage courant, avec l’IA', 190]] },
+  // --- Transition énergétique : voir et réduire la facture d'électricité
+  { id: 'energie', icon: 'zap', nom: 'Suivi de l’énergie', desc: 'Voir et réduire la facture d’électricité', base: 149, modes: ['site'],
+    note: 'Voir ce qui consomme, appareil par appareil. La climatisation est souvent la plus grosse dépense : on la programme et on la coupe à distance. Si le tableau électrique doit être ouvert, la pose est faite par un électricien partenaire.',
+    compris: ['Mesure de la consommation en temps réel', 'Application sur votre téléphone', 'Bilan des appareils qui consomment le plus', 'Conseils de réglage chiffrés'],
+    pasCompris: ['Matériel (compteur connecté, prises, modules), chiffré avant', 'Travaux électriques'],
+    options: [['clim', 'Climatisation programmée et pilotée à distance (par appareil)', 39], ['prises', 'Prises connectées pour les gros appareils (par prise)', 15],
+      ['rapport', 'Rapport mensuel et alerte de surconsommation', 0, 'Inclus'], ['solaire', 'Suivi d’une installation solaire existante', 79]] }
 ];
 
 // Onglets « À la carte » : un onglet = un type de besoin, chaque service n'est qu'à un seul endroit
@@ -336,7 +361,7 @@ const UNIVERS = [
   { id: 'info',   court: 'Informatique', nom: 'Informatique',     icon: 'monitor',   badge: 'tools',    couleur: '#2b8cff', desc: 'Dépannage, installation, sécurité, fichiers et cours, chez vous, en agence ou à distance.' },
   { id: 'maison', court: 'Maison', nom: 'Maison connectée', icon: 'home',      badge: 'wifi',     couleur: '#22c55e', desc: 'Caméras, alarme, domotique et Wi-Fi dans toute la maison.' },
   { id: 'web',    court: 'Web & IA', nom: 'Web, IA & marketing',  icon: 'globe',     badge: 'trending', couleur: '#6366f1', desc: 'Sites web, intelligence artificielle, boutiques en ligne, applications et stratégie pour trouver des clients.' },
-  { id: 'pro',    court: 'Entreprises', nom: 'Entreprises',      icon: 'briefcase', badge: 'shield',   couleur: '#8b5cf6', desc: 'Maintenance, cybersécurité, plan cyclone, facture électronique, téléphonie et caisse pour les commerces et les bureaux.' },
+  { id: 'pro',    court: 'Entreprises', nom: 'Entreprises',      icon: 'briefcase', badge: 'shield',   couleur: '#8b5cf6', desc: 'Maintenance, cybersécurité, conseil, données, plan cyclone, énergie, facture électronique, téléphonie et caisse pour les commerces et les bureaux.' },
   { id: 'crea',   court: 'Drone & immo', nom: 'Drone & immobilier',       icon: 'drone',     badge: 'camera',   couleur: '#38bdf8', desc: 'Photos et vidéos aériennes, inspection de toiture, et tout pour vendre ou louer un bien.' }
 ];
 
@@ -384,8 +409,10 @@ const CATEGORIES = [
     accroche: 'Des emails à votre nom et des fichiers partagés, partout.' },
   { id: 'cyber',     univers: 'pro',    nom: 'Cybersécurité', icon: 'lock',       badge: 'search',     couleur: '#f43f5e', services: ['cyberexpress', 'cyber', 'formation', 'rgpd'],
     accroche: 'Vérifiez vos accès et vos sites avant qu’un pirate ne le fasse.' },
-  { id: 'continuite', univers: 'pro',  nom: 'Plan cyclone',  icon: 'battery',    badge: 'shield',     couleur: '#0ea5e9', services: ['cyclone'], nouveau: true,
-    accroche: 'Cyclone, coupure, orage : votre activité continue, ou repart en quelques heures.' },
+  { id: 'continuite', univers: 'pro',  nom: 'Cyclone & énergie', icon: 'battery', badge: 'shield',     couleur: '#0ea5e9', services: ['cyclone', 'energie'], nouveau: true,
+    accroche: 'Cyclone, coupure, orage : votre activité continue. Et une facture d’électricité qui baisse.' },
+  { id: 'conseil',   univers: 'pro',    nom: 'Conseil & données', icon: 'trending', badge: 'briefcase', couleur: '#6366f1', services: ['conseil', 'dsi', 'data'], nouveau: true,
+    accroche: 'Un plan clair, un responsable informatique à temps partagé, vos chiffres en un coup d’œil.' },
   { id: 'gestion',   univers: 'pro',    nom: 'Factures & gestion', icon: 'doc',     badge: 'receipt',    couleur: '#10b981', services: ['efacture', 'erp'], nouveau: true,
     accroche: 'Facture électronique obligatoire : soyez en règle, et gérez devis, stock et clients au même endroit.' },
   { id: 'caisse',    univers: 'pro',    nom: 'Caisse',        icon: 'receipt',    badge: 'zap',        couleur: '#facc15', services: ['pos'],
@@ -431,6 +458,7 @@ const VITRINES = {
   caisse:    { obtenez: [['receipt', 'Caisse tactile'], ['printer', 'Tickets imprimés'], ['store', 'Stock suivi'], ['battery', 'Pas d’arrêt aux coupures']], puces: ['Paiement CB relié', 'Équipe formée', 'Ventes du jour'] },
   continuite:{ obtenez: [['battery', 'Onduleurs et parafoudres'], ['wifi', 'Internet de secours'], ['cloud', 'Sauvegarde hors de l’île'], ['doc', 'Procédure écrite']], puces: ['Redémarrage en 2 h', 'Bascule 4G auto', 'Test annuel'] },
   gestion:   { obtenez: [['doc', 'Factures électroniques'], ['receipt', 'Devis et factures à votre nom'], ['store', 'Stock suivi'], ['users', 'Équipe formée']], puces: ['En règle 2026-2027', 'Fini Excel', 'Relances auto'] },
+  conseil:   { obtenez: [['doc', 'Plan sur 12 mois'], ['trending', 'Tableau de bord'], ['briefcase', 'DSI à temps partagé'], ['receipt', 'Dossier d’aide']], puces: ['Priorités claires', 'Budget maîtrisé', 'Aides publiques'] },
   drone:     { obtenez: [['drone', '30 min de vol'], ['camera', 'Photos HD retouchées'], ['home', 'Toiture vue de près'], ['zap', 'Livré sous 48 h']], puces: ['Vue mer', 'Inspection toiture', 'Clip 4K'] },
   immo:      { obtenez: [['camera', 'Photos intérieures'], ['drone', 'Vue aérienne du bien'], ['globe', 'Page du bien à partager'], ['lock', 'Location saisonnière équipée']], puces: ['Annonce prête', 'Visite en vidéo', 'Serrure connectée'] },
 };
@@ -499,7 +527,9 @@ const PACKS = [
   { id: 'gitedistance', univers: 'crea', icon: 'lock', pour: 'Immobilier', nom: 'Gérer mon gîte à distance', prix: 299,
     inclus: ['Serrure à code par séjour', 'Climatisation coupée à distance', 'Alerte fuite, fumée et bruit'], items: { locsaison: ['serrure', 'clim', 'capteurs'] } },
   { id: 'equipe', univers: 'pro', icon: 'shield', pour: 'Cybersécurité', nom: 'Équipe formée contre les arnaques', prix: 390,
-    inclus: ['Demi-journée de formation', 'Faux email piégé et bilan', 'Fiche mémo pour chacun'], items: { formation: ['phishing'] } }
+    inclus: ['Demi-journée de formation', 'Faux email piégé et bilan', 'Fiche mémo pour chacun'], items: { formation: ['phishing'] } },
+  { id: 'plan', univers: 'pro', icon: 'briefcase', pour: 'Conseil & données', nom: 'Plan numérique + dossier d’aide', prix: 490,
+    inclus: ['Bilan et plan sur 12 mois', 'Dossier d’aide monté avec vous', 'Restitution avec le dirigeant'], items: { conseil: ['aides'] } }
 ];
 
 // « Décrire mon problème » : chaque situation sélectionne un pack, ou des services / options
@@ -535,6 +565,9 @@ const SYMPTOMES = [
   { id: 'equipe',  label: 'Mes salariés cliquent sur des liens douteux', pack: 'equipe' },
   { id: 'pcmoins', label: 'Je veux un ordinateur fiable sans payer le prix du neuf', items: { reconditionne: [] } },
   { id: 'locpc',   label: 'Je veux équiper mon équipe sans acheter les PC', items: { locationpc: [] } },
+  { id: 'plan',    label: 'Je ne sais pas par où commencer pour moderniser mon entreprise', pack: 'plan' },
+  { id: 'chiffres', label: 'Je veux suivre mes chiffres sans passer des heures sur Excel', items: { data: [] } },
+  { id: 'energie', label: 'Ma facture d’électricité est trop élevée', items: { energie: ['clim'] } },
   { id: 'posts',   label: 'Je veux publier sur tous mes réseaux sans y passer du temps', items: { reseaux: [], contenuia: [] } },
   { id: 'cam4g',   label: 'Je veux une caméra sans Wi-Fi (terrain, chantier)', items: { camera: ['solaire'] } },
   { id: 'net',     label: "Je n'ai plus internet",                    items: { network: ['router'] } },

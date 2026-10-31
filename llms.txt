@@ -1,0 +1,80 @@
+# IloTech
+
+> Entreprise informatique martiniquaise (EI Erwan Labiche), deux agences : Ducos (0696 77 99 02) et Le Robert (0696 48 26 78). Interventions à domicile dans toute la Martinique, en agence ou à distance ; sites, IA, marketing et facture électronique aussi à distance pour la Guadeloupe, la Guyane et Saint-Martin. Devis gratuit, prix annoncé avant toute intervention, rendez-vous en ligne sur https://ilo-tech.com/.
+
+## Services
+- Ordinateur : Dépannage PC (dès 35 €), Accélérer Windows (dès 39 €), Réparation PC fixe (dès 35 €), Réparation PC portable (dès 35 €)
+- Sécurité : Antivirus & virus (dès 29 €), Comptes & arnaques (dès 29 €)
+- Fichiers : Sauvegarde (dès 29 €), Récupération de données (dès 35 €), Stockage & transfert (dès 25 €), Reprise & recyclage (Gratuit)
+- Installation : PC neuf & logiciels (dès 35 €), PC reconditionné (dès 49 €), Imprimante & scanner (dès 29 €), Onduleur (dès 29 €)
+- Mobile & tablette : Smartphone & tablette (dès 25 €)
+- Gaming : Entretien console (dès 29 €), Émulation & rétro (dès 29 €), PC gamer sur mesure (dès 39 €)
+- Aide & suivi : Cours & accompagnement (dès 35 €), Accompagnement seniors (dès 39 €/mois), Abonnement entretien (dès 9,90 €/mois)
+- Starlink : Installation Starlink (dès 119 €)
+- Caméras : Vidéosurveillance (dès 120 €), Alarme & accès (dès 39 €)
+- Domotique : Domotique (dès 39 €)
+- Wi-Fi : Internet et Wi-Fi (dès 49 €)
+- TV & multimédia : TV, box & multimédia (dès 29 €)
+- Site web : Développement web (dès 390 €), Maintenance de site (dès 29 €/mois), Site piraté ou en panne (dès 149 €)
+- Application : Application mobile (dès 1 290 €)
+- Programmation : Programmation sur mesure (dès 190 €)
+- IA : Intelligence artificielle (dès 149 €)
+- Marketing : Stratégie marketing (dès 149 €), Agence réseaux sociaux (dès 149 €/mois), Contenus vidéo créés avec l’IA (dès 199 €/mois)
+- Maintenance : Maintenance informatique (dès 49 €), Location de PC (dès 39 €/mois)
+- Réseau & téléphone : Réseau d’entreprise (dès 79 €), Standard téléphonique (dès 99 €)
+- Emails & cloud : Emails pro & Microsoft 365 (dès 49 €)
+- Cybersécurité : Contrôle sécurité express (dès 79 €), Audit cybersécurité (dès 290 €), Former l’équipe aux arnaques (dès 290 €), Mise en conformité RGPD (dès 190 €)
+- Cyclone & énergie : Plan cyclone & continuité (dès 190 €), Suivi de l’énergie (dès 149 €)
+- Conseil & données : Conseil & plan numérique (dès 390 €), Responsable informatique à temps partagé (dès 290 €/mois), Tableaux de bord & données (dès 290 €)
+- Factures & gestion : Facturation électronique (dès 149 €), Logiciel de gestion (dès 290 €)
+- Caisse : Caisse enregistreuse (dès 149 €)
+- Drone : Drone (dès 149 €)
+- Immobilier : Pack immobilier (dès 199 €), Location saisonnière connectée (dès 149 €)
+- Impression 3D : Impression 3D (dès 25 €)
+
+## Pages détaillées
+- [Installation Starlink en Martinique](https://ilo-tech.com/installation-starlink-martinique.html) : Installation Starlink en Martinique : pose de l’antenne sur le toit, câble, Wi-Fi dans toute la maison et secours pendant les coupures. Dès 119 €, devis gratuit. Ducos, Le Robert, toute l’île.
+- [Dépannage informatique en Martinique](https://ilo-tech.com/depannage-informatique-martinique.html) : Dépannage informatique en Martinique : PC lent, qui ne démarre plus, écran bleu, virus. Chez vous, en agence à Ducos et au Robert, ou à distance. Dès 35 €, prix annoncé avant.
+- [Réparation d’ordinateur portable et fixe](https://ilo-tech.com/reparation-ordinateur-portable-martinique.html) : Réparation de PC portable et fixe en Martinique : écran cassé, batterie, clavier, charnière, prise de charge, surchauffe, disque SSD. Devis gratuit, agences à Ducos et au Robert.
+- [Virus, arnaques et comptes piratés](https://ilo-tech.com/virus-arnaque-compte-pirate-martinique.html) : Suppression de virus, publicités, faux messages et récupération de compte piraté (Facebook, Gmail, WhatsApp) en Martinique. Sécurisation sans jargon, dès 29 €.
+- [Récupération de données et sauvegarde](https://ilo-tech.com/recuperation-donnees-sauvegarde-martinique.html) : Récupération de photos et fichiers perdus (disque dur, clé USB, carte SD, téléphone) et mise en place de sauvegardes automatiques en Martinique. Diagnostic et devis gratuits.
+- [Téléphone et tablette : réparation et réglages](https://ilo-tech.com/reparation-telephone-tablette-martinique.html) : Téléphone et tablette en Martinique : écran cassé, batterie, stockage plein, transfert vers un nouveau téléphone, photos et WhatsApp sauvegardés. Agences à Ducos et au Robert.
+- [Wi-Fi et internet partout dans la maison](https://ilo-tech.com/installation-wifi-internet-martinique.html) : Wi-Fi qui ne capte pas à l’étage ou sur la terrasse ? Diagnostic, bornes Wi-Fi mesh, box et câblage en Martinique. Formule Wi-Fi partout à prix fixe. Ducos, Le Robert et toute l’île.
+- [Installation de caméras de surveillance](https://ilo-tech.com/installation-camera-surveillance-martinique.html) : Installation de caméras de surveillance en Martinique : vision de nuit, alerte sur téléphone, enregistrement, caméras solaires 4G sans Wi-Fi. Maison, commerce, terrain. Devis gratuit.
+- [Domotique : votre maison pilotée du téléphone](https://ilo-tech.com/domotique-maison-connectee-martinique.html) : Domotique en Martinique : lumières, climatisation, volets, prises et arrosage pilotés depuis le téléphone, à distance ou automatiquement. Installation et réglage, devis gratuit.
+- [Coupures de courant : protégez votre matériel](https://ilo-tech.com/onduleur-coupure-courant-martinique.html) : Coupures de courant et micro-coupures en Martinique : un onduleur protège ordinateur, box, caisse et serveur, garde internet allumé et évite les pannes. Conseil et installation.
+- [Plan cyclone : votre entreprise continue de tourner](https://ilo-tech.com/plan-cyclone-continuite-informatique-martinique.html) : Cyclones, coupures de courant, orages : plan de continuité informatique pour les entreprises de Martinique. Sauvegarde hors de l’île, internet de secours 4G ou Starlink, onduleurs, procédure de redémarrage.
+- [Facture électronique : soyez en règle, simplement](https://ilo-tech.com/facturation-electronique-martinique.html) : Facture électronique obligatoire : réception depuis le 1er septembre 2026, émission pour les PME et micro-entreprises au 1er septembre 2027. Choix de la plateforme agréée, réglages et formation en Martinique.
+- [Vos parents accompagnés, chaque mois, à la maison](https://ilo-tech.com/accompagnement-numerique-seniors-domicile-martinique.html) : Une visite par mois à domicile pour vos parents en Martinique : démarches en ligne, téléphone et tablette, messages douteux vérifiés, compte rendu à la famille. Dès 39 € par mois.
+- [Votre location saisonnière, gérée depuis votre téléphone](https://ilo-tech.com/location-saisonniere-connectee-martinique.html) : Serrure à code par séjour, climatisation coupée à distance, alertes fuite, fumée et bruit, Wi-Fi voyageurs avec secours 4G : équipement des gîtes et meublés de tourisme en Martinique.
+- [Une équipe qui ne se fait plus piéger](https://ilo-tech.com/formation-cybersecurite-salaries-martinique.html) : Former votre équipe aux arnaques en Martinique : faux emails, SMS et appels, mots de passe, double authentification, IA au travail. Demi-journée sur place, faux email test et bilan.
+- [Un responsable informatique, sans l’embaucher](https://ilo-tech.com/conseil-informatique-dsi-externalise-martinique.html) : Conseil numérique pour les TPE et PME de Martinique : bilan, plan sur 12 mois, responsable informatique à temps partagé, tableaux de bord, aide au montage des dossiers (Pass Numérique, programmes européens).
+- [Voyez ce qui consomme, et coupez ce qui tourne pour rien](https://ilo-tech.com/suivi-consommation-electrique-climatisation-martinique.html) : Voir ce qui consomme, appareil par appareil, et piloter la climatisation à distance : suivi de consommation électrique pour maisons, commerces et bureaux en Martinique.
+- [Cours d’informatique pour seniors et débutants](https://ilo-tech.com/cours-informatique-seniors-martinique.html) : Cours d’informatique à domicile en Martinique pour seniors et débutants : WhatsApp, appels vidéo, photos, banque en ligne, démarches, arnaques et intelligence artificielle. Dès 35 € l’heure.
+- [Intelligence artificielle : apprendre et l’utiliser](https://ilo-tech.com/intelligence-artificielle-ia-martinique.html) : Découvrir et utiliser l’intelligence artificielle (ChatGPT…) en Martinique : formation pour particuliers et équipes, assistant IA pour répondre à vos clients, automatisations. Sans risque pour vos données.
+- [Création de site internet en Martinique](https://ilo-tech.com/creation-site-internet-martinique.html) : Création de site internet en Martinique : site vitrine, prise de rendez-vous, boutique en ligne, référencement Google local. Dès 390 €, paiement en 3 fois, le site vous appartient.
+- [Création d’application mobile et web](https://ilo-tech.com/application-mobile-martinique.html) : Application mobile et web sur mesure en Martinique : réservation, espace client, outil de terrain, notifications. Maquette à tester avant de décider, code remis, paiement en 3 fois.
+- [Marketing digital et réseaux sociaux](https://ilo-tech.com/marketing-digital-reseaux-sociaux-martinique.html) : Être visible et trouver des clients en Martinique : fiche Google Maps optimisée, avis, publicité Facebook et Instagram, vidéos courtes, gestion des réseaux sociaux. Bilan et plan d’action.
+- [Maintenance informatique pour les entreprises](https://ilo-tech.com/maintenance-informatique-entreprise-martinique.html) : Maintenance informatique pour TPE, commerces, cabinets et associations en Martinique : assistance, mises à jour, antivirus, sauvegardes, réseau et Wi-Fi pro, emails à votre nom, Microsoft 365.
+- [Cybersécurité pour les entreprises](https://ilo-tech.com/cybersecurite-entreprise-martinique.html) : Cybersécurité en Martinique : contrôle sécurité express dès 79 €, audit de site et de messagerie, mots de passe, sauvegardes, sensibilisation de l’équipe. Rapport clair et priorités.
+- [Caisse enregistreuse pour commerces et restaurants](https://ilo-tech.com/caisse-enregistreuse-martinique.html) : Installation de caisse enregistreuse en Martinique pour commerces, snacks et restaurants : écran tactile, tiroir-caisse, imprimante ticket, terminal CB, gestion des stocks. Formule à prix fixe.
+- [Photo et vidéo par drone](https://ilo-tech.com/drone-photo-video-martinique.html) : Photos et vidéos aériennes par drone en Martinique : immobilier, location saisonnière, commerce, inspection de toiture, suivi de chantier. Forfait 30 min sur place, photos sous 48 h.
+- [PC gamer et consoles](https://ilo-tech.com/pc-gamer-console-martinique.html) : PC gamer monté sur mesure en Martinique, nettoyage et entretien de console (PS5, Xbox, Switch) contre la chaleur et la poussière, émulation rétro. Conseil selon votre budget.
+- [Installation TV, box et son](https://ilo-tech.com/installation-tv-box-martinique.html) : Installation et réglage de TV connectée, box, chaînes, Netflix, barre de son, fixation murale et affichage du téléphone sur la TV en Martinique. Formule à prix fixe.
+- [Assistant IA et chatbot pour votre entreprise](https://ilo-tech.com/assistant-ia-chatbot-entreprise-martinique.html) : Un assistant d’intelligence artificielle qui répond à vos clients sur votre site ou WhatsApp, prépare vos devis et trie vos emails. Pour les entreprises de Martinique et des Antilles.
+- [Starlink pour gîtes, entreprises et bateaux](https://ilo-tech.com/starlink-gite-entreprise-bateau-martinique.html) : Starlink pour gîtes et locations saisonnières, entreprises, chantiers et bateaux en Martinique : installation, Wi-Fi pour les clients, secours internet et Starlink Mini.
+- [Agence réseaux sociaux et contenus créés avec l’IA](https://ilo-tech.com/agence-reseaux-sociaux-contenu-ia-martinique.html) : Agence réseaux sociaux en Martinique : vidéos courtes créées avec l’IA, publication automatique sur Instagram, Facebook, TikTok, LinkedIn et YouTube, plusieurs comptes, bilan mensuel.
+- [Automatiser votre entreprise avec l’IA](https://ilo-tech.com/automatisation-entreprise-ia-martinique.html) : Automatiser les tâches répétitives de votre entreprise avec l’IA : devis, factures, emails, formulaires, agenda, WhatsApp et tableaux reliés entre eux. Martinique et Antilles.
+- [Photo, vidéo et drone pour l’immobilier](https://ilo-tech.com/photo-video-immobilier-martinique.html) : Photos immobilières, vidéo de visite, vue drone et page web du bien en Martinique, pour agences, propriétaires et locations saisonnières. Serrure connectée, Wi-Fi et livret d’accueil pour les gîtes.
+- [Votre site internet, fait aux Antilles, pour la Guadeloupe et la Guyane](https://ilo-tech.com/creation-site-internet-guadeloupe-guyane.html) : Site internet pour les entreprises de Guadeloupe, de Guyane et de Saint-Martin, réalisé à distance par une équipe antillaise : site vitrine, boutique, fiche Google, maintenance. Visio, prix fixé avant de commencer.
+- [Facture électronique : la mise en place, à distance](https://ilo-tech.com/facturation-electronique-guadeloupe-guyane.html) : Facture électronique obligatoire : choix de la plateforme agréée, réglages, reprise des clients et formation, à distance, pour les entreprises de Guadeloupe et de Guyane assujetties à la TVA.
+
+## Guides
+- [L’IA pour les petites entreprises : par où commencer](https://ilo-tech.com/guide-ia-entreprise-martinique.html)
+- [Starlink en Martinique : le guide complet avant d’installer](https://ilo-tech.com/guide-starlink-martinique.html)
+- [Coupures de courant : comment protéger son matériel](https://ilo-tech.com/guide-coupures-courant-martinique.html)
+- [Arnaques par SMS, email et téléphone : les reconnaître et réagir](https://ilo-tech.com/guide-arnaques-sms-martinique.html)
+
+## Contact
+- Rendez-vous en ligne : https://ilo-tech.com/
+- WhatsApp et téléphone : Ducos 0696 77 99 02, Le Robert 0696 48 26 78
