@@ -1112,3 +1112,12 @@ body.grand .g5{grid-template-columns:repeat(3,minmax(0,1fr))}
 
 @media (max-width:700px){.help-row{grid-template-columns:1fr}}
 .content h3.sec{margin-top:16px}
+
+/* question « matériel » sous les services (v97) */
+.materiel{margin:14px 0 4px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--t) 45%,transparent);border-radius:14px;background:color-mix(in srgb,var(--t) 8%,transparent)}
+.materiel.a-repondre{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.18)}
+.mat-q{margin:0 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mat-q .ico{width:18px;height:18px}
+.mat-choix{display:flex;flex-wrap:wrap;gap:8px}
+.mat-choix .chip{display:inline-flex;gap:8px;align-items:center;text-align:left;white-space:normal}
+.mat-choix .chip em{font-style:normal;opacity:.85;font-size:.85em}

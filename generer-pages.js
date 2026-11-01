@@ -25,8 +25,8 @@ const V = (fs.readFileSync(path.join(dir, 'index.html'), 'utf8').match(/style\.c
 /* ---------- Contenu de chaque page ---------- */
 const PAGES = [
   { slug: 'installation-starlink-martinique', cat: 'starlink', scene: 'starlink', services: ['starlink', 'network', 'ups'], nouveau: true,
-    titre: 'Installation Starlink en Martinique dès 119 € | IloTech',
-    desc: 'Installation Starlink en Martinique : pose de l’antenne sur le toit, câble, Wi-Fi dans toute la maison et secours pendant les coupures. Dès 119 €, devis gratuit. Ducos, Le Robert, toute l’île.',
+    titre: 'Installation Starlink en Martinique dès 139 € | IloTech',
+    desc: 'Installation Starlink en Martinique : pose de l’antenne sur le toit, câble, Wi-Fi dans toute la maison et secours pendant les coupures. Kit fourni ou le vôtre, dès 139 € la pose, devis gratuit. Ducos, Le Robert, toute l’île.',
     h1: 'Installation Starlink en Martinique',
     accroche: 'Internet rapide partout, même dans les mornes, au bout d’une trace ou sur un bateau : on installe votre Starlink proprement et on règle le Wi-Fi de toute la maison.',
     intro: [
@@ -37,14 +37,14 @@ const PAGES = [
     pourquoi: ['Repérage du ciel avec l’application avant de percer', 'Fixation adaptée au vent et aux cyclones', 'Câble passé proprement, sans trou inutile', 'Wi-Fi réglé dans toutes les pièces', 'Aide à la commande et à l’activation, offerte'],
     faq: [
       ['Starlink fonctionne-t-il en Martinique ?', 'Oui. Starlink est disponible en Martinique. Le débit dépend surtout de l’emplacement de l’antenne : il lui faut un grand morceau de ciel dégagé, c’est ce que nous vérifions avant la pose.'],
-      ['Combien coûte l’installation ?', 'La pose commence à {starlink}. La formule « Starlink installé, Wi-Fi partout » (fixation sur le toit et bornes Wi-Fi) est à prix fixe. Le kit et l’abonnement s’achètent directement chez Starlink : nous vous aidons à les commander.'],
+      ['Combien coûte l’installation ?', 'La pose commence à {starlink}. La formule « Starlink installé, Wi-Fi partout » (fixation sur le toit et bornes Wi-Fi) est à prix fixe. Pour le kit, trois choix : vous l’avez déjà, vous le commandez vous-même sur starlink.com (nous vous guidons), ou nous le fournissons, livré et prêt à poser (449 € pour le kit Standard). L’abonnement se prend toujours chez Starlink, à votre nom.'],
       ['Que se passe-t-il pendant une coupure de courant ?', 'Sans électricité, l’antenne s’arrête comme une box. Avec un onduleur adapté, internet reste allumé pendant les coupures courtes : nous le dimensionnons pour votre installation.'],
       ['Peut-on garder sa box internet ?', 'Oui. Nous pouvons relier la box et Starlink : si l’un tombe, l’autre prend le relais automatiquement.'],
       ['Et sur un bateau ou un chantier ?', 'Le Starlink Mini se règle pour un bateau, un véhicule ou un chantier. Nous vous montrons comment l’orienter et l’alimenter.']
     ] },
   { slug: 'depannage-informatique-martinique', cat: 'ordi', scene: 'ordi', services: ['repair', 'boost', 'hwfixe'],
-    titre: 'Dépannage informatique en Martinique dès 35 € | IloTech',
-    desc: 'Dépannage informatique en Martinique : PC lent, qui ne démarre plus, écran bleu, virus. Chez vous, en agence à Ducos et au Robert, ou à distance. Dès 35 €, prix annoncé avant.',
+    titre: 'Dépannage informatique en Martinique dès 39 € | IloTech',
+    desc: 'Dépannage informatique en Martinique : PC lent, qui ne démarre plus, écran bleu, virus. Chez vous, en agence à Ducos et au Robert, ou à distance. Dès 39 €, prix annoncé avant.',
     h1: 'Dépannage informatique en Martinique',
     accroche: 'Votre ordinateur rame, plante ou ne démarre plus ? On le remet en forme, chez vous, en agence ou à distance, avec le prix annoncé avant.',
     intro: [
@@ -52,7 +52,7 @@ const PAGES = [
       'Nous commençons toujours par un diagnostic, puis nous vous annonçons le prix avant de réparer. Vos fichiers sont préservés. Selon la panne, nous intervenons chez vous, dans nos agences de Ducos et du Robert, ou à distance en quelques minutes.'
     ],
     exemple: { titre: 'Exemple : le PC portable de Mme L., au Lamentin', avant: ['Démarrage en 1 min 40', 'Fenêtres de publicité partout', 'Ventilateur bruyant'], apres: ['Démarrage en 14 s', 'Logiciels inutiles et pubs retirés', 'Nettoyage interne : PC silencieux'] },
-    pourquoi: ['Diagnostic et prix annoncé avant toute réparation', 'Dès 35 €, parmi les tarifs les plus bas de l’île', 'Chez vous, en agence ou à distance', 'Vos fichiers préservés'],
+    pourquoi: ['Diagnostic et prix annoncé avant toute réparation', 'Dès 39 €, diagnostic compris', 'Chez vous, en agence ou à distance', 'Vos fichiers préservés'],
     faq: [
       ['Combien coûte un dépannage d’ordinateur ?', 'Un dépannage commence à {repair}, diagnostic compris. Le prix exact est confirmé avant de réparer. En agence ou à distance, il n’y a pas de frais de déplacement.'],
       ['Intervenez-vous à domicile ?', 'Oui, dans toute la Martinique. Le déplacement est offert dans les communes d’agence et à partir d’un certain montant ; sinon il dépend de la zone (Centre, Sud, Nord).'],
@@ -299,7 +299,7 @@ const PAGES = [
     ] },
   { slug: 'cours-informatique-seniors-martinique', cat: 'aide', scene: 'aide', services: ['cours', 'abonnement'],
     titre: 'Cours d’informatique seniors en Martinique | IloTech',
-    desc: 'Cours d’informatique à domicile en Martinique pour seniors et débutants : WhatsApp, appels vidéo, photos, banque en ligne, démarches, arnaques et intelligence artificielle. Dès 35 € l’heure.',
+    desc: 'Cours d’informatique à domicile en Martinique pour seniors et débutants : WhatsApp, appels vidéo, photos, banque en ligne, démarches, arnaques et intelligence artificielle. Dès 39 € l’heure.',
     h1: 'Cours d’informatique pour seniors et débutants',
     accroche: 'Envoyer une photo, faire un appel vidéo avec les petits-enfants, ses démarches en ligne sans stress : on vous apprend pas à pas, à votre rythme.',
     intro: [
@@ -611,7 +611,7 @@ const GUIDES = [
     sections: [
       ['Comment fonctionne Starlink ?', ['Starlink est un internet par satellite. Une antenne posée chez vous communique avec des milliers de petits satellites qui tournent assez près de la Terre, ce qui donne un internet bien plus rapide et réactif que les anciens satellites.', 'L’antenne est reliée à un routeur Wi-Fi fourni dans le kit. Il suffit d’une prise électrique : pas de ligne téléphonique, pas de fibre, pas de travaux de raccordement.']],
       ['Pour qui c’est intéressant en Martinique ?', ['Starlink a surtout du sens là où la fibre et l’ADSL sont faibles ou absents : quartiers des mornes, Nord Atlantique et Nord Caraïbe, maisons au bout d’une trace, exploitations agricoles, gîtes et locations saisonnières, chantiers, et bateaux avec le Starlink Mini.', 'Si la fibre est disponible et fonctionne bien chez vous, elle reste souvent le meilleur choix au quotidien. Starlink peut alors servir de secours quand la box tombe en panne.']],
-      ['Le kit et l’abonnement', ['Le kit et l’abonnement s’achètent directement chez Starlink, sur starlink.com ou dans l’application. Les prix et les offres changent régulièrement : vérifiez-les au moment de commander.', 'Choisissez l’offre selon votre usage : maison, déplacements ou bateau. Nous pouvons vous aider à commander et à activer le service, gratuitement, lors de l’installation.']],
+      ['Le kit et l’abonnement', ['Le kit s’achète sur starlink.com, dans l’application ou chez un revendeur ; un installateur peut aussi le fournir. L’abonnement, lui, se prend toujours chez Starlink, à votre nom. Les prix et les offres changent régulièrement : vérifiez-les au moment de commander.', 'Choisissez l’offre selon votre usage : maison, déplacements ou bateau. Nous pouvons vous aider à commander et à activer le service, gratuitement, lors de l’installation.']],
       ['Le point le plus important : l’emplacement de l’antenne', ['L’antenne a besoin d’une grande portion de ciel dégagé. Un arbre, un morne, un pignon ou un poteau devant elle provoquent des micro-coupures, surtout pendant les appels vidéo.', 'Avant de percer quoi que ce soit, l’application Starlink permet de « scanner » le ciel avec le téléphone. Sur un toit, un pignon ou un mât, on gagne souvent beaucoup par rapport à une antenne posée au sol dans le jardin.']],
       ['Vent et saison cyclonique', ['Une antenne mal fixée bouge, se dérègle ou s’envole. Il faut une fixation solide, adaptée au support (béton, bois, tôle), et un câble attaché pour ne pas battre au vent.', 'En cas d’alerte cyclonique, le plus prudent est de démonter l’antenne et de la ranger à l’intérieur avec le routeur, puis de la remettre en place après le passage. Nous vous montrons comment faire en quelques minutes.']],
       ['Coupures de courant : garder internet', ['Sans électricité, Starlink s’arrête comme n’importe quelle box. Un onduleur bien choisi permet de passer les coupures courtes sans perdre la connexion, et protège le matériel contre les surtensions.', 'Le bon modèle dépend de ce qu’on y branche (antenne, routeur, ordinateur) et du temps d’autonomie voulu : c’est ce que nous dimensionnons avec vous.']],

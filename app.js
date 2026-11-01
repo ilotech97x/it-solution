@@ -182,7 +182,8 @@ function calc() {
     const chosen = (opt[id] || []).filter(o => !inPack?.includes(o)).map(o => optOf(id, o)).filter(Boolean);
     const sub = (inPack ? 0 : s.base) + chosen.reduce((t, o) => t + o[2], 0);
     if (!sub) { if (!inPack) lines.push({ label: s.nom, detail: chosen.map(o => o[1]).join(', '), prix: 0 }); return; }
-    presta += sub; variable += sub;
+    // le matériel a un prix fixe : il n'entre pas dans la fourchette haute
+    presta += sub; variable += sub - chosen.filter(o => s.materiel?.ids.includes(o[0])).reduce((t, o) => t + o[2], 0);
     lines.push({ label: inPack ? `${s.nom} — en plus du pack` : s.nom, detail: chosen.map(o => o[1]).join(', '), prix: sub });
   });
 
@@ -292,9 +293,34 @@ function selectionHTML() {
 }
 
 // ce qu'il manque pour terminer une étape ('' = étape remplie)
+// matériel : le client dit s'il l'a déjà ou s'il faut le fournir (un seul choix)
+const matDe = id => (state.opt[id] || []).find(o => svc(id).materiel?.ids.includes(o)) || '';
+const sansMateriel = () => state.sel.find(id => svc(id).materiel && !matDe(id));
+function setMat(id, o) {
+  const ids = svc(id).materiel.ids;
+  state.opt[id] = (state.opt[id] || []).filter(x => !ids.includes(x)).concat(o);
+  if (!packValid()) state.pack = null;
+  render();
+}
+function blocMateriel() {
+  return state.sel.filter(id => svc(id).materiel).map(id => {
+    const s = svc(id), cur = matDe(id);
+    return `<div class="materiel ${cur ? '' : 'a-repondre'}" id="mat-${id}" style="--t:${themeOf(id)}">
+      <p class="mat-q">${ico('box')} <b>${esc(s.materiel.q)}</b> <span class="muted">${esc(s.nom)}</span></p>
+      <div class="mat-choix" role="radiogroup" aria-label="${esc(s.materiel.q)}">${s.materiel.ids.map(o => {
+        const x = optOf(id, o);
+        return `<button type="button" role="radio" class="chip ${cur === o ? 'on' : ''}" aria-checked="${cur === o}" onclick="setMat('${id}','${o}')">${esc(x[1])}<em class="mono">${x[2] ? eur(x[2]) : esc(x[3] || 'Sans frais')}</em></button>`;
+      }).join('')}</div></div>`;
+  }).join('');
+}
+
 function manque(n) {
   const { d } = state;
-  if (n === 1) return state.sel.length ? '' : 'Choisissez au moins un service ou une formule.';
+  if (n === 1) {
+    if (!state.sel.length) return 'Choisissez au moins un service ou une formule.';
+    const id = sansMateriel();
+    return id ? `Dites-nous si vous avez déjà le matériel pour « ${svc(id).nom} ».` : '';
+  }
   if (n === 2) {
     if (d.mode === 'site' && !d.commune) return 'Choisissez votre commune.';
     if (state.kind !== 'rdv') return '';
@@ -443,7 +469,7 @@ const VIEWS = {
       if (state.sel.length) {
         const p = packValid() ? pack(state.pack) : null;
         const parts = (p ? [packLabel(p)] : []).concat(state.sel.filter(id => !p?.items[id]).map(id => svc(id).nom));
-        h += `<p class="proposal">${ico('arrow')} Nous vous proposons : <b>${parts.join(' + ')}</b>. Touchez « Prendre rendez-vous » en bas pour continuer.</p>`;
+        h += `<p class="proposal">${ico('arrow')} Nous vous proposons : <b>${parts.join(' + ')}</b>. Touchez « Prendre rendez-vous » en bas pour continuer.</p>` + blocMateriel();
       }
       return h;
     }
@@ -463,6 +489,7 @@ const VIEWS = {
           const inPack = packValid() && pack(state.pack).items[x.id];
           return carteService(x, CATEGORIES.find(c => c.id === state.cat), !inPack && state.sel.includes(x.id), inPack);
         }).join('')}</div>
+      ${blocMateriel()}
       ${(() => {
         const cat = CATEGORIES.find(c => c.id === state.cat);
         const list = state.toutes ? PACKS : PACKS.filter(p => (state.pack === p.id && packValid()) || Object.keys(p.items).some(id => cat.services.includes(id))).slice(0, 3);
@@ -1014,6 +1041,9 @@ if (location.hash === '#suivi') { state.step = 'suivi'; suivi = { ref: new URLSe
 (q => {
   const c = CATEGORIES.find(x => !x.bientot && (x.id === q.get('cat') || (!q.get('cat') && x.univers === q.get('pole'))));
   if (c) { state.cat = c.id; state.step = 1; state.tab = 'services'; }
+  // ?svc=starlink : service déjà coché (la question « matériel » s'affiche tout de suite)
+  const s = c && c.services.includes(q.get('svc')) && q.get('svc');
+  if (s && !state.sel.includes(s)) state.sel.push(s);
 })(new URLSearchParams(location.search));
 setInterval(updateStatus, 60000);
 try { if (localStorage.getItem('itGrand')) setGrand(true); } catch (e) {}
