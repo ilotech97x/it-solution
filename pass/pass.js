@@ -70,10 +70,10 @@ async function chargerMoi() {
 }
 // badges du profil joueur (attribués par le serveur selon les entrées réellement validées)
 const BADGES = {
-  premiere_partie: ['🕹️', 'Première partie', '1re entrée validée'], habitue: ['🎟️', 'Habitué', '5 entrées validées'], legende: ['👑', 'Légende', '20 entrées validées'],
+  premiere_partie: ['🌟', 'Première sortie', '1re entrée validée'], habitue: ['🎟️', 'Habitué', '5 entrées validées'], legende: ['👑', 'Légende', '20 entrées validées'],
   festivalier: ['🎪', 'Festivalier', 'un festival'], noctambule: ['🌙', 'Noctambule', '3 soirées'], curieux: ['🧭', 'Curieux', '4 catégories différentes'],
   explorateur: ['✈️', 'Explorateur', 'des sorties dans 2 territoires'], collectionneur: ['⭐', 'Collectionneur', '5 événements en favoris'] };
-const barreXp = (j, gros) => { const pleins = Math.round((j?.xp_niveau || 0) / 300 * 10); return `<span class="${gros ? 'grosse-barre' : 'barre-xp'}">${Array.from({ length: 10 }, (_, i) => `<i class="${i < pleins ? 'on' : ''}"></i>`).join('')}</span>`; };
+const barreXp = (j, gros) => `<span class="${gros ? 'grosse-barre' : 'barre-xp'}"><i style="width:${Math.max(6, Math.round((j?.xp_niveau || 0) / 3))}%"></i></span>`;
 // carte Leaflet (hébergée sur le site), chargée seulement quand on en a besoin
 // (nom différent de « leaflet » : la bibliothèque crée une variable globale de ce nom)
 function chargerCarte() {
@@ -99,11 +99,11 @@ function nav() {
   $('#nav').innerHTML = `<a href="#/" class="${h === '#/' ? 'on' : ''}">Sorties</a><a href="#/carte" class="${on('#/carte')}">Carte</a>
     ${moi ? `<a href="#/billets" class="${on('#/billets')}">Billets</a><a href="#/agenda" class="${on('#/agenda')}">Agenda</a><a href="#/orga" class="${on('#/orga')}">${estOrga() ? 'Organisateur' : 'Organiser'}</a>${profil?.role === 'admin' ? `<a href="#/admin" class="${on('#/admin')}">Admin</a>` : ''}
       <a class="cloche" href="#/notifs" aria-label="Notifications">🔔${b(nbNotifs)}</a>
-      <a class="hud" href="#/profil" title="Mon profil joueur"><span class="px">1UP</span><span class="px" style="color:#fff">NIV ${joueur?.niveau || 1}</span>${barreXp(joueur)}</a>`
-      : `<a href="#/orga">Organiser</a><a href="#/connexion" class="${on('#/connexion')}">Connexion</a><a class="btn btn-p btn-s" href="#/inscription">Jouer</a>`}`;
+      <a class="hud" href="#/profil" title="Mon niveau et mes badges"><span class="niv">${joueur?.niveau || 1}</span><span class="px">${joueur?.xp || 0} XP</span>${barreXp(joueur)}</a>`
+      : `<a href="#/orga">Organiser</a><a href="#/connexion" class="${on('#/connexion')}">Connexion</a><a class="btn btn-p btn-s" href="#/inscription">Commencer</a>`}`;
   $('#bas').innerHTML = `<a href="#/" class="${h === '#/' ? 'on' : ''}"><span>🎉</span>Sortir</a><a href="#/carte" class="${on('#/carte')}"><span>🗺️</span>Carte</a>
     <a href="#/billets" class="${on('#/billets')}"><span>🎟️</span>Billets</a><a href="#/agenda" class="${on('#/agenda')}"><span>📅</span>Agenda${b(nbNotifs)}</a>
-    <a href="${moi ? '#/profil' : '#/connexion'}" class="${on('#/profil') || on('#/connexion')}"><span>🕹️</span>${moi ? 'Niv ' + (joueur?.niveau || 1) : 'Jouer'}</a>`;
+    <a href="${moi ? '#/profil' : '#/connexion'}" class="${on('#/profil') || on('#/connexion')}"><span>🏆</span>${moi ? 'Niveau ' + (joueur?.niveau || 1) : 'Commencer'}</a>`;
 }
 
 document.addEventListener('click', async ev => {
@@ -140,7 +140,7 @@ const videEv = () => `<div class="vide-etat"><div class="ico">🎟️</div><h3>L
 async function pageAccueil() {
   const p = param();
   vue(`<section class="hero"><div class="wrap">
-    <div class="press">▶ PRESS START <span class="clignote">_</span></div>
+    <div class="press"><span class="clignote">🎉</span> Ce soir, on sort ?</div>
     <h1>Sortir près de chez vous, <em>billets en poche</em>.</h1>
     <p>Concerts, soirées, festivals, sorties en catamaran, en Martinique, en Guadeloupe, en Guyane, à La Réunion, dans l’Hexagone et ailleurs : réservez en 2 clics, recevez votre billet avec QR code sur votre téléphone.</p>
     <form class="recherche" id="fRech"><input name="q" placeholder="Artiste, soirée, lieu…" value="${esc(p.q || '')}" aria-label="Recherche">
@@ -572,16 +572,23 @@ async function pageProfil() {
   if (!exigeCompte()) return;
   await chargerMoi(); nav();
   const j = joueur || { xp: 0, niveau: 1, xp_niveau: 0, entrees: 0, badges: [] };
+  const nbBillets = (await q(sb.from('billets').select('id').eq('acheteur', moi.id).neq('statut', 'annule'))).length;
+  // quêtes : simple suivi (l'XP, elle, ne vient que des entrées validées par le serveur)
+  const quetes = [['👋', 'Crée ton compte', '', true, '#/profil'], ['♡', 'Mets un événement en favori', '', favEv.size > 0, '#/'],
+    ['🎟️', 'Réserve ton premier billet', '', nbBillets > 0, '#/'], ['🚪', 'Fais valider ton entrée', '+100 XP', j.entrees > 0, '#/billets'],
+    ['🧭', 'Essaie une autre catégorie de sortie', '+50 XP', j.xp > j.entrees * 100, '#/'], ['🏅', 'Débloque 3 badges', '', j.badges.length >= 3, '#/profil']];
   vue(`<div class="wrap" style="padding-top:26px;max-width:900px">
-    <div class="panneau joueur"><div class="avatar-px">🕹️</div><div><span class="px" style="color:var(--jaune)">Joueur 1</span>
-      <h1 style="margin:6px 0">${esc(profil?.prenom || 'Joueur')} · NIV ${j.niveau}</h1>
-      <div class="px" style="color:var(--vert)">${j.xp} XP · encore ${300 - j.xp_niveau} XP pour le niveau ${j.niveau + 1}</div>${barreXp(j, true)}
+    <div class="panneau joueur"><div class="avatar-px">🎉</div><div><span class="px">Ton aventure</span>
+      <h1 style="margin:6px 0">${esc(profil?.prenom || 'Toi')} · niveau ${j.niveau}</h1>
+      <div class="px">${j.xp} XP · encore ${300 - j.xp_niveau} XP pour le niveau ${j.niveau + 1}</div>${barreXp(j, true)}
       <div class="muted petit">${j.entrees} entrée${j.entrees > 1 ? 's' : ''} validée${j.entrees > 1 ? 's' : ''} · ${j.badges.length} / ${Object.keys(BADGES).length} badges</div></div></div>
+    <h2 style="margin-top:28px">Tes quêtes</h2>
+    <ul class="quetes">${quetes.map((x, i) => `<li><a class="quete ${x[3] ? 'faite' : quetes.findIndex(y => !y[3]) === i ? 'actuelle' : ''}" href="${x[4]}"><span class="q-coche">${x[3] ? '✓' : ''}</span><span class="q-ico">${x[0]}</span><span class="q-titre">${esc(x[1])}</span>${x[2] ? `<span class="q-xp">${esc(x[2])}</span>` : ''}</a></li>`).join('')}</ul>
     <h2 style="margin-top:28px">Badges</h2>
     <div class="badges">${Object.entries(BADGES).map(([k, [i, t, d]]) => `<div class="badge-j ${j.badges.includes(k) ? '' : 'verrou'}"><span class="ico">${i}</span><b>${esc(t)}</b><span class="petit muted">${esc(d)}</span></div>`).join('')}</div>
     <h2 style="margin-top:28px">Comment gagner de l’XP ?</h2>
     <div class="panneau"><p style="margin:0">🎟️ <b>+100 XP</b> à chaque entrée validée à un événement · 🧭 <b>+50 XP</b> pour chaque nouvelle catégorie de sortie · ✈️ <b>+100 XP</b> pour chaque nouveau territoire.<br>
-      <span class="muted petit">L’XP est calculée par le serveur à partir des entrées réellement scannées : impossible de tricher. Un niveau tous les 300 XP.</span></p></div>
+      <span class="muted petit" style="display:block;margin-top:6px">L’XP est calculée par le serveur à partir des entrées réellement scannées : impossible de tricher. Un niveau tous les 300 XP.</span></p></div>
     <div class="actions" style="margin-top:20px"><a class="btn" href="#/billets">Mes billets</a><a class="btn" href="#/controle">Mes contrôles (agent)</a><a class="btn" href="https://immo.ilo-tech.com/#/compte/profil">Modifier mon profil</a><a class="btn btn-ko" href="#/deconnexion">Se déconnecter</a></div></div>`);
 }
 
