@@ -56,29 +56,72 @@ async function envoyerPhoto(f) {
 const qrSvg = code => { const qr = window.qrcode(0, 'M'); qr.addData(code); qr.make(); return qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); };
 
 // ---------------------------------------------------------------- session
-let moi = null, profil = null;
+let moi = null, profil = null, joueur = null, nbNotifs = 0, favEv = new Set();
 async function chargerMoi() {
-  moi = null; profil = null; if (!PRET) return;
+  moi = null; profil = null; joueur = null; nbNotifs = 0; favEv = new Set(); if (!PRET) return;
   moi = (await sb.auth.getSession()).data.session?.user || null;
-  if (moi) profil = await q(sb.from('profiles').select('*').eq('id', moi.id).maybeSingle());
+  if (!moi) return;
+  const [p, j, n, fv] = await Promise.all([
+    q(sb.from('profiles').select('*').eq('id', moi.id).maybeSingle()),
+    q(sb.rpc('mon_profil_joueur')).catch(() => []),
+    q(sb.from('notifs').select('id').eq('lu', false)).catch(() => []),
+    q(sb.from('favoris_ev').select('evenement_id')).catch(() => [])]);
+  profil = p; joueur = j?.[0] || null; nbNotifs = n.length; favEv = new Set(fv.map(x => x.evenement_id));
 }
+// badges du profil joueur (attribués par le serveur selon les entrées réellement validées)
+const BADGES = {
+  premiere_partie: ['🕹️', 'Première partie', '1re entrée validée'], habitue: ['🎟️', 'Habitué', '5 entrées validées'], legende: ['👑', 'Légende', '20 entrées validées'],
+  festivalier: ['🎪', 'Festivalier', 'un festival'], noctambule: ['🌙', 'Noctambule', '3 soirées'], curieux: ['🧭', 'Curieux', '4 catégories différentes'],
+  explorateur: ['✈️', 'Explorateur', 'des sorties dans 2 territoires'], collectionneur: ['⭐', 'Collectionneur', '5 événements en favoris'] };
+const barreXp = (j, gros) => { const pleins = Math.round((j?.xp_niveau || 0) / 300 * 10); return `<span class="${gros ? 'grosse-barre' : 'barre-xp'}">${Array.from({ length: 10 }, (_, i) => `<i class="${i < pleins ? 'on' : ''}"></i>`).join('')}</span>`; };
+// carte Leaflet (hébergée sur le site), chargée seulement quand on en a besoin
+// (nom différent de « leaflet » : la bibliothèque crée une variable globale de ce nom)
+function chargerCarte() {
+  if (window.L) return Promise.resolve(window.L);
+  return new Promise((ok, ko) => {
+    const c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'lib/leaflet/leaflet.css'; document.head.appendChild(c);
+    const s = document.createElement('script'); s.src = 'lib/leaflet/leaflet.js'; s.onload = () => ok(window.L); s.onerror = ko; document.head.appendChild(s);
+  });
+}
+function fondCarte(L, el, centre, zoom) {
+  const m = L.map(el, { scrollWheelZoom: false }).setView(centre, zoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(m);
+  return m;
+}
+const CENTRES = { Martinique: [14.64, -61.02, 10], Guadeloupe: [16.2, -61.55, 10], Guyane: [4.6, -52.8, 8], 'Saint-Martin': [18.07, -63.06, 12], 'Saint-Barthélemy': [17.9, -62.83, 13],
+  'La Réunion': [-21.13, 55.53, 10], Mayotte: [-12.82, 45.15, 11], 'Hexagone et Corse': [46.6, 2.4, 5] };
 const estOrga = () => profil && (profil.orga === 'valide' || profil.role === 'admin');
 const exigeCompte = () => { if (moi) return true; aller('#/connexion?retour=' + encodeURIComponent(location.hash)); return false; };
 
 function nav() {
   const h = location.hash || '#/', on = p => h.startsWith(p) ? 'on' : '';
-  $('#nav').innerHTML = `<a href="#/" class="${h === '#/' ? 'on' : ''}">Événements</a>
-    ${moi ? `<a href="#/billets" class="${on('#/billets')}">Mes billets</a><a href="#/orga" class="${on('#/orga')}">${estOrga() ? 'Espace organisateur' : 'Organiser'}</a>${profil?.role === 'admin' ? `<a href="#/admin" class="${on('#/admin')}">Admin</a>` : ''}<a href="#/deconnexion">Déconnexion</a>`
-      : `<a href="#/orga">Organiser</a><a href="#/connexion" class="${on('#/connexion')}">Connexion</a><a class="btn btn-p btn-s" href="#/inscription">Créer un compte</a>`}`;
-  $('#bas').innerHTML = `<a href="#/" class="${h === '#/' ? 'on' : ''}"><span>🎉</span>Sortir</a><a href="#/billets" class="${on('#/billets')}"><span>🎟️</span>Billets</a>
-    <a href="#/orga" class="${on('#/orga')}"><span>📣</span>Organiser</a><a href="${moi ? '#/compte' : '#/connexion'}" class="${on('#/compte') || on('#/connexion')}"><span>👤</span>${moi ? 'Compte' : 'Connexion'}</a>`;
+  const b = n => n ? `<span class="badge">${n}</span>` : '';
+  $('#nav').innerHTML = `<a href="#/" class="${h === '#/' ? 'on' : ''}">Sorties</a><a href="#/carte" class="${on('#/carte')}">Carte</a>
+    ${moi ? `<a href="#/billets" class="${on('#/billets')}">Billets</a><a href="#/agenda" class="${on('#/agenda')}">Agenda</a><a href="#/orga" class="${on('#/orga')}">${estOrga() ? 'Organisateur' : 'Organiser'}</a>${profil?.role === 'admin' ? `<a href="#/admin" class="${on('#/admin')}">Admin</a>` : ''}
+      <a class="cloche" href="#/notifs" aria-label="Notifications">🔔${b(nbNotifs)}</a>
+      <a class="hud" href="#/profil" title="Mon profil joueur"><span class="px">1UP</span><span class="px" style="color:#fff">NIV ${joueur?.niveau || 1}</span>${barreXp(joueur)}</a>`
+      : `<a href="#/orga">Organiser</a><a href="#/connexion" class="${on('#/connexion')}">Connexion</a><a class="btn btn-p btn-s" href="#/inscription">Jouer</a>`}`;
+  $('#bas').innerHTML = `<a href="#/" class="${h === '#/' ? 'on' : ''}"><span>🎉</span>Sortir</a><a href="#/carte" class="${on('#/carte')}"><span>🗺️</span>Carte</a>
+    <a href="#/billets" class="${on('#/billets')}"><span>🎟️</span>Billets</a><a href="#/agenda" class="${on('#/agenda')}"><span>📅</span>Agenda${b(nbNotifs)}</a>
+    <a href="${moi ? '#/profil' : '#/connexion'}" class="${on('#/profil') || on('#/connexion')}"><span>🕹️</span>${moi ? 'Niv ' + (joueur?.niveau || 1) : 'Jouer'}</a>`;
 }
 
+document.addEventListener('click', async ev => {
+  const f = ev.target.closest('[data-favev]'); if (!f) return;
+  ev.preventDefault(); ev.stopPropagation(); const id = f.dataset.favev;
+  try {
+    if (favEv.has(id)) { await q(sb.from('favoris_ev').delete().eq('evenement_id', id)); favEv.delete(id); }
+    else { await q(sb.from('favoris_ev').insert({ evenement_id: id })); favEv.add(id); toast('★ Ajouté à votre agenda'); }
+    document.querySelectorAll(`[data-favev="${id}"]`).forEach(x => { x.classList.toggle('on', favEv.has(id)); x.textContent = x.dataset.texte ? (favEv.has(id) ? '♥ En favori' : '♡ Favori') : (favEv.has(id) ? '♥' : '♡'); });
+  } catch (err) { toast(erreur(err), true); }
+});
+
 // ---------------------------------------------------------------- accueil
+const coeurEv = e => moi ? `<button class="coeur ${favEv.has(e.id) ? 'on' : ''}" data-favev="${e.id}" aria-label="Favori">${favEv.has(e.id) ? '♥' : '♡'}</button>` : '';
 const carteEv = (e, prix) => {
   const d = jourMois(e.debut, e.fuseau);
   return `<a class="ev" href="#/evenement/${e.id}"><div class="aff">${e.affiche ? `<img src="${esc(photo(e.affiche))}" alt="Affiche : ${esc(e.titre)}" loading="lazy">` : `<span class="vide">${CATS[e.categorie]?.[0] || '🎉'}</span>`}
-    <span class="date"><b>${esc(d.j)}</b><small>${esc(d.m)}</small></span></div>
+    <span class="date"><b>${esc(d.j)}</b><small>${esc(d.m)}</small></span>${coeurEv(e)}</div>
     <div class="corps"><span class="tag">${CATS[e.categorie]?.[0] || ''} ${esc(CATS[e.categorie]?.[1] || '')}</span>${e.statut === 'annule' ? ' ' + tag(ST_EV.annule) : ''}
       <h3>${esc(e.titre)}</h3><div class="muted petit">${esc(fmt(e.debut, { weekday: 'short', hour: '2-digit', minute: '2-digit' }, e.fuseau))} · ${lieuEv(e)}</div>
       ${prix ? `<div class="prix">${prix.max === 0 ? 'Gratuit' : 'Dès ' + eur(prix.minPayant) + (prix.min === 0 ? ' · gratuit possible' : '')}</div>` : ''}</div></a>`;
@@ -97,6 +140,7 @@ const videEv = () => `<div class="vide-etat"><div class="ico">🎟️</div><h3>L
 async function pageAccueil() {
   const p = param();
   vue(`<section class="hero"><div class="wrap">
+    <div class="press">▶ PRESS START <span class="clignote">_</span></div>
     <h1>Sortir près de chez vous, <em>billets en poche</em>.</h1>
     <p>Concerts, soirées, festivals, sorties en catamaran, en Martinique, en Guadeloupe, en Guyane, à La Réunion, dans l’Hexagone et ailleurs : réservez en 2 clics, recevez votre billet avec QR code sur votre téléphone.</p>
     <form class="recherche" id="fRech"><input name="q" placeholder="Artiste, soirée, lieu…" value="${esc(p.q || '')}" aria-label="Recherche">
@@ -154,21 +198,37 @@ async function pageEvenement(id) {
         <div><span>📍</span><span>${lieuEv(e)}${e.adresse ? `<br><span class="muted petit">${esc(e.adresse)}</span>` : ''}<br><a class="petit" href="${carte}" target="_blank" rel="noopener">Itinéraire ↗</a></span></div>
         <div><span>📣</span><span>Organisé par <b>${esc(orga?.orga_nom || orga?.prenom || 'un organisateur')}</b> <span class="tag ok">✓ Vérifié</span></span></div>
         ${e.age_min ? `<div><span>🔞</span><span>À partir de ${e.age_min} ans</span></div>` : ''}</div>
-      <div class="actions" style="margin-bottom:18px"><button class="btn btn-s" id="partager">↗ Partager</button><button class="btn btn-s" id="ics">📅 Ajouter à mon agenda</button></div>
+      <div class="actions" style="margin-bottom:18px">${moi ? `<button class="btn btn-s ${favEv.has(e.id) ? 'btn-p' : ''}" data-favev="${e.id}" data-texte="1">${favEv.has(e.id) ? '♥ En favori' : '♡ Favori'}</button>` : ''}<button class="btn btn-s" id="partager">↗ Partager</button><button class="btn btn-s" id="ics">📅 Ajouter à mon agenda</button></div>
       <h2 style="font-size:22px">Billets</h2>
       ${e.statut === 'annule' ? '<div class="vide-etat">Cet événement est annulé.</div>' : fini ? '<div class="vide-etat">Cet événement est terminé.</div>' : ''}
       <div class="types">${types.map(t => { const r = restant[t.id] ?? 0, venteFinie = t.vente_fin && new Date(t.vente_fin) < new Date(); return `<div class="type">
         <div><b>${esc(t.nom)}</b><span class="prix">${eur(t.prix)}</span>${t.description ? `<div class="muted petit">${esc(t.description)}</div>` : ''}
           <div class="petit ${r <= 10 ? '' : 'muted'}">${r <= 0 ? 'Complet' : venteFinie ? 'Vente terminée' : r <= 10 ? `Plus que ${r} place${r > 1 ? 's' : ''} !` : `${r} places`}${Number(t.prix) > 0 ? ' · paiement à l’entrée' : ''}</div></div>
-        ${ferme || r <= 0 || venteFinie ? '' : `<div class="qte" data-type="${t.id}" data-max="${Math.min(r, t.max_commande)}"><button type="button" data-d="-1" aria-label="Moins">−</button><output>0</output><button type="button" data-d="1" aria-label="Plus">+</button></div>`}</div>`; }).join('') || '<p class="muted">Les billets ne sont pas encore en vente.</p>'}</div>
+        ${!ferme && r <= 0 && !venteFinie ? `<button class="btn btn-s btn-j" data-attente="${t.id}">🔔 M’avertir</button>` : ''}${ferme || r <= 0 || venteFinie ? '' : `<div class="qte" data-type="${t.id}" data-max="${Math.min(r, t.max_commande)}"><button type="button" data-d="-1" aria-label="Moins">−</button><output>0</output><button type="button" data-d="1" aria-label="Plus">+</button></div>`}</div>`; }).join('') || '<p class="muted">Les billets ne sont pas encore en vente.</p>'}</div>
       <div class="panier" id="panier" hidden><div><b id="resume"></b></div>
+        <div style="display:flex;gap:8px"><input id="promo" maxlength="20" placeholder="Code promo" aria-label="Code promo" style="flex:1;background:var(--fond2);border:2px solid var(--ligne);padding:10px;text-transform:uppercase"><button type="button" class="btn btn-s" id="appliquer">OK</button></div>
         <label class="f" style="display:grid;gap:4px;font-size:14px">Nom sur les billets<input id="titulaire" maxlength="80" value="${esc(profil ? (profil.prenom + ' ' + profil.nom).trim() : '')}" autocomplete="name"></label>
         <button class="btn btn-p" id="reserver">Réserver mes billets</button>
         <p class="muted petit" style="margin:0">Aucun paiement en ligne : les billets payants se règlent à l’entrée. Billet avec QR code dans « Mes billets ».</p></div>
-      <h2 style="font-size:22px;margin-top:26px">À propos</h2><p style="white-space:pre-line">${esc(e.description) || '<span class="muted">—</span>'}</p></div></div></div>`);
+      <h2 style="font-size:22px;margin-top:26px">À propos</h2><p style="white-space:pre-line">${esc(e.description) || '<span class="muted">—</span>'}</p>
+      ${e.lat != null && e.lng != null ? '<div class="minicarte" id="miniCarte"></div>' : ''}</div></div></div>`);
+  let promo = null;   // { code, remise_pct, remise_eur } validé par le serveur
+  if (e.lat != null && e.lng != null) chargerCarte().then(L => { const m = fondCarte(L, 'miniCarte', [e.lat, e.lng], 14); L.marker([e.lat, e.lng]).addTo(m).bindPopup(esc(e.lieu)); }).catch(() => {});
+  document.querySelectorAll('[data-attente]').forEach(bt => bt.addEventListener('click', async () => {
+    if (!exigeCompte()) return;
+    try { await q(sb.from('attente').insert({ type_id: bt.dataset.attente })); toast('🔔 Vous serez prévenu si une place se libère.'); bt.disabled = true; }
+    catch (err) { toast(/duplicate|unique/i.test(err.message) ? 'Vous êtes déjà sur la liste d’attente.' : erreur(err), true); }
+  }));
+  $('#appliquer')?.addEventListener('click', async () => {
+    const code = $('#promo').value.trim(); if (!code) return;
+    if (!exigeCompte()) return;
+    try { const [c] = await q(sb.rpc('tester_code', { evt: id, code_saisi: code })); promo = { code, ...c }; toast(`Code appliqué : −${c.remise_pct ? c.remise_pct + ' %' : eur(c.remise_eur)}`); maj(); }
+    catch (err) { promo = null; toast(erreur(err), true); maj(); }
+  });
   const maj = () => {
     const n = Object.values(choix).reduce((a, b) => a + b, 0);
-    const total = types.reduce((s, t) => s + (choix[t.id] || 0) * Number(t.prix), 0);
+    const remise = p => promo ? Math.max(0, Math.round((promo.remise_pct ? p * (100 - promo.remise_pct) / 100 : p - Number(promo.remise_eur)) * 100) / 100) : p;
+    const total = types.reduce((s, t) => s + (choix[t.id] || 0) * remise(Number(t.prix)), 0);
     $('#panier').hidden = !n; $('#resume').textContent = `${n} billet${n > 1 ? 's' : ''} · ${total ? eur(total) + ' à régler à l’entrée' : 'gratuit'}`;
   };
   document.querySelectorAll('.qte').forEach(qt => qt.addEventListener('click', ev => {
@@ -181,8 +241,8 @@ async function pageEvenement(id) {
     const nom = $('#titulaire').value.trim(); if (!nom) return toast('Indiquez le nom sur les billets.', true);
     ev.target.disabled = true;
     try {
-      for (const [type_billet, nombre] of Object.entries(choix)) if (nombre) await q(sb.rpc('reserver_billets', { type_billet, nombre, nom_titulaire: nom }));
-      toast('C’est réservé ! Vos billets sont prêts.'); aller('#/billets');
+      for (const [type_billet, nombre] of Object.entries(choix)) if (nombre) await q(sb.rpc('reserver_billets', { type_billet, nombre, nom_titulaire: nom, code_saisi: promo?.code || null }));
+      toast('🎉 C’est réservé ! Vos billets sont prêts.'); aller('#/billets');
     } catch (err) { toast(erreur(err), true); ev.target.disabled = false; }
   });
   $('#partager').addEventListener('click', async () => {
@@ -211,7 +271,7 @@ async function pageBillets() {
     ${g.l.map(x => `<div class="billet ${x.statut}"><div class="qr" data-plein="${esc(x.code)}" title="Agrandir">${x.statut === 'annule' ? '' : qrSvg(x.code)}</div>
       <div><h3>${esc(x.billets_types?.nom || 'Billet')} · ${eur(x.prix)}</h3><div class="muted">${esc(x.titulaire)}</div><div class="code">${esc(x.code)}</div>
         <div style="margin:6px 0">${tag(ST_BILLET[x.statut])}</div>
-        <div class="actions">${x.statut !== 'annule' && x.statut !== 'utilise' ? `<button class="btn btn-s" data-plein="${esc(x.code)}" style="background:#14121f;color:#fff">Agrandir pour l’entrée</button><button class="btn btn-s btn-ko" data-annuler="${x.id}" style="background:#fff">Annuler</button>` : ''}</div></div></div>`).join('')}`;
+        <div class="actions">${x.statut !== 'annule' && x.statut !== 'utilise' ? `<button class="btn btn-s" data-plein="${esc(x.code)}" style="background:#14121f;color:#fff">Agrandir pour l’entrée</button><a class="btn btn-s" href="#/imprimer/${x.id}" style="background:#fff;color:#000">⬇ PDF</a><button class="btn btn-s btn-ko" data-annuler="${x.id}">Annuler</button>` : ''}</div></div></div>`).join('')}`;
   vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><h1>Mes billets</h1>
     ${b.length ? avenir.map(bloc).join('') + (passes.length ? '<h2 style="margin-top:34px" class="muted">Événements passés</h2>' + passes.map(bloc).join('') : '') : '<div class="vide-etat"><div class="ico">🎟️</div><h3>Aucun billet pour l’instant</h3><a class="btn btn-p" href="#/">Trouver une sortie</a></div>'}
     <p class="muted petit">Montrez le QR code à l’entrée, écran à fond. Pas de réseau sur place ? Faites une capture d’écran avant de partir.</p></div>`);
@@ -263,13 +323,24 @@ async function pageCompte() {
 }
 
 // ---------------------------------------------------------------- espace organisateur
+async function dupliquer(id) {
+  const e = await q(sb.from('evenements').select('*').eq('id', id).single());
+  const types = await q(sb.from('billets_types').select('*').eq('evenement_id', id).eq('cache', false).order('ordre'));
+  const decale = d => d ? new Date(new Date(d).getTime() + 7 * 864e5).toISOString() : null;
+  const copie = await q(sb.from('evenements').insert({ titre: (e.titre + ' (copie)').slice(0, 120), categorie: e.categorie, debut: decale(e.debut), fin: decale(e.fin), lieu: e.lieu, commune: e.commune, adresse: e.adresse,
+    territoire: e.territoire, fuseau: e.fuseau, lat: e.lat, lng: e.lng, affiche: e.affiche, age_min: e.age_min, description: e.description, statut: 'brouillon' }).select('id').single());
+  for (const t of types) await q(sb.from('billets_types').insert({ evenement_id: copie.id, nom: t.nom, description: t.description, prix: t.prix, quantite: t.quantite, max_commande: t.max_commande, ordre: t.ordre }));
+  toast('Copie créée (une semaine plus tard) : vérifiez la date.'); aller('#/orga/evenement/' + copie.id);
+}
 async function pageOrga(sous, id) {
   if (!PRET || !exigeCompte()) return;
   await chargerMoi(); nav();
   if (!estOrga()) return pageDevenirOrga();
   if (sous === 'evenement') return formEvenement(id === 'nouveau' ? null : id);
   if (sous === 'participants') return pageParticipants(id);
-  if (sous === 'controle') return pageControle(id);
+  if (sous === 'controle') return aller('#/controle/' + id);
+  if (sous === 'agents') return pageAgents(id);
+  if (sous === 'promo') return pagePromo(id);
   vue('<div class="chargement">Chargement…</div>');
   const ev = await q(sb.from('evenements').select('*').eq('orga_id', moi.id).order('debut', { ascending: false }));
   const stats = {};
@@ -282,8 +353,9 @@ async function pageOrga(sous, id) {
       <div><b>${esc(e.titre)}</b> ${tag(ST_EV[e.statut])}<div class="muted petit">${esc(quand(e.debut, e.fuseau))} · ${lieuEv(e)}</div>
         <div class="petit">🎟️ ${s.vendus} / ${s.places} réservés · ✅ ${s.entres} entrés${s.aEncaisser ? ` · 💶 ${eur(s.aEncaisser)} à encaisser` : ''}</div>
         ${e.statut === 'refuse' && e.motif_refus ? `<div class="petit" style="color:#fca5a5">Motif : ${esc(e.motif_refus)}</div>` : ''}</div>
-      <div class="actions"><a class="btn btn-s" href="#/orga/evenement/${e.id}">Modifier</a><a class="btn btn-s" href="#/orga/participants/${e.id}">Participants</a><a class="btn btn-s btn-p" href="#/orga/controle/${e.id}">Contrôle entrée</a><a class="btn btn-s" href="#/evenement/${e.id}">Voir</a></div></div>`; }).join('')
+      <div class="actions"><a class="btn btn-s" href="#/orga/evenement/${e.id}">Modifier</a><a class="btn btn-s" href="#/orga/participants/${e.id}">Participants</a><a class="btn btn-s btn-p" href="#/controle/${e.id}">Contrôle entrée</a><a class="btn btn-s" href="#/orga/agents/${e.id}">Agents</a><a class="btn btn-s" href="#/orga/promo/${e.id}">Promo & invitations</a><button class="btn btn-s" data-dupliquer="${e.id}">Dupliquer</button><a class="btn btn-s" href="#/evenement/${e.id}">Voir</a></div></div>`; }).join('')
       : '<div class="vide-etat"><div class="ico">📣</div><h3>Créez votre premier événement</h3><p class="muted">Affiche, date, lieu, types de billets : 5 minutes. Nous le vérifions puis il est en ligne.</p><a class="btn btn-p" href="#/orga/evenement/nouveau">Créer un événement</a></div>'}</div>`);
+  $('#app').onclick = async ev => { const d = ev.target.closest('[data-dupliquer]'); if (!d) return; d.disabled = true; try { await dupliquer(d.dataset.dupliquer); } catch (err) { toast(erreur(err), true); d.disabled = false; } };
 }
 function pageDevenirOrga() {
   const enCours = profil?.orga === 'demande';
@@ -317,6 +389,8 @@ async function formEvenement(id) {
       <div class="ligne2"><label>Début <span class="aide">(heure locale du lieu)</span><input type="datetime-local" name="debut" required value="${utcVersLocal(e.debut, e.fuseau || fuseauDe(e.territoire))}"></label><label>Fin <span class="aide">(facultatif)</span><input type="datetime-local" name="fin" value="${utcVersLocal(e.fin, e.fuseau || fuseauDe(e.territoire))}"></label></div>
       <div class="ligne3"><label>Lieu<input name="lieu" required maxlength="120" value="${esc(e.lieu)}" placeholder="ex. Plage de l’Anse Mitan"></label></div>
       <div class="ligne3"><label>Territoire<select name="territoire" required data-villes="villesE">${optsTerritoires(e.territoire)}</select></label><label>Ville<input name="commune" required maxlength="60" list="villesE" value="${esc(e.commune)}">${listeVilles('villesE', e.territoire)}</label><label>Adresse <span class="aide">(facultatif)</span><input name="adresse" maxlength="200" value="${esc(e.adresse || '')}"></label></div>
+      <div class="ligne3"><label>Latitude <span class="aide">(carte)</span><input name="lat" type="number" step="any" min="-90" max="90" value="${e.lat ?? ''}"></label><label>Longitude<input name="lng" type="number" step="any" min="-180" max="180" value="${e.lng ?? ''}"></label>
+        <label>&nbsp;<button type="button" class="btn btn-s" id="trouver">📍 Trouver le lieu</button></label></div>
       <label>Description<textarea name="description" maxlength="6000" placeholder="Programme, artistes, dress code, parking, navettes…">${esc(e.description)}</textarea></label>
       <div><b>Affiche</b> <span class="aide">(format portrait conseillé)</span><div id="affApercu" style="max-width:200px;margin:8px 0"></div><input type="file" id="affFichier" accept="image/*"></div>
       <div><b>Billets</b> <span class="aide">(prix 0 = gratuit ; ajoutez par ex. « VIP » ou « Navette aller-retour depuis Fort-de-France »)</span><div class="lignes-types" id="types" style="margin-top:8px"></div>
@@ -328,6 +402,15 @@ async function formEvenement(id) {
   const lireTypes = () => [...document.querySelectorAll('.ltype')].map(l => { const i = Number(l.dataset.i); const g = n => l.querySelector(`[name=${n}]`).value; return { ...types[i], nom: g('nom').trim(), prix: Number(g('prix')) || 0, quantite: Number(g('quantite')), max_commande: Number(g('max_commande')) }; });
   const dessinerTypes = () => { $('#types').innerHTML = types.map(ligneType).join(''); };
   dessinerAff(); dessinerTypes(); brancherVilles(document.querySelector('#fEv [name=territoire]'), 'villesE');
+  // position : recherche OpenStreetMap (Nominatim) à partir du lieu et de la ville
+  $('#trouver').addEventListener('click', async () => {
+    const f = $('#fEv'), t = f.territoire.value, qs = [f.lieu.value, f.adresse.value, f.commune.value, t === 'Autre pays' ? '' : t.replace('Hexagone et Corse', 'France')].filter(Boolean).join(', ');
+    try {
+      const r = await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=fr&q=' + encodeURIComponent(qs))).json();
+      if (!r[0]) return toast('Lieu introuvable : précisez la ville ou tapez les coordonnées.', true);
+      f.lat.value = Number(r[0].lat).toFixed(5); f.lng.value = Number(r[0].lon).toFixed(5); toast('📍 Lieu trouvé : ' + r[0].display_name.slice(0, 80));
+    } catch (err) { toast('Recherche indisponible, réessayez.', true); }
+  });
   $('#ajType').addEventListener('click', () => { types = lireTypes(); types.push({ nom: 'VIP', prix: 25, quantite: 50, max_commande: 4 }); dessinerTypes(); });
   $('#types').addEventListener('click', ev => { const b = ev.target.closest('[data-suppr]'); if (!b) return; types = lireTypes(); const t = types.splice(Number(b.dataset.suppr), 1)[0]; if (t.id) supprimes.push(t.id); dessinerTypes(); });
   $('#affFichier').addEventListener('change', async ev => { const f = ev.target.files[0]; if (!f) return; toast('Envoi de l’affiche…'); try { affiche = await envoyerPhoto(f); dessinerAff(); } catch (err) { toast(erreur(err), true); } });
@@ -337,7 +420,7 @@ async function formEvenement(id) {
     const lt = lireTypes(), fz = fuseauDe(d.territoire);
     if (!lt.length) return toast('Ajoutez au moins un type de billet.', true);
     if (d.fin && d.fin <= d.debut) return toast('La fin doit être après le début.', true);
-    const ligne = { titre: d.titre.trim(), categorie: d.categorie, age_min: Number(d.age_min) || 0, debut: localVersUTC(d.debut, fz), fin: localVersUTC(d.fin, fz), fuseau: fz, territoire: d.territoire, lieu: d.lieu.trim(), commune: d.commune.trim(), adresse: d.adresse.trim() || null, description: d.description.trim(), affiche };
+    const ligne = { titre: d.titre.trim(), categorie: d.categorie, age_min: Number(d.age_min) || 0, debut: localVersUTC(d.debut, fz), fin: localVersUTC(d.fin, fz), fuseau: fz, territoire: d.territoire, lat: d.lat === '' ? null : Number(d.lat), lng: d.lng === '' ? null : Number(d.lng), lieu: d.lieu.trim(), commune: d.commune.trim(), adresse: d.adresse.trim() || null, description: d.description.trim(), affiche };
     if (!(id && e.statut === 'publie')) ligne.statut = envoi;
     try {
       const evId = id ? (await q(sb.from('evenements').update(ligne).eq('id', id).select('id').single())).id : (await q(sb.from('evenements').insert(ligne).select('id').single())).id;
@@ -377,10 +460,16 @@ async function pageControle(id) {
   const e = await q(sb.from('evenements').select('titre, fuseau').eq('id', id).single());
   const peutScanner = 'BarcodeDetector' in window && navigator.mediaDevices?.getUserMedia;
   let entres = 0;
-  vue(`<div class="wrap" style="padding-top:20px"><a href="#/orga/participants/${id}" class="petit">← Participants</a><h1 style="font-size:24px">Contrôle · ${esc(e.titre)}</h1>
+  vue(`<div class="wrap" style="padding-top:20px"><a href="${estOrga() ? '#/orga/participants/' + id : '#/controle'}" class="petit">← Retour</a><h1 style="font-size:20px">Contrôle · ${esc(e.titre)}</h1>
     <div class="scan">${peutScanner ? '<video id="cam" playsinline muted></video>' : '<p class="muted">La caméra n’est pas disponible sur ce navigateur : tapez le code du billet (Chrome sur Android permet de scanner).</p>'}
       <form id="fCode" class="recherche" style="grid-template-columns:1fr auto"><input name="code" placeholder="Code du billet (10 caractères)" autocomplete="off" autocapitalize="characters" required><button class="btn btn-p">Valider</button></form>
-      <div id="verdict"></div><p class="muted petit" id="compteur"></p></div></div>`);
+      <div id="verdict"></div><p class="muted petit" id="compteur"></p><h2>Derniers scans</h2><div id="histo" class="petit muted">—</div></div></div>`);
+  const histo = async () => {
+    const l = await q(sb.from('scans').select('code, resultat, created_at').eq('evenement_id', id).order('created_at', { ascending: false }).limit(12)).catch(() => []);
+    const lib = { ok: '✅ OK', a_payer: '💶 à encaisser', deja: '⛔ déjà utilisé', annule: '⛔ annulé', inconnu: '❓ inconnu' };
+    $('#histo') && ($('#histo').innerHTML = l.map(s => `<div>${esc(fmt(s.created_at, { hour: '2-digit', minute: '2-digit', second: '2-digit' }, e.fuseau))} · <b>${esc(s.code)}</b> · ${lib[s.resultat] || esc(s.resultat)}</div>`).join('') || 'Aucun scan pour l’instant.');
+  };
+  histo();
   let dernier = '', occupe = false;
   const valider = async code => {
     code = String(code || '').trim().toUpperCase(); if (!code || occupe || code === dernier) return; occupe = true; dernier = code; setTimeout(() => { if (dernier === code) dernier = ''; }, 4000);
@@ -388,8 +477,8 @@ async function pageControle(id) {
       const [r] = await q(sb.rpc('valider_billet', { evt: id, code_billet: code }));
       const v = { ok: ['ok', '✅', 'Entrée validée'], a_payer: ['att', '💶', `À encaisser : ${eur(r.prix)}`], deja: ['ko', '⛔', 'Déjà utilisé'], annule: ['ko', '⛔', 'Billet annulé'], inconnu: ['ko', '❓', 'Billet inconnu pour cet événement'] }[r.resultat];
       if (['ok', 'a_payer'].includes(r.resultat)) entres++;
-      $('#verdict').innerHTML = `<div class="verdict ${v[0]}"><big>${v[1]}</big>${esc(v[2])}${r.titulaire ? `<div style="font-size:16px;font-weight:600;margin-top:6px">${esc(r.titulaire)} · ${esc(r.type_nom)}${r.resultat === 'deja' ? ` · entré à ${esc(fmt(r.utilise_le, { hour: '2-digit', minute: '2-digit' }, e.fuseau))}` : ''}</div>` : ''}</div>`;
-      $('#compteur').textContent = `${entres} entrée${entres > 1 ? 's' : ''} validée${entres > 1 ? 's' : ''} sur cet appareil`;
+      $('#verdict').innerHTML = `<div class="verdict ${v[0]}"><big>${v[1]}</big>${esc(v[2])}${r.titulaire ? `<div class="sous">${esc(r.titulaire)} · ${esc(r.type_nom)}${r.resultat === 'deja' ? ` · entré à ${esc(fmt(r.utilise_le, { hour: '2-digit', minute: '2-digit' }, e.fuseau))}` : ''}</div>` : ''}</div>`;
+      $('#compteur').textContent = `${entres} entrée${entres > 1 ? 's' : ''} validée${entres > 1 ? 's' : ''} sur cet appareil`; histo();
       try { navigator.vibrate?.(v[0] === 'ok' ? 80 : [80, 60, 80]); } catch (x) { /* vibration facultative */ }
     } catch (err) { toast(erreur(err), true); }
     occupe = false;
@@ -431,10 +520,160 @@ async function pageAdmin() {
   };
 }
 
+// ---------------------------------------------------------------- carte des événements
+async function pageCarte() {
+  const terr = param().territoire ?? terrPrefere();
+  vue(`<div class="wrap" style="padding-top:22px"><div class="titre-s"><h1>Carte</h1>
+    <div class="actions"><select id="terrC" aria-label="Territoire" style="background:#000;border:2px solid var(--ligne);padding:9px">${optsTerritoires(terr, 'Tous les territoires')}</select><button class="btn btn-s btn-j" id="presDeMoi">📍 Près de moi</button></div></div>
+    <div class="carte-plein" id="carte"></div><div id="liste" class="section"></div></div>`);
+  let r = sb.from('evenements').select('*').eq('statut', 'publie').gte('debut', new Date(Date.now() - 6 * 36e5).toISOString()).not('lat', 'is', null).order('debut').limit(200);
+  if (terr) r = r.eq('territoire', terr);
+  const [L, ev] = await Promise.all([chargerCarte(), q(r)]);
+  const c = CENTRES[terr] || (ev[0] ? [ev[0].lat, ev[0].lng, 9] : CENTRES.Martinique);
+  const m = fondCarte(L, 'carte', [c[0], c[1]], c[2]);
+  ev.forEach(e => L.marker([e.lat, e.lng]).addTo(m).bindPopup(`<b>${esc(e.titre)}</b><br>${esc(fmt(e.debut, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }, e.fuseau))}<br><a href="#/evenement/${e.id}">Voir les billets →</a>`));
+  const pm = await prixMini(ev.map(e => e.id));
+  const lister = l => { $('#liste').innerHTML = l.length ? `<div class="grille">${l.map(e => carteEv(e, pm[e.id])).join('')}</div>` : '<div class="vide-etat"><div class="ico">🗺️</div><h3>Aucun événement placé sur la carte ici pour l’instant</h3><a href="#/">Voir toutes les sorties</a></div>'; };
+  lister(ev);
+  $('#terrC').addEventListener('change', e => { terrPrefere(e.target.value); aller('#/carte?territoire=' + encodeURIComponent(e.target.value)); });
+  $('#presDeMoi').addEventListener('click', () => {
+    if (!navigator.geolocation) return toast('Position indisponible sur cet appareil.', true);
+    navigator.geolocation.getCurrentPosition(p => {
+      const { latitude: a, longitude: o } = p.coords, km = e => { const R = 6371, d = x => x * Math.PI / 180, dl = d(e.lat - a), dg = d(e.lng - o); return 2 * R * Math.asin(Math.sqrt(Math.sin(dl / 2) ** 2 + Math.cos(d(a)) * Math.cos(d(e.lat)) * Math.sin(dg / 2) ** 2)); };
+      m.setView([a, o], 12); L.circleMarker([a, o], { radius: 9, color: '#ffe14d' }).addTo(m).bindPopup('Vous êtes ici');
+      lister([...ev].sort((x, y) => km(x) - km(y))); toast('📍 Trié par distance');
+    }, () => toast('Position refusée : choisissez un territoire.', true), { timeout: 10000 });
+  });
+}
+
+// ---------------------------------------------------------------- agenda : billets à venir + favoris
+async function pageAgenda() {
+  if (!exigeCompte()) return;
+  vue('<div class="chargement">Chargement</div>');
+  const maintenant = new Date(Date.now() - 6 * 36e5).toISOString();
+  const [b, f] = await Promise.all([
+    q(sb.from('billets').select('evenement_id, statut, evenements(*)').eq('acheteur', moi.id).neq('statut', 'annule')),
+    q(sb.from('favoris_ev').select('evenements(*)'))]);
+  const parId = {};
+  b.forEach(x => { if (x.evenements && x.evenements.debut >= maintenant) (parId[x.evenement_id] = parId[x.evenement_id] || { e: x.evenements, billets: 0 }).billets++; });
+  f.forEach(x => { const e = x.evenements; if (e && e.debut >= maintenant && !parId[e.id]) parId[e.id] = { e, billets: 0 }; });
+  const l = Object.values(parId).sort((a, c) => a.e.debut.localeCompare(c.e.debut));
+  vue(`<div class="wrap" style="padding-top:22px;max-width:820px"><h1>Mon agenda</h1><p class="muted">Vos billets et vos favoris à venir. Touchez ♡ sur un événement pour l’ajouter.</p>
+    ${l.length ? l.map(({ e, billets }) => `<div class="ligne-l">${e.affiche ? `<img class="mini" src="${esc(photo(e.affiche))}" alt="">` : '<div class="mini"></div>'}
+      <div><span class="px" style="color:var(--jaune)">${esc(fmt(e.debut, { weekday: 'short', day: 'numeric', month: 'short' }, e.fuseau))}</span><br><b><a href="#/evenement/${e.id}">${esc(e.titre)}</a></b>
+        <div class="muted petit">${esc(fmt(e.debut, { hour: '2-digit', minute: '2-digit' }, e.fuseau))} · ${lieuEv(e)}</div></div>
+      <div class="actions">${billets ? `<a class="btn btn-s btn-ok" href="#/billets">🎟️ ${billets} billet${billets > 1 ? 's' : ''}</a>` : '<span class="tag">♡ Favori</span>'}<button class="btn btn-s" data-ics="${e.id}">📅 Agenda</button></div></div>`).join('')
+      : '<div class="vide-etat"><div class="ico">📅</div><h3>Rien de prévu pour l’instant</h3><a class="btn btn-p" href="#/">Trouver une sortie</a></div>'}</div>`);
+  $('#app').onclick = ev => { const x = ev.target.closest('[data-ics]'); if (x) telechargerIcs(parId[x.dataset.ics].e); };
+}
+
+// ---------------------------------------------------------------- profil joueur : niveau, XP, badges
+async function pageProfil() {
+  if (!exigeCompte()) return;
+  await chargerMoi(); nav();
+  const j = joueur || { xp: 0, niveau: 1, xp_niveau: 0, entrees: 0, badges: [] };
+  vue(`<div class="wrap" style="padding-top:26px;max-width:900px">
+    <div class="panneau joueur"><div class="avatar-px">🕹️</div><div><span class="px" style="color:var(--jaune)">Joueur 1</span>
+      <h1 style="margin:6px 0">${esc(profil?.prenom || 'Joueur')} · NIV ${j.niveau}</h1>
+      <div class="px" style="color:var(--vert)">${j.xp} XP · encore ${300 - j.xp_niveau} XP pour le niveau ${j.niveau + 1}</div>${barreXp(j, true)}
+      <div class="muted petit">${j.entrees} entrée${j.entrees > 1 ? 's' : ''} validée${j.entrees > 1 ? 's' : ''} · ${j.badges.length} / ${Object.keys(BADGES).length} badges</div></div></div>
+    <h2 style="margin-top:28px">Badges</h2>
+    <div class="badges">${Object.entries(BADGES).map(([k, [i, t, d]]) => `<div class="badge-j ${j.badges.includes(k) ? '' : 'verrou'}"><span class="ico">${i}</span><b>${esc(t)}</b><span class="petit muted">${esc(d)}</span></div>`).join('')}</div>
+    <h2 style="margin-top:28px">Comment gagner de l’XP ?</h2>
+    <div class="panneau"><p style="margin:0">🎟️ <b>+100 XP</b> à chaque entrée validée à un événement · 🧭 <b>+50 XP</b> pour chaque nouvelle catégorie de sortie · ✈️ <b>+100 XP</b> pour chaque nouveau territoire.<br>
+      <span class="muted petit">L’XP est calculée par le serveur à partir des entrées réellement scannées : impossible de tricher. Un niveau tous les 300 XP.</span></p></div>
+    <div class="actions" style="margin-top:20px"><a class="btn" href="#/billets">Mes billets</a><a class="btn" href="#/controle">Mes contrôles (agent)</a><a class="btn" href="https://immo.ilo-tech.com/#/compte/profil">Modifier mon profil</a><a class="btn btn-ko" href="#/deconnexion">Se déconnecter</a></div></div>`);
+}
+
+// ---------------------------------------------------------------- notifications
+async function pageNotifs() {
+  if (!exigeCompte()) return;
+  const n = await q(sb.from('notifs').select('*').order('created_at', { ascending: false }).limit(50));
+  vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><h1>Notifications</h1>
+    ${n.length ? n.map(x => `<a class="ligne-l" style="grid-template-columns:40px 1fr;text-decoration:none;color:inherit;${x.lu ? 'opacity:.6' : ''}" href="${esc(x.lien && x.lien.startsWith('#/') ? x.lien : '#/')}"><span style="font-size:26px">${x.lu ? '📭' : '📬'}</span>
+      <div>${esc(x.texte)}<div class="muted petit">${esc(new Date(x.created_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</div></div></a>`).join('')
+      : '<div class="vide-etat"><div class="ico">🔔</div><h3>Aucune notification</h3><p class="muted">Vous serez prévenu ici quand une place se libère ou quand on vous invite.</p></div>'}</div>`);
+  const nonLues = n.filter(x => !x.lu).map(x => x.id);
+  if (nonLues.length) { await sb.from('notifs').update({ lu: true }).in('id', nonLues); nbNotifs = 0; nav(); }
+}
+
+// ---------------------------------------------------------------- billet imprimable (PDF)
+async function pageImprimer(id) {
+  if (!exigeCompte()) return;
+  const x = await q(sb.from('billets').select('*, billets_types(nom), evenements(*)').eq('id', id).maybeSingle());
+  if (!x) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Billet introuvable</h3></div>');
+  const e = x.evenements;
+  vue(`<div class="wrap" style="padding:26px 20px;max-width:720px">
+    <div class="actions no-print" style="margin-bottom:16px"><a class="btn btn-s" href="#/billets">← Mes billets</a><button class="btn btn-s btn-p" id="imprimer">⬇ Enregistrer en PDF / imprimer</button></div>
+    <div class="billet" style="grid-template-columns:200px 1fr"><div class="qr" style="width:200px;height:200px">${qrSvg(x.code)}</div>
+      <div><span class="px" style="font-size:10px">EventPass · billet</span><h3 style="font-size:22px">${esc(e.titre)}</h3>
+        <div><b>${esc(quand(e.debut, e.fuseau))}</b></div><div>${lieuEv(e)}${e.adresse ? ' · ' + esc(e.adresse) : ''}</div>
+        <div style="margin-top:8px">${esc(x.billets_types?.nom || 'Billet')} · ${eur(x.prix)} · ${esc(x.titulaire)}</div><div class="code">${esc(x.code)}</div>
+        <div class="petit">${x.statut === 'reserve' ? 'À régler à l’entrée.' : x.statut === 'paye' ? 'Billet valide.' : esc(ST_BILLET[x.statut][1])} Un seul passage par billet.</div></div></div></div>`);
+  $('#imprimer').addEventListener('click', () => window.print());
+}
+
+// ---------------------------------------------------------------- agents de contrôle
+async function pageMesControles() {
+  if (!exigeCompte()) return;
+  const [ag, mes] = await Promise.all([q(sb.rpc('mes_controles')), estOrga() ? q(sb.from('evenements').select('*').eq('orga_id', moi.id).eq('statut', 'publie').gte('debut', new Date(Date.now() - 864e5).toISOString()).order('debut')) : []]);
+  const l = [...mes, ...ag.filter(e => !mes.some(m => m.id === e.id))];
+  vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><h1>Contrôle à l’entrée</h1><p class="muted">Les événements que vous pouvez contrôler, comme organisateur ou comme agent.</p>
+    ${l.length ? l.map(e => `<div class="ligne-l">${e.affiche ? `<img class="mini" src="${esc(photo(e.affiche))}" alt="">` : '<div class="mini"></div>'}<div><b>${esc(e.titre)}</b><div class="muted petit">${esc(quand(e.debut, e.fuseau))} · ${lieuEv(e)}</div></div>
+      <div class="actions"><a class="btn btn-s btn-p" href="#/controle/${e.id}">▶ Scanner</a></div></div>`).join('')
+      : '<div class="vide-etat"><div class="ico">📷</div><h3>Aucun événement à contrôler</h3><p class="muted">Un organisateur doit vous ajouter comme agent (avec l’email de votre compte).</p></div>'}</div>`);
+}
+async function pageAgents(id) {
+  const [e, ag] = await Promise.all([q(sb.from('evenements').select('titre').eq('id', id).single()), q(sb.rpc('liste_agents', { evt: id }))]);
+  vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><a href="#/orga" class="petit">← Espace organisateur</a><h1>Agents · ${esc(e.titre)}</h1>
+    <p class="muted">Vos agents scannent les billets avec leur propre compte : ils ne voient ni la liste des participants, ni les téléphones, ni vos ventes.</p>
+    <form class="recherche" id="fAg" style="grid-template-columns:1fr auto"><input type="email" name="email" required placeholder="Email du compte de l’agent" autocomplete="off"><button class="btn btn-p">+ Ajouter</button></form>
+    <div class="section">${ag.length ? ag.map(a => `<div class="ligne-l" style="grid-template-columns:40px 1fr auto"><span style="font-size:24px">👮</span><div><b>${esc(a.nom || 'Agent')}</b><div class="muted petit">${esc(a.email)}</div></div>
+      <button class="btn btn-s btn-ko" data-retirer="${a.agent}">Retirer</button></div>`).join('') : '<p class="muted">Aucun agent pour l’instant.</p>'}</div>
+    <p class="muted petit">L’agent ouvre EventPass, menu « Contrôle » (ou ilo-tech.com/pass/#/controle), puis « Scanner ».</p></div>`);
+  $('#fAg').addEventListener('submit', async ev => { ev.preventDefault(); try { await q(sb.rpc('ajouter_agent', { evt: id, adresse: ev.target.email.value })); toast('Agent ajouté.'); pageAgents(id); } catch (err) { toast(erreur(err), true); } });
+  $('#app').onclick = async ev => { const b = ev.target.closest('[data-retirer]'); if (!b || !confirm('Retirer cet agent ?')) return; try { await q(sb.rpc('retirer_agent', { evt: id, qui: b.dataset.retirer })); pageAgents(id); } catch (err) { toast(erreur(err), true); } };
+}
+
+// ---------------------------------------------------------------- codes promo et invitations
+async function pagePromo(id) {
+  const [e, codes, bil] = await Promise.all([q(sb.from('evenements').select('titre, fuseau').eq('id', id).single()), q(sb.from('codes_promo').select('*').eq('evenement_id', id).order('created_at')),
+    q(sb.from('billets').select('code_promo, statut').eq('evenement_id', id))]);
+  const utilises = c => bil.filter(b => b.code_promo === c && b.statut !== 'annule').length;
+  vue(`<div class="wrap" style="padding-top:22px;max-width:860px"><a href="#/orga" class="petit">← Espace organisateur</a><h1>Promo & invitations · ${esc(e.titre)}</h1>
+    <h2>Codes promo</h2>
+    ${codes.length ? `<div class="tableau"><table class="t"><thead><tr><th>Code</th><th>Remise</th><th>Utilisés</th><th>Fin</th><th></th></tr></thead><tbody>${codes.map(c => `<tr><td class="px">${esc(c.code)}</td><td>${c.remise_pct ? '−' + c.remise_pct + ' %' : '−' + eur(c.remise_eur)}</td>
+      <td>${utilises(c.id)}${c.max_utilisations ? ' / ' + c.max_utilisations : ''}</td><td>${c.fin ? esc(fmt(c.fin, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }, e.fuseau)) : '—'}</td>
+      <td><button class="btn btn-s ${c.actif ? 'btn-ko' : 'btn-ok'}" data-basculer="${c.id}" data-actif="${c.actif}">${c.actif ? 'Désactiver' : 'Activer'}</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Aucun code.</p>'}
+    <form class="f panneau" id="fCode" style="margin-top:14px"><div class="ligne3"><label>Code<input name="code" required pattern="[A-Za-z0-9]{3,20}" title="3 à 20 lettres ou chiffres" placeholder="ex. ZOUK20" style="text-transform:uppercase"></label>
+      <label>Remise<select name="type"><option value="pct">en %</option><option value="eur">en €</option></select></label><label>Valeur<input name="valeur" type="number" min="1" step="0.5" required></label></div>
+      <div class="ligne2"><label>Nombre d’utilisations max <span class="aide">(vide = illimité)</span><input name="max" type="number" min="1"></label><label>Valable jusqu’au <span class="aide">(facultatif)</span><input name="fin" type="datetime-local"></label></div>
+      <button class="btn btn-p">Créer le code</button></form>
+    <h2 style="margin-top:28px">Invitations</h2>
+    <p class="muted">Billet gratuit, déjà valide. Si l’invité a un compte EventPass (même email), le billet arrive dans « Mes billets » ; sinon, il s’affiche ici pour que vous l’envoyiez.</p>
+    <form class="f panneau" id="fInv"><div class="ligne2"><label>Nom de l’invité<input name="nom" required maxlength="80"></label><label>Email <span class="aide">(facultatif)</span><input name="email" type="email"></label></div><button class="btn btn-j">🎁 Créer l’invitation</button></form>
+    <div id="invite" style="margin-top:16px"></div></div>`);
+  $('#fCode').addEventListener('submit', async ev => {
+    ev.preventDefault(); const d = Object.fromEntries(new FormData(ev.target));
+    const l = { evenement_id: id, code: d.code.trim().toUpperCase(), max_utilisations: d.max ? Number(d.max) : null, fin: d.fin ? localVersUTC(d.fin, e.fuseau) : null, ...(d.type === 'pct' ? { remise_pct: Math.min(100, Math.round(Number(d.valeur))) } : { remise_eur: Number(d.valeur) }) };
+    try { await q(sb.from('codes_promo').insert(l)); toast('Code créé.'); pagePromo(id); } catch (err) { toast(/duplicate|unique/i.test(err.message) ? 'Ce code existe déjà.' : erreur(err), true); }
+  });
+  $('#fInv').addEventListener('submit', async ev => {
+    ev.preventDefault(); const d = Object.fromEntries(new FormData(ev.target));
+    try {
+      const [b] = await q(sb.rpc('inviter', { evt: id, nom_invite: d.nom, adresse: d.email || null }));
+      $('#invite').innerHTML = `<div class="billet"><div class="qr">${qrSvg(b.code)}</div><div><h3>Invitation · ${esc(b.titulaire)}</h3><div class="code">${esc(b.code)}</div>
+        <p class="muted">${b.acheteur === moi.id ? 'L’invité n’a pas de compte : faites une capture de ce billet et envoyez-la-lui.' : 'Billet envoyé dans « Mes billets » de l’invité.'}</p></div></div>`;
+      ev.target.reset(); toast('Invitation créée.');
+    } catch (err) { toast(erreur(err), true); }
+  });
+  $('#app').onclick = async ev => { const b = ev.target.closest('[data-basculer]'); if (!b) return; try { await q(sb.from('codes_promo').update({ actif: b.dataset.actif !== 'true' }).eq('id', b.dataset.basculer)); pagePromo(id); } catch (err) { toast(erreur(err), true); } };
+}
+
 // ---------------------------------------------------------------- routeur
 async function rendre() {
   const h = (location.hash || '#/').split('?')[0], [, a, b, c] = h.split('/');
-  if (flux && !h.startsWith('#/orga/controle')) { flux.getTracks().forEach(t => t.stop()); flux = null; }
+  if (flux && !h.startsWith('#/controle/')) { flux.getTracks().forEach(t => t.stop()); flux = null; }
   nav(); window.scrollTo(0, 0); document.title = 'EventPass — sorties, concerts et soirées, aux Antilles et ailleurs';
   try {
     if (!a) return await pageAccueil();
@@ -442,6 +681,12 @@ async function rendre() {
     if (a === 'evenement' && b) return await pageEvenement(b);
     if (a === 'billets') return await pageBillets();
     if (a === 'orga') return await pageOrga(b, c);
+    if (a === 'controle') return b ? (exigeCompte() && await pageControle(b)) : await pageMesControles();
+    if (a === 'carte') return await pageCarte();
+    if (a === 'agenda') return await pageAgenda();
+    if (a === 'profil') return await pageProfil();
+    if (a === 'notifs') return await pageNotifs();
+    if (a === 'imprimer' && b) return await pageImprimer(b);
     if (a === 'admin') return await pageAdmin();
     if (a === 'connexion') return pageConnexion();
     if (a === 'inscription') return pageInscription();
