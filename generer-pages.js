@@ -1000,9 +1000,9 @@ Aussi écrit : Ilo Tech, Ilo-Tech, ILOTECH, Ilotech (site : ilo-tech.com).
 ${CATEGORIES.map(c => `- ${c.nom} : ${c.services.map(id => svc(id)).filter(Boolean).map(x => `${x.nom} (${prixDe(x)})`).join(', ')}`).join('\n')}
 
 ## Autres sites IloTech
-- [IloTech Immobilier](https://immo.ilo-tech.com/) : visite virtuelle 3D et 360°, photos, drone, vidéo, carnet numérique du logement, conciergerie Kaz An Nou (ménage, accueil, entretien, logement contrôlé ; partenaires en cours de recrutement).
+- [Kaz An Nou](https://immo.ilo-tech.com/) : réservation de villas, gîtes et appartements et services pour la maison (ménage, accueil, jardin, piscine), aux Antilles, en Guyane, à La Réunion, dans l’Hexagone et ailleurs ; propriétaires et prestataires vérifiés. Offres photo, drone et visite 3D d’IloTech Immobilier en Martinique.
 - [IloTech Studio](https://studio.ilo-tech.com/) : agence marketing et IA.
-- [EventPass](${SITE}pass/) : billetterie et sorties en Martinique (billets QR code, paiement à l’entrée, organisateurs vérifiés).
+- [EventPass](${SITE}pass/) : billetterie et sorties aux Antilles, en Guyane, à La Réunion, dans l’Hexagone et ailleurs (billets QR code, paiement à l’entrée, organisateurs vérifiés, heure locale de chaque événement).
 - [Eventik](${SITE}evenements/) : location de matériel pour événements ; lancement en préparation, liste d’attente ouverte.
 
 ## Pages détaillées
