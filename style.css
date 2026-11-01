@@ -755,6 +755,7 @@ body.grand .g5{grid-template-columns:repeat(3,minmax(0,1fr))}
 .site-ico{display:grid;place-items:center;background:color-mix(in srgb,var(--t) 20%,transparent)}
 .site-ico svg{width:28px;height:28px;stroke:var(--t);fill:none;stroke-width:1.9}
 .site-carte b{font-size:20px;margin-top:4px}
+.site-carte b small{font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--t) 22%,transparent);color:var(--t);vertical-align:middle;margin-left:6px}
 .site-carte span{color:var(--muted);font-size:14.5px;line-height:1.5;flex:1}
 .site-carte em{font-style:normal;font-weight:800;color:var(--td,var(--t))}
 /* engagements */

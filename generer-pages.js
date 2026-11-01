@@ -981,7 +981,7 @@ fs.writeFileSync(svcHtml, sh);
 // sitemap : pages principales, pages service, guides
 const jour = new Date().toISOString().slice(0, 10);
 const urls = [['', '1.0', 'weekly'], ['services.html', '0.9', 'weekly'], ...PAGES.map(p => [lien(p), p.nouveau ? '0.9' : '0.8', 'monthly']),
-  ['conseils.html', '0.7', 'monthly'], ['outils-gratuits.html', '0.6', 'monthly'], ...GUIDES.map(g => [g.slug + '.html', '0.7', 'monthly']), ['plaquette.html', '0.6', 'monthly'], ['fiche-tarifs.html', '0.5', 'monthly']];
+  ['conseils.html', '0.7', 'monthly'], ['outils-gratuits.html', '0.6', 'monthly'], ...GUIDES.map(g => [g.slug + '.html', '0.7', 'monthly']), ['plaquette.html', '0.6', 'monthly'], ['fiche-tarifs.html', '0.5', 'monthly'], ['evenements/', '0.6', 'weekly']];
 fs.writeFileSync(path.join(dir, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map(([u, pr, f]) => `  <url><loc>${SITE}${u}</loc><lastmod>${jour}</lastmod><changefreq>${f}</changefreq><priority>${pr}</priority></url>`).join('\n')}
@@ -998,6 +998,11 @@ Aussi écrit : Ilo Tech, Ilo-Tech, ILOTECH, Ilotech (site : ilo-tech.com).
 
 ## Services
 ${CATEGORIES.map(c => `- ${c.nom} : ${c.services.map(id => svc(id)).filter(Boolean).map(x => `${x.nom} (${prixDe(x)})`).join(', ')}`).join('\n')}
+
+## Autres sites IloTech
+- [IloTech Immobilier](https://immo.ilo-tech.com/) : visite virtuelle 3D et 360°, photos, drone, vidéo, carnet numérique du logement, conciergerie Kaz An Nou (ménage, accueil, entretien, logement contrôlé ; partenaires en cours de recrutement).
+- [IloTech Studio](https://studio.ilo-tech.com/) : agence marketing et IA.
+- [IloTech Events](${SITE}evenements/) : location de matériel, packs pour événements, billetterie, transport et sorties ; lancement en préparation, liste d’attente ouverte.
 
 ## Pages détaillées
 ${PAGES.map(p => `- [${p.h1}](${SITE}${p.slug}.html) : ${p.desc}`).join('\n')}

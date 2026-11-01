@@ -243,8 +243,8 @@ const SERVICES = [
   { id: 'immobilier', icon: 'home', nom: 'Pack immobilier', desc: 'Photos, vidéo et drone pour vendre ou louer', base: 199, modes: ['site'],
     note: 'Pour agences, propriétaires et locations saisonnières : des images qui donnent envie de visiter, prêtes pour les annonces et les réseaux.',
     compris: ['15 photos intérieures retouchées', 'Photos aériennes par drone (selon la zone de vol)', 'Livraison en ligne sous 48 h', 'Formats prêts pour les annonces et les réseaux'],
-    pasCompris: ['Visite virtuelle 360° (sur devis)', 'Home staging et ménage avant les photos'],
-    options: [['video', 'Vidéo de visite montée (60 à 90 s)', 149], ['page', 'Page web dédiée au bien (lien à partager)', 149], ['reseaux', 'Publication et publicité sur les réseaux (hors budget)', 99],
+    pasCompris: ['Home staging et ménage avant les photos'],
+    options: [['visite3d', 'Visite virtuelle 3D et 360° (démo sur immo.ilo-tech.com)', 0, 'Sur devis'], ['carnet', 'Carnet numérique du logement (équipements, garanties, rappels)', 149], ['video', 'Vidéo de visite montée (60 à 90 s)', 149], ['page', 'Page web dédiée au bien (lien à partager)', 149], ['reseaux', 'Publication et publicité sur les réseaux (hors budget)', 99],
       ['serrure', 'Location saisonnière : serrure connectée posée et réglée', 89], ['wifi', 'Location saisonnière : Wi-Fi ou Starlink pour les voyageurs', 79], ['guide', 'Livret d’accueil numérique avec QR code', 59]] },
   // --- Programmation
   { id: 'devsurmesure', icon: 'code', nom: 'Programmation sur mesure', desc: 'Automatisation, outils, logiciels', base: 190, modes: ['distance', 'site', 'atelier'],
