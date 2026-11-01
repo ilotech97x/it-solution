@@ -37,7 +37,8 @@ Aussi écrit : Ilo Tech, Ilo-Tech, ILOTECH, Ilotech (site : ilo-tech.com).
 ## Autres sites IloTech
 - [IloTech Immobilier](https://immo.ilo-tech.com/) : visite virtuelle 3D et 360°, photos, drone, vidéo, carnet numérique du logement, conciergerie Kaz An Nou (ménage, accueil, entretien, logement contrôlé ; partenaires en cours de recrutement).
 - [IloTech Studio](https://studio.ilo-tech.com/) : agence marketing et IA.
-- [IloTech Events](https://ilo-tech.com/evenements/) : location de matériel, packs pour événements, billetterie, transport et sorties ; lancement en préparation, liste d’attente ouverte.
+- [EventPass](https://ilo-tech.com/pass/) : billetterie et sorties en Martinique (billets QR code, paiement à l’entrée, organisateurs vérifiés).
+- [Eventik](https://ilo-tech.com/evenements/) : location de matériel pour événements ; lancement en préparation, liste d’attente ouverte.
 
 ## Pages détaillées
 - [Installation Starlink en Martinique](https://ilo-tech.com/installation-starlink-martinique.html) : Installation Starlink en Martinique : pose de l’antenne sur le toit, câble, Wi-Fi dans toute la maison et secours pendant les coupures. Kit fourni ou le vôtre, dès 139 € la pose, devis gratuit. Ducos, Le Robert, toute l’île.
