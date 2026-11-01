@@ -80,7 +80,7 @@
 
   // 4. Packs, zones, agences
   h += `<h2>Nos formules à prix fixe</h2><table class="price-table packs-table"><thead><tr><th>Formule</th><th>Contenu</th><th>Prix</th></tr></thead><tbody>` +
-    PACKS.map(p => `<tr><td><b>${esc(p.nom)}</b><br><span class="muted">${esc(p.pour)}</span></td><td>${esc(p.inclus.join(', '))}</td><td class="mono"><s>${eur(itemsValue(p.items))}</s> <b>${eur(p.prix)}</b></td></tr>`).join('') +
+    PACKS.map(p => `<tr><td><b>${esc(p.nom)}</b><br><span class="muted">${esc(p.pour)}</span></td><td>${esc(p.inclus.join(', '))}</td><td class="mono">${remise(p) > 0 ? `<s>${eur(itemsValue(p.items))}</s> ` : ''}<b>${eur(p.prix)}</b>${remise(p) > 0 ? ` <em>−${remise(p)} %</em>` : ''}</td></tr>`).join('') +
     `</tbody></table>`;
 
   h += `<h2>Zones d'intervention et déplacement</h2>

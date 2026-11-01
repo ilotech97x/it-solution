@@ -23,7 +23,7 @@
 
   // Packs
   h += `<h2>Packs à prix fixe</h2><div class="f-packs">${PACKS.map(p => `
-    <div class="f-pack"><b>${esc(p.nom)}</b><span class="mono">${eur(p.prix)} <s>${eur(itemsValue(p.items))}</s></span><small>${esc(p.inclus.join(' · '))}</small></div>`).join('')}</div>`;
+    <div class="f-pack"><b>${esc(p.nom)}</b><span class="mono">${eur(p.prix)}${remise(p) > 0 ? ` <s>${eur(itemsValue(p.items))}</s> −${remise(p)} %` : ''}</span><small>${esc(p.inclus.join(' · '))}</small></div>`).join('')}</div>`;
 
   // Services par onglet
   const vus = new Set();

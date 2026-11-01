@@ -1,13 +1,15 @@
 # IloTech
 
+Aussi écrit : Ilo Tech, Ilo-Tech, ILOTECH, Ilotech (site : ilo-tech.com).
+
 > Entreprise informatique martiniquaise (EI Erwan Labiche), deux agences, Ducos et Le Robert, un seul numéro : 0696 48 26 78. Interventions à domicile dans toute la Martinique, en agence ou à distance ; sites, IA, marketing et facture électronique aussi à distance pour la Guadeloupe, la Guyane et Saint-Martin. Devis gratuit, prix annoncé avant toute intervention, rendez-vous en ligne sur https://ilo-tech.com/.
 
 ## Services
-- Ordinateur : Dépannage PC (dès 39 €), Accélérer Windows (dès 39 €), Réparation PC fixe (dès 39 €), Réparation PC portable (dès 39 €)
+- Ordinateur : Dépannage PC (dès 49 €), Accélérer Windows (dès 49 €), Réparation PC fixe (dès 49 €), Réparation PC portable (dès 49 €)
 - Sécurité : Antivirus & virus (dès 29 €), Comptes & arnaques (dès 29 €)
 - Fichiers : Sauvegarde (dès 29 €), Récupération de données (dès 35 €), Stockage & transfert (dès 25 €), Reprise & recyclage (Gratuit)
-- Installation : PC neuf & logiciels (dès 35 €), PC reconditionné (dès 49 €), Imprimante & scanner (dès 29 €), Onduleur (dès 29 €)
-- Mobile & tablette : Smartphone & tablette (dès 29 €)
+- Installation : PC neuf & logiciels (dès 49 €), PC reconditionné (dès 49 €), Imprimante & scanner (dès 39 €), Onduleur (dès 39 €)
+- Mobile & tablette : Smartphone & tablette (dès 39 €)
 - Gaming : Entretien console (dès 29 €), Émulation & rétro (dès 29 €), PC gamer sur mesure (dès 39 €)
 - Aide & suivi : Cours & accompagnement (dès 39 €), Accompagnement seniors (dès 39 €/mois), Abonnement entretien (dès 9,90 €/mois)
 - Starlink : Installation Starlink (dès 139 €)
@@ -26,7 +28,7 @@
 - Cybersécurité : Contrôle sécurité express (dès 79 €), Audit cybersécurité (dès 290 €), Former l’équipe aux arnaques (dès 290 €), Mise en conformité RGPD (dès 190 €)
 - Cyclone & énergie : Plan cyclone & continuité (dès 190 €), Suivi de l’énergie (dès 149 €)
 - Conseil & données : Conseil & plan numérique (dès 390 €), Responsable informatique à temps partagé (dès 290 €/mois), Tableaux de bord & données (dès 290 €)
-- Factures & gestion : Facturation électronique (dès 149 €), Logiciel de gestion (dès 290 €)
+- Factures & gestion : Facturation électronique (dès 149 €), Logiciel de gestion (dès 490 €)
 - Caisse : Caisse enregistreuse (dès 149 €)
 - Drone : Drone (dès 149 €)
 - Immobilier : Pack immobilier (dès 199 €), Location saisonnière connectée (dès 149 €)
@@ -34,7 +36,7 @@
 
 ## Pages détaillées
 - [Installation Starlink en Martinique](https://ilo-tech.com/installation-starlink-martinique.html) : Installation Starlink en Martinique : pose de l’antenne sur le toit, câble, Wi-Fi dans toute la maison et secours pendant les coupures. Kit fourni ou le vôtre, dès 139 € la pose, devis gratuit. Ducos, Le Robert, toute l’île.
-- [Dépannage informatique en Martinique](https://ilo-tech.com/depannage-informatique-martinique.html) : Dépannage informatique en Martinique : PC lent, qui ne démarre plus, écran bleu, virus. Chez vous, en agence à Ducos et au Robert, ou à distance. Dès 39 €, prix annoncé avant.
+- [Dépannage informatique en Martinique](https://ilo-tech.com/depannage-informatique-martinique.html) : Dépannage informatique en Martinique : PC lent, qui ne démarre plus, écran bleu, virus. Chez vous, en agence à Ducos et au Robert, ou à distance. Dès 49 €, prix annoncé avant.
 - [Réparation d’ordinateur portable et fixe](https://ilo-tech.com/reparation-ordinateur-portable-martinique.html) : Réparation de PC portable et fixe en Martinique : écran cassé, batterie, clavier, charnière, prise de charge, surchauffe, disque SSD. Devis gratuit, agences à Ducos et au Robert.
 - [Virus, arnaques et comptes piratés](https://ilo-tech.com/virus-arnaque-compte-pirate-martinique.html) : Suppression de virus, publicités, faux messages et récupération de compte piraté (Facebook, Gmail, WhatsApp) en Martinique. Sécurisation sans jargon, dès 29 €.
 - [Récupération de données et sauvegarde](https://ilo-tech.com/recuperation-donnees-sauvegarde-martinique.html) : Récupération de photos et fichiers perdus (disque dur, clé USB, carte SD, téléphone) et mise en place de sauvegardes automatiques en Martinique. Diagnostic et devis gratuits.

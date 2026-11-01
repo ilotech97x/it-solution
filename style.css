@@ -1099,6 +1099,7 @@ body.grand .g5{grid-template-columns:repeat(3,minmax(0,1fr))}
 .cv-prix-1 b{font-size:19px}
 .cv-prix-1 em{font-style:normal;font-size:12px;font-weight:700}
 /* formules */
+.pack-fixe{color:var(--faint);font-size:11px}
 .pack-eco{padding:1px 7px;border-radius:99px;background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok);font:800 11.5px/1.5 var(--sans);font-style:normal}
 .sec-seul{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:12px 0 0;color:var(--muted);font-size:14px}
 .sec-seul .ico{width:18px;height:18px}

@@ -19,6 +19,8 @@ const { esc, eur, svc, ico, scene, waUrl, bandeau } = vm.runInContext('({ esc, e
 const SITE = CONFIG.siteUrl.replace(/\/?$/, '/');
 const RESEAUX = Object.entries(CONFIG.reseaux || {}).filter(([, u]) => u);
 const SAMEAS = RESEAUX.map(([, u]) => u);
+// autres façons d'écrire le nom (Ilo Tech, ILOTECH…) : déclarées à Google pour être trouvé quelle que soit l'écriture
+const NOMS = ['Ilo Tech', 'Ilo-Tech', 'ILOTECH', 'Ilotech', 'ilo-tech.com', 'IloTech Martinique'];
 const reseauxHtml = () => RESEAUX.length ? `<p class="reseaux">Suivez-nous : ${RESEAUX.map(([k, u]) => `<a href="${u}" target="_blank" rel="noopener me" aria-label="IloTech sur ${k}">${ico(k)}<span>${({ instagram: "Instagram", tiktok: "TikTok", youtube: "YouTube", facebook: "Facebook", linkedin: "LinkedIn" })[k] || k}</span></a>`).join('')}</p>` : '';
 const V = (fs.readFileSync(path.join(dir, 'index.html'), 'utf8').match(/style\.css\?v=(\d+)/) || [])[1] || '1';
 
@@ -43,8 +45,8 @@ const PAGES = [
       ['Et sur un bateau ou un chantier ?', 'Le Starlink Mini se règle pour un bateau, un véhicule ou un chantier. Nous vous montrons comment l’orienter et l’alimenter.']
     ] },
   { slug: 'depannage-informatique-martinique', cat: 'ordi', scene: 'ordi', services: ['repair', 'boost', 'hwfixe'],
-    titre: 'Dépannage informatique en Martinique dès 39 € | IloTech',
-    desc: 'Dépannage informatique en Martinique : PC lent, qui ne démarre plus, écran bleu, virus. Chez vous, en agence à Ducos et au Robert, ou à distance. Dès 39 €, prix annoncé avant.',
+    titre: 'Dépannage informatique en Martinique dès 49 € | IloTech',
+    desc: 'Dépannage informatique en Martinique : PC lent, qui ne démarre plus, écran bleu, virus. Chez vous, en agence à Ducos et au Robert, ou à distance. Dès 49 €, prix annoncé avant.',
     h1: 'Dépannage informatique en Martinique',
     accroche: 'Votre ordinateur rame, plante ou ne démarre plus ? On le remet en forme, chez vous, en agence ou à distance, avec le prix annoncé avant.',
     intro: [
@@ -52,7 +54,7 @@ const PAGES = [
       'Nous commençons toujours par un diagnostic, puis nous vous annonçons le prix avant de réparer. Vos fichiers sont préservés. Selon la panne, nous intervenons chez vous, dans nos agences de Ducos et du Robert, ou à distance en quelques minutes.'
     ],
     exemple: { titre: 'Exemple : le PC portable de Mme L., au Lamentin', avant: ['Démarrage en 1 min 40', 'Fenêtres de publicité partout', 'Ventilateur bruyant'], apres: ['Démarrage en 14 s', 'Logiciels inutiles et pubs retirés', 'Nettoyage interne : PC silencieux'] },
-    pourquoi: ['Diagnostic et prix annoncé avant toute réparation', 'Dès 39 €, diagnostic compris', 'Chez vous, en agence ou à distance', 'Vos fichiers préservés'],
+    pourquoi: ['Diagnostic et prix annoncé avant toute réparation', 'Dès 49 €, diagnostic compris', 'Chez vous, en agence ou à distance', 'Vos fichiers préservés'],
     faq: [
       ['Combien coûte un dépannage d’ordinateur ?', 'Un dépannage commence à {repair}, diagnostic compris. Le prix exact est confirmé avant de réparer. En agence ou à distance, il n’y a pas de frais de déplacement.'],
       ['Intervenez-vous à domicile ?', 'Oui, dans toute la Martinique. Le déplacement est offert dans les communes d’agence et à partir d’un certain montant ; sinon il dépend de la zone (Centre, Sud, Nord).'],
@@ -678,7 +680,7 @@ const photoHtml = slug => {
 const ogImage = slug => photoDe(slug) && fs.existsSync(path.join(dir, 'img/photos', photoDe(slug) + '-og.jpg')) ? SITE + 'img/photos/' + photoDe(slug) + '-og.jpg' : SITE + 'img/og-ilotech.jpg';
 const jours = { 1: 'Mo', 2: 'Tu', 3: 'We', 4: 'Th', 5: 'Fr', 6: 'Sa', 0: 'Su' };
 const horaires = Object.entries(HORAIRES).map(([j, [a, b]]) => ({ '@type': 'OpeningHoursSpecification', dayOfWeek: 'https://schema.org/' + ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][j], opens: String(a).padStart(2, '0') + ':00', closes: String(b).padStart(2, '0') + ':00' }));
-const agences = Object.entries(AGENCES).map(([k, a]) => ({ '@type': 'LocalBusiness', '@id': SITE + '#agence-' + k, name: 'IloTech — ' + a.nom, telephone: '+596' + a.tel.replace(/\D/g, '').slice(1), url: SITE,
+const agences = Object.entries(AGENCES).map(([k, a]) => ({ '@type': 'LocalBusiness', '@id': SITE + '#agence-' + k, name: 'IloTech — ' + a.nom, alternateName: NOMS.map(n => n + ' ' + a.nom), telephone: '+596' + a.tel.replace(/\D/g, '').slice(1), url: SITE,
   image: SITE + 'img/og-ilotech.jpg', priceRange: '€', sameAs: SAMEAS, address: { '@type': 'PostalAddress', addressLocality: a.nom, addressRegion: 'Martinique', postalCode: k === 'ducos' ? '97224' : '97231', addressCountry: 'FR' }, openingHoursSpecification: horaires, areaServed: { '@type': 'AdministrativeArea', name: 'Martinique' } }));
 
 function tarifs(ids) {
@@ -701,7 +703,7 @@ function page(p) {
   const wa = waUrl(AGENCES.ducos.tel, `Bonjour IloTech, je suis intéressé(e) par : ${p.h1}.`);
   const ld = [
     { '@context': 'https://schema.org', '@type': 'Service', name: p.h1, serviceType: p.h1, description: p.desc, url,
-      provider: { '@type': 'LocalBusiness', name: 'IloTech', url: SITE, sameAs: SAMEAS, telephone: '+596' + AGENCES.ducos.tel.replace(/\D/g, '').slice(1) },
+      provider: { '@type': 'LocalBusiness', '@id': SITE + '#ilotech', name: 'IloTech', alternateName: NOMS, url: SITE, sameAs: SAMEAS, telephone: '+596' + AGENCES.ducos.tel.replace(/\D/g, '').slice(1) },
       areaServed: [{ '@type': 'AdministrativeArea', name: 'Martinique' }, ...(p.distance ? ['Guadeloupe', 'Guyane', 'Saint-Martin', 'Saint-Barthélemy'].map(n => ({ '@type': 'AdministrativeArea', name: n })) : []), ...COMMUNES.map(x => ({ '@type': 'City', name: x[0] }))],
       offers: p.services.map(svc).filter(Boolean).map(s => ({ '@type': 'Offer', name: s.nom, priceCurrency: 'EUR', price: s.base, priceSpecification: { '@type': 'PriceSpecification', minPrice: s.base, priceCurrency: 'EUR' }, availability: 'https://schema.org/InStock' })) },
     { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(([q, r]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: r } })) },
@@ -989,6 +991,8 @@ ${urls.map(([u, pr, f]) => `  <url><loc>${SITE}${u}</loc><lastmod>${jour}</lastm
 fs.writeFileSync(path.join(dir, 'pages-seo.js'), `// Généré par generer-pages.js : catégorie -> page dédiée (liens « En savoir plus »)\nconst PAGES_SEO = ${JSON.stringify(Object.fromEntries(PAGES.filter(p => !p.pasDeLienCat).map(p => [p.cat, { url: lien(p), titre: p.h1 }]).reverse()))};\n`);
 // llms.txt : présentation du site pour les assistants IA (ChatGPT, Perplexity, Copilot, Gemini)
 fs.writeFileSync(path.join(dir, 'llms.txt'), `# IloTech
+
+Aussi écrit : Ilo Tech, Ilo-Tech, ILOTECH, Ilotech (site : ilo-tech.com).
 
 > Entreprise informatique martiniquaise (EI Erwan Labiche), deux agences, Ducos et Le Robert, un seul numéro : 0696 48 26 78. Interventions à domicile dans toute la Martinique, en agence ou à distance ; sites, IA, marketing et facture électronique aussi à distance pour la Guadeloupe, la Guyane et Saint-Martin. Devis gratuit, prix annoncé avant toute intervention, rendez-vous en ligne sur ${SITE}.
 

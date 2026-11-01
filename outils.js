@@ -19,6 +19,8 @@ const pack = id => PACKS.find(p => p.id === id);
 const optOf = (sid, oid) => svc(sid).options.find(o => o[0] === oid);
 // valeur « à la carte » d'un ensemble { service: [options] } (sert au « au lieu de » des packs)
 const itemsValue = items => Object.entries(items).reduce((t, [sid, opts]) => t + svc(sid).base + opts.reduce((u, o) => u + optOf(sid, o)[2], 0), 0);
+// réduction affichée (arrondie vers le bas) : seulement sur les formules marquées promo, par rapport aux services pris un par un
+const remise = p => p.promo ? Math.floor((1 - p.prix / itemsValue(p.items)) * 100) : 0;
 
 // téléphone : 0696 12 34 56 -> 596696123456 (WhatsApp, appel)
 const digits = tel => String(tel || '').replace(/\D/g, '');

@@ -168,7 +168,7 @@ function calc() {
   if (p) {
     packValue = itemsValue(p.items);
     presta += p.prix;
-    lines.push({ label: packLabel(p), detail: p.inclus.join(' · '), prix: p.prix, old: packValue });
+    lines.push({ label: packLabel(p), detail: p.inclus.join(' · '), prix: p.prix, old: p.promo ? packValue : 0 });
   }
   let mensuel = 0;
   sel.forEach(id => {
@@ -207,7 +207,7 @@ function calc() {
   const extras = depl + urg + cren;
   return {
     lines, presta, depl, deplPlein, deplLabel, offert, delai, urg, cren,
-    pack: p ? p.id : null, savings: p ? packValue - p.prix : 0, mensuel,
+    pack: p ? p.id : null, savings: p?.promo ? packValue - p.prix : 0, mensuel,
     min: presta ? presta + extras : 0,
     max: presta ? Math.round((presta - variable) + variable * CONFIG.margeHaute) + extras : 0
   };
@@ -243,7 +243,7 @@ function renderSummary() {
     try { const p = $('price'); p.classList.remove('flash'); void p.offsetWidth; p.classList.add('flash'); } catch (e) {}
   }
   $('mobilePrice').textContent = txt;
-  $('savings').innerHTML = r.savings ? `Vous économisez <b>${eur(r.savings)}</b> avec le pack` : '';
+  $('savings').innerHTML = r.savings ? `<b>−${remise(pack(r.pack))} %</b> par rapport aux services pris un par un (vous économisez ${eur(r.savings)})` : '';
 
   const meta = [];
   const c = commune(d.commune);
@@ -280,7 +280,7 @@ function selectionHTML() {
     const extra = Object.keys(p.items).flatMap(id => chosen(id).filter(o => !p.items[id].includes(o[0])));
     h += card({ style: packStyle(p), cls: 'sel-pack' + (packTheme(p).multi ? ' multi' : ''), icon: p.icon, title: esc(packLabel(p)), label: p.nom,
       detail: esc(p.inclus.join(' · ')) + (extra.length ? `<em>+ ${esc(extra.map(o => o[1]).join(', '))}</em>` : ''),
-      price: `<s>${eur(itemsValue(p.items))}</s>${eur(p.prix + extra.reduce((t, o) => t + o[2], 0))}`,
+      price: `${p.promo ? `<s>${eur(itemsValue(p.items))}</s>` : ''}${eur(p.prix + extra.reduce((t, o) => t + o[2], 0))}`,
       remove: `selectPack('${p.id}')` });
   }
   state.sel.filter(id => !p?.items[id]).forEach(id => {
@@ -297,7 +297,8 @@ function selectionHTML() {
 // ce qu'il manque pour terminer une étape ('' = étape remplie)
 // matériel : le client dit s'il l'a déjà ou s'il faut le fournir (un seul choix)
 const matDe = id => (state.opt[id] || []).find(o => svc(id).materiel?.ids.includes(o)) || '';
-const sansMateriel = () => state.sel.find(id => svc(id).materiel && !matDe(id));
+const aMat = id => { const m = svc(id).materiel; return !!m && (!m.si || (state.opt[id] || []).some(o => m.si.includes(o))); };
+const sansMateriel = () => state.sel.find(id => aMat(id) && !matDe(id));
 function setMat(id, o) {
   const ids = svc(id).materiel.ids;
   state.opt[id] = (state.opt[id] || []).filter(x => !ids.includes(x)).concat(o);
@@ -305,7 +306,7 @@ function setMat(id, o) {
   render();
 }
 function blocMateriel() {
-  return state.sel.filter(id => svc(id).materiel).map(id => {
+  return state.sel.filter(aMat).map(id => {
     const s = svc(id), cur = matDe(id);
     return `<div class="materiel ${cur ? '' : 'a-repondre'}" id="mat-${id}" style="--t:${themeOf(id)}">
       <p class="mat-q">${ico('box')} <b>${esc(s.materiel.q)}</b> <span class="muted">${esc(s.nom)}</span></p>
@@ -419,7 +420,7 @@ function packCard(p, on, action) {
     <span class="pack-tag mono">${p.populaire ? '★ Le plus demandé' : cats.join(' + ')}</span>
     <span class="pack-head">${ico(p.icon)}<b>${p.nom}</b></span>
     <ul class="pack-inclus">${p.inclus.map(i => `<li>${i}</li>`).join('')}</ul>
-    <span class="pack-bottom"><b class="pack-now mono">${eur(p.prix)}</b><s class="mono" title="Prix des mêmes services pris un par un">${eur(value)}</s>${value > p.prix ? `<em class="pack-eco">−${eur(value - p.prix)}</em>` : ''}<span class="add">${on ? '✓ Choisi' : 'Choisir'}</span></span></button>`;
+    <span class="pack-bottom"><b class="pack-now mono">${eur(p.prix)}</b>${remise(p) > 0 ? `<s class="mono" title="Prix des mêmes services pris un par un">${eur(value)}</s><em class="pack-eco" title="Par rapport aux services pris un par un">−${remise(p)} %</em>` : '<span class="pack-fixe">prix fixe</span>'}<span class="add">${on ? '✓ Choisi' : 'Choisir'}</span></span></button>`;
 }
 
 /* =====================================================================
