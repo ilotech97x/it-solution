@@ -1,4 +1,4 @@
-/* EventPass — billetterie et sorties en Martinique (IloTech). Même compte que Kaz An Nou.
+/* EventPass — billetterie et sorties, aux Antilles et partout ailleurs (IloTech). Même compte que Kaz An Nou.
    Données : Supabase ; règles de sécurité et fonctions de réservation côté base (eventpass.sql). */
 'use strict';
 if (window.top !== window.self) { try { window.top.location = window.location.href; } catch (e) { document.documentElement.style.display = 'none'; } }
@@ -6,11 +6,8 @@ if (window.top !== window.self) { try { window.top.location = window.location.hr
 const CFG = window.KAZ_CONFIG || {};
 const PRET = !!(CFG.url && CFG.cle && window.supabase);
 const sb = PRET ? window.supabase.createClient(CFG.url, CFG.cle, { auth: { flowType: 'pkce', persistSession: true, detectSessionInUrl: true } }) : null;
-const WA = '596696482678', FUSEAU = 'America/Martinique';
+const WA = '596696482678';   // territoires, fuseaux et indicatifs : commun/territoires.js
 
-const COMMUNES = ['Ajoupa-Bouillon', 'Basse-Pointe', 'Bellefontaine', 'Case-Pilote', 'Ducos', 'Fonds-Saint-Denis', 'Fort-de-France', 'Grand’Rivière', 'Gros-Morne', 'La Trinité',
-  'Le Carbet', 'Le Diamant', 'Le François', 'Le Lamentin', 'Le Lorrain', 'Le Marigot', 'Le Marin', 'Le Morne-Rouge', 'Le Morne-Vert', 'Le Prêcheur', 'Le Robert', 'Le Vauclin',
-  'Les Anses-d’Arlet', 'Les Trois-Îlets', 'Macouba', 'Rivière-Pilote', 'Rivière-Salée', 'Saint-Esprit', 'Saint-Joseph', 'Saint-Pierre', 'Sainte-Anne', 'Sainte-Luce', 'Sainte-Marie', 'Schœlcher'];
 const CATS = { concert: ['🎤', 'Concerts'], soiree: ['🪩', 'Soirées'], festival: ['🎪', 'Festivals'], sport: ['🏃', 'Sport'], culture: ['🎭', 'Culture'],
   famille: ['👨‍👩‍👧', 'En famille'], atelier: ['🎨', 'Ateliers'], sortie: ['⛵', 'Sorties et excursions'], pro: ['💼', 'Pro et conférences'] };
 const ST_BILLET = { reserve: ['att', 'À payer à l’entrée'], paye: ['ok', 'Valide'], utilise: ['gris', 'Utilisé'], annule: ['ko', 'Annulé'] };
@@ -20,20 +17,20 @@ const ST_EV = { brouillon: ['gris', 'Brouillon'], en_attente: ['att', 'En valida
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const eur = n => Number(n) === 0 ? 'Gratuit' : (Math.round(Number(n) * 100) / 100).toLocaleString('fr-FR', { minimumFractionDigits: Number(n) % 1 ? 2 : 0 }) + ' €';
-const fmt = (d, o) => new Date(d).toLocaleString('fr-FR', { timeZone: FUSEAU, ...o });
-const quand = d => fmt(d, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-const jourMois = d => ({ j: fmt(d, { day: 'numeric' }), m: fmt(d, { month: 'short' }).replace('.', '') });
-// la Martinique est à UTC−4 toute l'année (pas d'heure d'été)
-const versUTC = local => local ? new Date(local + ':00-04:00').toISOString() : null;
-const versLocal = iso => { if (!iso) return ''; const d = new Date(new Date(iso).getTime() - 4 * 36e5); return d.toISOString().slice(0, 16); };
+const fmt = (d, o, fuseau = 'America/Martinique') => new Date(d).toLocaleString('fr-FR', { timeZone: fuseau || 'America/Martinique', ...o });
+const quand = (d, fuseau) => fmt(d, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }, fuseau)
+  + (fuseau && fuseau !== Intl.DateTimeFormat().resolvedOptions().timeZone ? ' (heure locale)' : '');
+const jourMois = (d, fuseau) => ({ j: fmt(d, { day: 'numeric' }, fuseau), m: fmt(d, { month: 'short' }, fuseau).replace('.', '') });
 const tag = ([c, t]) => `<span class="tag ${c}">${esc(t)}</span>`;
 const photo = p => !p ? '' : /^https:\/\//.test(p) ? p : PRET ? sb.storage.from('photos').getPublicUrl(p).data.publicUrl : '';
-const wa = (tel, txt) => `https://wa.me/${String(tel || WA).replace(/\D/g, '').replace(/^0/, '596')}?text=${encodeURIComponent(txt)}`;
-const optsCommunes = (v, vide) => `<option value="">${esc(vide)}</option>` + COMMUNES.map(c => `<option ${c === v ? 'selected' : ''}>${esc(c)}</option>`).join('');
+const wa = (tel, txt) => `https://wa.me/${telInternational(tel || WA) || WA}?text=${encodeURIComponent(txt)}`;
+const lieuEv = e => `${esc(e.lieu)}, ${esc(e.commune)}${e.territoire && e.territoire !== 'Autre pays' ? ' · ' + esc(e.territoire) : ''}`;
 const optsCats = v => Object.entries(CATS).map(([k, [i, t]]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${i} ${esc(t)}</option>`).join('');
 const param = () => Object.fromEntries(new URLSearchParams(location.hash.split('?')[1] || ''));
 const aller = h => { if (location.hash === h) rendre(); else location.hash = h; };
 const vue = h => { $('#app').innerHTML = h; };
+// territoire choisi par le visiteur, retenu sur cet appareil ('' = tous)
+function terrPrefere(v) { try { if (v !== undefined) localStorage.setItem('evpTerritoire', v); return localStorage.getItem('evpTerritoire') ?? ''; } catch (e) { return v ?? ''; } }
 function toast(m, ko = false) { const t = document.createElement('div'); t.className = 'toast' + (ko ? ' ko' : ''); t.textContent = m; t.setAttribute('role', 'status'); document.body.appendChild(t); setTimeout(() => t.remove(), ko ? 6000 : 3500); }
 function erreur(e) {
   const m = String(e?.message || e || '');
@@ -79,11 +76,11 @@ function nav() {
 
 // ---------------------------------------------------------------- accueil
 const carteEv = (e, prix) => {
-  const d = jourMois(e.debut);
+  const d = jourMois(e.debut, e.fuseau);
   return `<a class="ev" href="#/evenement/${e.id}"><div class="aff">${e.affiche ? `<img src="${esc(photo(e.affiche))}" alt="Affiche : ${esc(e.titre)}" loading="lazy">` : `<span class="vide">${CATS[e.categorie]?.[0] || '🎉'}</span>`}
     <span class="date"><b>${esc(d.j)}</b><small>${esc(d.m)}</small></span></div>
     <div class="corps"><span class="tag">${CATS[e.categorie]?.[0] || ''} ${esc(CATS[e.categorie]?.[1] || '')}</span>${e.statut === 'annule' ? ' ' + tag(ST_EV.annule) : ''}
-      <h3>${esc(e.titre)}</h3><div class="muted petit">${esc(fmt(e.debut, { weekday: 'short', hour: '2-digit', minute: '2-digit' }))} · ${esc(e.lieu)}, ${esc(e.commune)}</div>
+      <h3>${esc(e.titre)}</h3><div class="muted petit">${esc(fmt(e.debut, { weekday: 'short', hour: '2-digit', minute: '2-digit' }, e.fuseau))} · ${lieuEv(e)}</div>
       ${prix ? `<div class="prix">${prix.max === 0 ? 'Gratuit' : 'Dès ' + eur(prix.minPayant) + (prix.min === 0 ? ' · gratuit possible' : '')}</div>` : ''}</div></a>`;
 };
 async function prixMini(ids) {
@@ -94,16 +91,16 @@ async function prixMini(ids) {
   return m;
 }
 const videEv = () => `<div class="vide-etat"><div class="ico">🎟️</div><h3>Les premiers événements arrivent</h3>
-  <p class="muted">Concerts, soirées, festivals, sorties en mer : les organisateurs de Martinique publient bientôt ici. Vous organisez un événement ? Vendez vos billets gratuitement.</p>
+  <p class="muted">Concerts, soirées, festivals, sorties en mer : les organisateurs publient bientôt ici, aux Antilles, en Guyane, à La Réunion, dans l’Hexagone et ailleurs. Vous organisez un événement ? Vendez vos billets gratuitement.</p>
   <a class="btn btn-p" href="#/orga">Publier mon événement</a></div>`;
 
 async function pageAccueil() {
   const p = param();
   vue(`<section class="hero"><div class="wrap">
-    <h1>Sortir en Martinique, <em>billets en poche</em>.</h1>
-    <p>Concerts, soirées, festivals, sorties en catamaran : réservez en 2 clics, recevez votre billet avec QR code sur votre téléphone.</p>
+    <h1>Sortir près de chez vous, <em>billets en poche</em>.</h1>
+    <p>Concerts, soirées, festivals, sorties en catamaran, en Martinique, en Guadeloupe, en Guyane, à La Réunion, dans l’Hexagone et ailleurs : réservez en 2 clics, recevez votre billet avec QR code sur votre téléphone.</p>
     <form class="recherche" id="fRech"><input name="q" placeholder="Artiste, soirée, lieu…" value="${esc(p.q || '')}" aria-label="Recherche">
-      <select name="commune" aria-label="Commune">${optsCommunes(p.commune || '', 'Toute l’île')}</select>
+      <select name="territoire" aria-label="Territoire">${optsTerritoires(p.territoire ?? terrPrefere(), 'Tous les territoires')}</select>
       <select name="quand" aria-label="Quand">${[['', 'Toutes les dates'], ['soir', 'Ce soir'], ['we', 'Ce week-end'], ['7', 'Les 7 prochains jours'], ['30', 'Ce mois-ci']].map(([k, t]) => `<option value="${k}" ${k === (p.quand || '') ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <button class="btn btn-p">Rechercher</button></form></div></section>
     <div class="wrap"><div class="puces">${[['', '✨', 'Tout'], ...Object.entries(CATS).map(([k, [i, t]]) => [k, i, t])].map(([k, i, t]) => `<a href="#/?${new URLSearchParams({ ...p, cat: k })}" class="${(p.cat || '') === k ? 'on' : ''}">${i} ${esc(t)}</a>`).join('')}</div>
@@ -111,16 +108,18 @@ async function pageAccueil() {
       <section class="section"><div class="vide-etat" style="text-align:left;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center">
         <div><h2>Vous organisez des événements ?</h2><p class="muted" style="margin:0">Billetterie gratuite pour démarrer : billets QR code, paiement à l’entrée, contrôle avec votre téléphone, liste des participants.</p></div>
         <a class="btn btn-p" href="#/orga">Devenir organisateur</a></div></section></div>`);
-  $('#fRech').addEventListener('submit', e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); const u = new URLSearchParams(); Object.entries({ ...d, cat: p.cat || '' }).forEach(([k, v]) => v && u.set(k, v)); aller('#/?' + u); });
+  $('#fRech').addEventListener('submit', e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); terrPrefere(d.territoire); const u = new URLSearchParams(); Object.entries({ ...d, cat: p.cat || '' }).forEach(([k, v]) => (v || k === 'territoire') && u.set(k, v)); aller('#/?' + u); });
   if (!PRET) return ($('#liste').innerHTML = videEv());
   try {
     let r = sb.from('evenements').select('*').in('statut', ['publie', 'annule']).gte('debut', new Date(Date.now() - 6 * 36e5).toISOString()).order('debut').limit(60);
     if (p.cat) r = r.eq('categorie', p.cat);
-    if (p.commune) r = r.eq('commune', p.commune);
+    const terr = p.territoire ?? terrPrefere();
+    if (terr) r = r.eq('territoire', terr);
     const fin = (() => {
-      const n = new Date(); const local = new Date(n.getTime() - 4 * 36e5); const jsem = local.getUTCDay();
-      if (p.quand === 'soir') return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + 1, 10)).toISOString();
-      if (p.quand === 'we') return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + ((7 - jsem) % 7) + 1, 4)).toISOString();
+      const n = new Date(), fz = fuseauDe(terr), [jj] = utcVersLocal(n.toISOString(), fz).split('T');
+      const jsem = new Date(jj + 'T12:00:00Z').getUTCDay(), finJour = k => { const x = new Date(jj + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + k); return localVersUTC(x.toISOString().slice(0, 10) + 'T06:00', fz); };
+      if (p.quand === 'soir') return finJour(1);
+      if (p.quand === 'we') return finJour(((7 - jsem) % 7) + 1);
       if (p.quand) return new Date(n.getTime() + Number(p.quand) * 864e5).toISOString();
       return null;
     })();
@@ -129,7 +128,7 @@ async function pageAccueil() {
     if (p.q) { const m = p.q.toLowerCase(); ev = ev.filter(e => (e.titre + ' ' + e.lieu + ' ' + e.commune + ' ' + e.description).toLowerCase().includes(m)); }
     const pm = await prixMini(ev.map(e => e.id));
     $('#liste').className = ev.length ? 'grille' : '';
-    $('#liste').innerHTML = ev.length ? ev.map(e => carteEv(e, pm[e.id])).join('') : (p.q || p.cat || p.commune || p.quand ? '<div class="vide-etat"><div class="ico">🔎</div><h3>Aucun événement pour cette recherche</h3><a href="#/">Tout voir</a></div>' : videEv());
+    $('#liste').innerHTML = ev.length ? ev.map(e => carteEv(e, pm[e.id])).join('') : (p.q || p.cat || p.quand || (p.territoire ?? terrPrefere()) ? '<div class="vide-etat"><div class="ico">🔎</div><h3>Aucun événement pour cette recherche</h3><a href="#/">Tout voir</a></div>' : videEv());
   } catch (e) { $('#liste').innerHTML = `<p>${esc(erreur(e))}</p>`; }
 }
 
@@ -145,14 +144,14 @@ async function pageEvenement(id) {
   const restant = Object.fromEntries(rest.map(r => [r.type_id, r.restantes]));
   const fini = new Date(e.fin || e.debut) < new Date(), ferme = fini || e.statut !== 'publie';
   const choix = {};
-  document.title = `${e.titre} — ${fmt(e.debut, { day: 'numeric', month: 'long' })} | EventPass Martinique`;
-  const carte = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([e.lieu, e.adresse, e.commune, 'Martinique'].filter(Boolean).join(', '))}`;
+  document.title = `${e.titre} — ${fmt(e.debut, { day: 'numeric', month: 'long' }, e.fuseau)} · ${e.commune} | EventPass`;
+  const carte = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([e.lieu, e.adresse, e.commune, e.territoire === 'Autre pays' ? '' : e.territoire].filter(Boolean).join(', '))}`;
   vue(`<div class="wrap"><div class="fiche">
     <div class="affiche">${e.affiche ? `<img src="${esc(photo(e.affiche))}" alt="Affiche : ${esc(e.titre)}">` : `<span style="position:absolute;inset:0;display:grid;place-items:center;font-size:90px">${CATS[e.categorie]?.[0] || '🎉'}</span>`}</div>
     <div><span class="tag">${CATS[e.categorie]?.[0]} ${esc(CATS[e.categorie]?.[1])}</span> ${e.statut !== 'publie' ? tag(ST_EV[e.statut]) : ''}
       <h1 style="font-size:clamp(28px,4vw,44px);margin-top:10px">${esc(e.titre)}</h1>
-      <div class="infos"><div><span>📅</span><span>${esc(quand(e.debut))}${e.fin ? ` → ${esc(fmt(e.fin, { hour: '2-digit', minute: '2-digit' }))}` : ''}</span></div>
-        <div><span>📍</span><span>${esc(e.lieu)}, ${esc(e.commune)}${e.adresse ? `<br><span class="muted petit">${esc(e.adresse)}</span>` : ''}<br><a class="petit" href="${carte}" target="_blank" rel="noopener">Itinéraire ↗</a></span></div>
+      <div class="infos"><div><span>📅</span><span>${esc(quand(e.debut, e.fuseau))}${e.fin ? ` → ${esc(fmt(e.fin, { hour: '2-digit', minute: '2-digit' }, e.fuseau))}` : ''}</span></div>
+        <div><span>📍</span><span>${lieuEv(e)}${e.adresse ? `<br><span class="muted petit">${esc(e.adresse)}</span>` : ''}<br><a class="petit" href="${carte}" target="_blank" rel="noopener">Itinéraire ↗</a></span></div>
         <div><span>📣</span><span>Organisé par <b>${esc(orga?.orga_nom || orga?.prenom || 'un organisateur')}</b> <span class="tag ok">✓ Vérifié</span></span></div>
         ${e.age_min ? `<div><span>🔞</span><span>À partir de ${e.age_min} ans</span></div>` : ''}</div>
       <div class="actions" style="margin-bottom:18px"><button class="btn btn-s" id="partager">↗ Partager</button><button class="btn btn-s" id="ics">📅 Ajouter à mon agenda</button></div>
@@ -188,7 +187,7 @@ async function pageEvenement(id) {
   });
   $('#partager').addEventListener('click', async () => {
     const u = location.href;
-    try { if (navigator.share) await navigator.share({ title: e.titre, text: `${e.titre} · ${quand(e.debut)}`, url: u }); else { await navigator.clipboard.writeText(u); toast('Lien copié !'); } } catch (x) { /* partage annulé */ }
+    try { if (navigator.share) await navigator.share({ title: e.titre, text: `${e.titre} · ${quand(e.debut, e.fuseau)}`, url: u }); else { await navigator.clipboard.writeText(u); toast('Lien copié !'); } } catch (x) { /* partage annulé */ }
   });
   $('#ics').addEventListener('click', () => telechargerIcs(e));
 }
@@ -204,11 +203,11 @@ function telechargerIcs(e) {
 async function pageBillets() {
   if (!PRET || !exigeCompte()) return;
   vue('<div class="chargement">Chargement…</div>');
-  const b = await q(sb.from('billets').select('*, billets_types(nom), evenements(id, titre, debut, lieu, commune, statut)').eq('acheteur', moi.id).order('created_at', { ascending: false }));
+  const b = await q(sb.from('billets').select('*, billets_types(nom), evenements(id, titre, debut, lieu, commune, territoire, fuseau, statut)').eq('acheteur', moi.id).order('created_at', { ascending: false }));
   const parEv = {}; b.forEach(x => { (parEv[x.evenement_id] = parEv[x.evenement_id] || { e: x.evenements, l: [] }).l.push(x); });
   const groupes = Object.values(parEv).sort((a, c) => new Date(a.e.debut) - new Date(c.e.debut));
   const avenir = groupes.filter(g => new Date(g.e.debut) > new Date(Date.now() - 12 * 36e5)), passes = groupes.filter(g => !avenir.includes(g));
-  const bloc = g => `<h2 style="font-size:20px;margin-top:22px"><a href="#/evenement/${g.e.id}">${esc(g.e.titre)}</a></h2><p class="muted" style="margin-top:-6px">${esc(quand(g.e.debut))} · ${esc(g.e.lieu)}, ${esc(g.e.commune)}${g.e.statut === 'annule' ? ' · <b style="color:var(--ko)">Événement annulé</b>' : ''}</p>
+  const bloc = g => `<h2 style="font-size:20px;margin-top:22px"><a href="#/evenement/${g.e.id}">${esc(g.e.titre)}</a></h2><p class="muted" style="margin-top:-6px">${esc(quand(g.e.debut, g.e.fuseau))} · ${lieuEv(g.e)}${g.e.statut === 'annule' ? ' · <b style="color:var(--ko)">Événement annulé</b>' : ''}</p>
     ${g.l.map(x => `<div class="billet ${x.statut}"><div class="qr" data-plein="${esc(x.code)}" title="Agrandir">${x.statut === 'annule' ? '' : qrSvg(x.code)}</div>
       <div><h3>${esc(x.billets_types?.nom || 'Billet')} · ${eur(x.prix)}</h3><div class="muted">${esc(x.titulaire)}</div><div class="code">${esc(x.code)}</div>
         <div style="margin:6px 0">${tag(ST_BILLET[x.statut])}</div>
@@ -280,7 +279,7 @@ async function pageOrga(sous, id) {
   }
   vue(`<div class="wrap" style="padding-top:22px"><div class="titre-s"><h1>Espace organisateur</h1><a class="btn btn-p" href="#/orga/evenement/nouveau">+ Nouvel événement</a></div>
     ${ev.length ? ev.map(e => { const s = stats[e.id]; return `<div class="ligne-l">${e.affiche ? `<img class="mini" src="${esc(photo(e.affiche))}" alt="">` : '<div class="mini"></div>'}
-      <div><b>${esc(e.titre)}</b> ${tag(ST_EV[e.statut])}<div class="muted petit">${esc(quand(e.debut))} · ${esc(e.lieu)}</div>
+      <div><b>${esc(e.titre)}</b> ${tag(ST_EV[e.statut])}<div class="muted petit">${esc(quand(e.debut, e.fuseau))} · ${lieuEv(e)}</div>
         <div class="petit">🎟️ ${s.vendus} / ${s.places} réservés · ✅ ${s.entres} entrés${s.aEncaisser ? ` · 💶 ${eur(s.aEncaisser)} à encaisser` : ''}</div>
         ${e.statut === 'refuse' && e.motif_refus ? `<div class="petit" style="color:#fca5a5">Motif : ${esc(e.motif_refus)}</div>` : ''}</div>
       <div class="actions"><a class="btn btn-s" href="#/orga/evenement/${e.id}">Modifier</a><a class="btn btn-s" href="#/orga/participants/${e.id}">Participants</a><a class="btn btn-s btn-p" href="#/orga/controle/${e.id}">Contrôle entrée</a><a class="btn btn-s" href="#/evenement/${e.id}">Voir</a></div></div>`; }).join('')
@@ -304,7 +303,7 @@ function pageDevenirOrga() {
   });
 }
 async function formEvenement(id) {
-  const e = id ? await q(sb.from('evenements').select('*').eq('id', id).single()) : { titre: '', categorie: 'soiree', debut: null, fin: null, lieu: '', commune: '', adresse: '', age_min: 0, description: '', affiche: null, statut: 'brouillon' };
+  const e = id ? await q(sb.from('evenements').select('*').eq('id', id).single()) : { titre: '', categorie: 'soiree', debut: null, fin: null, lieu: '', territoire: profil?.territoire || terrPrefere() || 'Martinique', commune: '', adresse: '', age_min: 0, description: '', affiche: null, statut: 'brouillon' };
   let types = id ? await q(sb.from('billets_types').select('*').eq('evenement_id', id).order('ordre')) : [{ nom: 'Prévente', prix: 10, quantite: 100, max_commande: 6 }];
   let affiche = e.affiche;
   const supprimes = [];   // types retirés à effacer à l'enregistrement
@@ -315,8 +314,9 @@ async function formEvenement(id) {
     <form class="f" id="fEv">
       <label>Titre<input name="titre" required minlength="3" maxlength="120" value="${esc(e.titre)}" placeholder="ex. Soirée zouk au bord de l’eau"></label>
       <div class="ligne2"><label>Catégorie<select name="categorie">${optsCats(e.categorie)}</select></label><label>Âge minimum<input type="number" name="age_min" min="0" max="21" value="${e.age_min}"></label></div>
-      <div class="ligne2"><label>Début (heure de Martinique)<input type="datetime-local" name="debut" required value="${versLocal(e.debut)}"></label><label>Fin <span class="aide">(facultatif)</span><input type="datetime-local" name="fin" value="${versLocal(e.fin)}"></label></div>
-      <div class="ligne3"><label>Lieu<input name="lieu" required maxlength="120" value="${esc(e.lieu)}" placeholder="ex. Plage de l’Anse Mitan"></label><label>Commune<select name="commune" required>${optsCommunes(e.commune, 'Choisir…')}</select></label><label>Adresse <span class="aide">(facultatif)</span><input name="adresse" maxlength="200" value="${esc(e.adresse || '')}"></label></div>
+      <div class="ligne2"><label>Début <span class="aide">(heure locale du lieu)</span><input type="datetime-local" name="debut" required value="${utcVersLocal(e.debut, e.fuseau || fuseauDe(e.territoire))}"></label><label>Fin <span class="aide">(facultatif)</span><input type="datetime-local" name="fin" value="${utcVersLocal(e.fin, e.fuseau || fuseauDe(e.territoire))}"></label></div>
+      <div class="ligne3"><label>Lieu<input name="lieu" required maxlength="120" value="${esc(e.lieu)}" placeholder="ex. Plage de l’Anse Mitan"></label></div>
+      <div class="ligne3"><label>Territoire<select name="territoire" required data-villes="villesE">${optsTerritoires(e.territoire)}</select></label><label>Ville<input name="commune" required maxlength="60" list="villesE" value="${esc(e.commune)}">${listeVilles('villesE', e.territoire)}</label><label>Adresse <span class="aide">(facultatif)</span><input name="adresse" maxlength="200" value="${esc(e.adresse || '')}"></label></div>
       <label>Description<textarea name="description" maxlength="6000" placeholder="Programme, artistes, dress code, parking, navettes…">${esc(e.description)}</textarea></label>
       <div><b>Affiche</b> <span class="aide">(format portrait conseillé)</span><div id="affApercu" style="max-width:200px;margin:8px 0"></div><input type="file" id="affFichier" accept="image/*"></div>
       <div><b>Billets</b> <span class="aide">(prix 0 = gratuit ; ajoutez par ex. « VIP » ou « Navette aller-retour depuis Fort-de-France »)</span><div class="lignes-types" id="types" style="margin-top:8px"></div>
@@ -327,17 +327,17 @@ async function formEvenement(id) {
   const dessinerAff = () => { $('#affApercu').innerHTML = affiche ? `<img src="${esc(photo(affiche))}" alt="Affiche" style="border-radius:12px">` : ''; };
   const lireTypes = () => [...document.querySelectorAll('.ltype')].map(l => { const i = Number(l.dataset.i); const g = n => l.querySelector(`[name=${n}]`).value; return { ...types[i], nom: g('nom').trim(), prix: Number(g('prix')) || 0, quantite: Number(g('quantite')), max_commande: Number(g('max_commande')) }; });
   const dessinerTypes = () => { $('#types').innerHTML = types.map(ligneType).join(''); };
-  dessinerAff(); dessinerTypes();
+  dessinerAff(); dessinerTypes(); brancherVilles(document.querySelector('#fEv [name=territoire]'), 'villesE');
   $('#ajType').addEventListener('click', () => { types = lireTypes(); types.push({ nom: 'VIP', prix: 25, quantite: 50, max_commande: 4 }); dessinerTypes(); });
   $('#types').addEventListener('click', ev => { const b = ev.target.closest('[data-suppr]'); if (!b) return; types = lireTypes(); const t = types.splice(Number(b.dataset.suppr), 1)[0]; if (t.id) supprimes.push(t.id); dessinerTypes(); });
   $('#affFichier').addEventListener('change', async ev => { const f = ev.target.files[0]; if (!f) return; toast('Envoi de l’affiche…'); try { affiche = await envoyerPhoto(f); dessinerAff(); } catch (err) { toast(erreur(err), true); } });
   $('#annulerEv')?.addEventListener('click', async () => { if (!confirm('Annuler l’événement ? Les participants le verront dans leurs billets.')) return; try { await q(sb.from('evenements').update({ statut: 'annule' }).eq('id', id)); toast('Événement annulé.'); aller('#/orga'); } catch (err) { toast(erreur(err), true); } });
   $('#fEv').addEventListener('submit', async ev => {
     ev.preventDefault(); const f = ev.target, d = Object.fromEntries(new FormData(f)), envoi = ev.submitter?.value || 'en_attente';
-    const lt = lireTypes();
+    const lt = lireTypes(), fz = fuseauDe(d.territoire);
     if (!lt.length) return toast('Ajoutez au moins un type de billet.', true);
     if (d.fin && d.fin <= d.debut) return toast('La fin doit être après le début.', true);
-    const ligne = { titre: d.titre.trim(), categorie: d.categorie, age_min: Number(d.age_min) || 0, debut: versUTC(d.debut), fin: versUTC(d.fin), lieu: d.lieu.trim(), commune: d.commune, adresse: d.adresse.trim() || null, description: d.description.trim(), affiche };
+    const ligne = { titre: d.titre.trim(), categorie: d.categorie, age_min: Number(d.age_min) || 0, debut: localVersUTC(d.debut, fz), fin: localVersUTC(d.fin, fz), fuseau: fz, territoire: d.territoire, lieu: d.lieu.trim(), commune: d.commune.trim(), adresse: d.adresse.trim() || null, description: d.description.trim(), affiche };
     if (!(id && e.statut === 'publie')) ligne.statut = envoi;
     try {
       const evId = id ? (await q(sb.from('evenements').update(ligne).eq('id', id).select('id').single())).id : (await q(sb.from('evenements').insert(ligne).select('id').single())).id;
@@ -352,9 +352,9 @@ async function formEvenement(id) {
 }
 async function pageParticipants(id) {
   vue('<div class="chargement">Chargement…</div>');
-  const [e, p] = await Promise.all([q(sb.from('evenements').select('titre, debut').eq('id', id).single()), q(sb.rpc('participants', { evt: id }))]);
+  const [e, p] = await Promise.all([q(sb.from('evenements').select('titre, debut, fuseau, lieu, commune, territoire').eq('id', id).single()), q(sb.rpc('participants', { evt: id }))]);
   const actifs = p.filter(x => x.statut !== 'annule');
-  vue(`<div class="wrap" style="padding-top:22px"><a href="#/orga" class="petit">← Espace organisateur</a><h1>${esc(e.titre)}</h1><p class="muted">${esc(quand(e.debut))}</p>
+  vue(`<div class="wrap" style="padding-top:22px"><a href="#/orga" class="petit">← Espace organisateur</a><h1>${esc(e.titre)}</h1><p class="muted">${esc(quand(e.debut, e.fuseau))} · ${lieuEv(e)}</p>
     <div class="stat"><div><b>${actifs.length}</b>billets</div><div><b>${actifs.filter(x => x.statut === 'utilise').length}</b>entrés</div><div><b>${eur(actifs.filter(x => x.statut === 'reserve').reduce((s, x) => s + Number(x.prix), 0)).replace('Gratuit', '0 €')}</b>à encaisser</div><div><b>${eur(actifs.filter(x => x.statut !== 'reserve').reduce((s, x) => s + Number(x.prix), 0)).replace('Gratuit', '0 €')}</b>encaissés</div></div>
     <div class="actions" style="margin-bottom:14px"><a class="btn btn-p" href="#/orga/controle/${id}">📷 Contrôle à l’entrée</a><button class="btn" id="csv">⬇ Exporter (CSV)</button></div>
     <div class="tableau"><table class="t"><thead><tr><th>Code</th><th>Titulaire</th><th>Billet</th><th>Prix</th><th>Statut</th><th>Acheteur</th><th></th></tr></thead><tbody>
@@ -368,13 +368,13 @@ async function pageParticipants(id) {
   };
   $('#csv').addEventListener('click', () => {
     const c = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const lignes = [['Code', 'Titulaire', 'Billet', 'Prix', 'Statut', 'Acheteur', 'Téléphone', 'Réservé le'], ...p.map(x => [x.code, x.titulaire, x.type_nom, x.prix, ST_BILLET[x.statut][1], x.acheteur_nom, x.telephone, fmt(x.created_at, {})])];
+    const lignes = [['Code', 'Titulaire', 'Billet', 'Prix', 'Statut', 'Acheteur', 'Téléphone', 'Réservé le'], ...p.map(x => [x.code, x.titulaire, x.type_nom, x.prix, ST_BILLET[x.statut][1], x.acheteur_nom, x.telephone, fmt(x.created_at, {}, e.fuseau)])];
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + lignes.map(l => l.map(c).join(';')).join('\r\n')], { type: 'text/csv' })); a.download = 'participants.csv'; a.click();
   });
 }
 let flux = null;
 async function pageControle(id) {
-  const e = await q(sb.from('evenements').select('titre').eq('id', id).single());
+  const e = await q(sb.from('evenements').select('titre, fuseau').eq('id', id).single());
   const peutScanner = 'BarcodeDetector' in window && navigator.mediaDevices?.getUserMedia;
   let entres = 0;
   vue(`<div class="wrap" style="padding-top:20px"><a href="#/orga/participants/${id}" class="petit">← Participants</a><h1 style="font-size:24px">Contrôle · ${esc(e.titre)}</h1>
@@ -388,7 +388,7 @@ async function pageControle(id) {
       const [r] = await q(sb.rpc('valider_billet', { evt: id, code_billet: code }));
       const v = { ok: ['ok', '✅', 'Entrée validée'], a_payer: ['att', '💶', `À encaisser : ${eur(r.prix)}`], deja: ['ko', '⛔', 'Déjà utilisé'], annule: ['ko', '⛔', 'Billet annulé'], inconnu: ['ko', '❓', 'Billet inconnu pour cet événement'] }[r.resultat];
       if (['ok', 'a_payer'].includes(r.resultat)) entres++;
-      $('#verdict').innerHTML = `<div class="verdict ${v[0]}"><big>${v[1]}</big>${esc(v[2])}${r.titulaire ? `<div style="font-size:16px;font-weight:600;margin-top:6px">${esc(r.titulaire)} · ${esc(r.type_nom)}${r.resultat === 'deja' ? ` · entré à ${esc(fmt(r.utilise_le, { hour: '2-digit', minute: '2-digit' }))}` : ''}</div>` : ''}</div>`;
+      $('#verdict').innerHTML = `<div class="verdict ${v[0]}"><big>${v[1]}</big>${esc(v[2])}${r.titulaire ? `<div style="font-size:16px;font-weight:600;margin-top:6px">${esc(r.titulaire)} · ${esc(r.type_nom)}${r.resultat === 'deja' ? ` · entré à ${esc(fmt(r.utilise_le, { hour: '2-digit', minute: '2-digit' }, e.fuseau))}` : ''}</div>` : ''}</div>`;
       $('#compteur').textContent = `${entres} entrée${entres > 1 ? 's' : ''} validée${entres > 1 ? 's' : ''} sur cet appareil`;
       try { navigator.vibrate?.(v[0] === 'ok' ? 80 : [80, 60, 80]); } catch (x) { /* vibration facultative */ }
     } catch (err) { toast(erreur(err), true); }
@@ -419,7 +419,7 @@ async function pageAdmin() {
     ${orgas.map(o => `<div class="ligne-l"><div class="mini" style="display:grid;place-items:center;font-size:30px">📣</div><div><b>${esc(o.orga_nom || '')}</b> — ${esc(o.prenom)} ${esc(o.nom)}<div class="muted petit">${contact(o.id)}${o.siret ? ' · SIRET/RNA ' + esc(o.siret) : ''}</div><div class="petit">${esc(o.bio || '')}</div></div>
       <div class="actions"><button class="btn btn-s btn-ok" data-orga="${o.id}" data-v="valide">Valider</button><button class="btn btn-s btn-ko" data-orga="${o.id}" data-v="refuse">Refuser</button></div></div>`).join('') || '<p class="muted">Aucun.</p>'}
     <h2 style="font-size:20px;margin-top:24px">Événements à valider (${evs.length})</h2>
-    ${evs.map(e => `<div class="ligne-l">${e.affiche ? `<img class="mini" src="${esc(photo(e.affiche))}" alt="">` : '<div class="mini"></div>'}<div><b><a href="#/evenement/${e.id}">${esc(e.titre)}</a></b><div class="muted petit">${esc(quand(e.debut))} · ${esc(e.lieu)}, ${esc(e.commune)} · ${contact(e.orga_id)}</div><div class="petit">${esc(e.description.slice(0, 240))}</div></div>
+    ${evs.map(e => `<div class="ligne-l">${e.affiche ? `<img class="mini" src="${esc(photo(e.affiche))}" alt="">` : '<div class="mini"></div>'}<div><b><a href="#/evenement/${e.id}">${esc(e.titre)}</a></b><div class="muted petit">${esc(quand(e.debut, e.fuseau))} · ${lieuEv(e)} · ${contact(e.orga_id)}</div><div class="petit">${esc(e.description.slice(0, 240))}</div></div>
       <div class="actions"><button class="btn btn-s btn-ok" data-ev="${e.id}" data-v="publie">Publier</button><button class="btn btn-s btn-ko" data-ev="${e.id}" data-v="refuse">Refuser</button></div></div>`).join('') || '<p class="muted">Aucun.</p>'}</div>`);
   $('#app').onclick = async ev => {
     const b = ev.target.closest('[data-v]'); if (!b) return;
@@ -435,7 +435,7 @@ async function pageAdmin() {
 async function rendre() {
   const h = (location.hash || '#/').split('?')[0], [, a, b, c] = h.split('/');
   if (flux && !h.startsWith('#/orga/controle')) { flux.getTracks().forEach(t => t.stop()); flux = null; }
-  nav(); window.scrollTo(0, 0); document.title = 'EventPass — sorties, concerts et soirées en Martinique';
+  nav(); window.scrollTo(0, 0); document.title = 'EventPass — sorties, concerts et soirées, aux Antilles et ailleurs';
   try {
     if (!a) return await pageAccueil();
     if (!PRET) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Ouverture très bientôt</h3></div>');
