@@ -45,6 +45,8 @@ let suivi = {};          // recherche « Suivre ma demande »
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem('itDraft3'));
+    // brouillon de plus de 48 h : effacé (nom, téléphone, adresse ne restent pas sur un ordinateur partagé)
+    if (saved && (!saved.sauve || Date.now() - saved.sauve > 48 * 3600e3)) { localStorage.removeItem('itDraft3'); return structuredClone(DEFAULT); }
     if (saved && saved.d) {
       const base = structuredClone(DEFAULT);
       const st = { ...base, ...saved, d: { ...base.d, ...saved.d, consent: false, website: '' } };
@@ -59,7 +61,7 @@ function load() {
   return structuredClone(DEFAULT);
 }
 function save() {
-  try { localStorage.setItem('itDraft3', JSON.stringify(state)); } catch (e) {}
+  try { localStorage.setItem('itDraft3', JSON.stringify({ ...state, sauve: Date.now() })); } catch (e) {}
 }
 
 /* =====================================================================
@@ -211,7 +213,7 @@ function calc() {
   };
 }
 const priceText = r => {
-  const once = r.min ? (r.min === r.max ? eur(r.min) : `${eur(r.min)} à ${eur(r.max)}`) : '';
+  const once = r.min ? (r.min === r.max && state.sel.every(id => packValid() && pack(state.pack).items[id]) ? eur(r.min) : `À partir de ${eur(r.min)}`) : '';
   const mois = r.mensuel ? `${eur(r.mensuel)}/mois` : '';
   return [once, mois].filter(Boolean).join(' + ') || (state.sel.length ? 'Gratuit' : '—');
 };
@@ -604,7 +606,9 @@ function renderStatic() {
     <div class="zone-head"><b>${z.nom}</b><strong>${z.prix ? z.prix + ' €' : 'Offert'}</strong></div>
     <span class="muted">${z.delai}</span>
     <p>${COMMUNES.filter(c => c[1] === k).map(c => esc(c[0])).join(', ')}</p></div>`).join('');
-  $('headContact').innerHTML = Object.values(AGENCES).map(a => `<a class="btn btn-head" href="${waUrl(a.tel, "Bonjour IloTech, j'aimerais un renseignement.")}" target="_blank" rel="noopener" aria-label="WhatsApp agence ${a.nom}, ${esc(a.tel)}">${ico('chat')}<span>${a.nom}</span><span class="tel mono">${esc(a.tel)}</span></a>`).join('');
+  // un bouton par numéro (les deux agences partagent le même numéro)
+  const parTel = Object.values(AGENCES).reduce((m, a) => ({ ...m, [a.tel]: [...(m[a.tel] || []), a.nom] }), {});
+  $('headContact').innerHTML = Object.entries(parTel).map(([tel, noms]) => `<a class="btn btn-head" href="${waUrl(tel, "Bonjour IloTech, j'aimerais un renseignement.")}" target="_blank" rel="noopener" aria-label="WhatsApp IloTech ${noms.join(' et ')}, ${esc(tel)}">${ico('chat')}<span>${noms.join(' · ')}</span><span class="tel mono">${esc(tel)}</span></a>`).join('');
   $('helpAgences').innerHTML = Object.values(AGENCES).map(a => `<div class="agency"><b>${ico('pin')} Agence ${a.de}</b>
     <span class="muted">${a.detail}</span><a class="btn btn-primary big" href="${telUrl(a.tel)}">${ico('phone')} Appeler le ${esc(a.tel)}</a>
     <a class="btn btn-wa" href="${waUrl(a.tel, "Bonjour IloTech, j'ai besoin d'aide.")}" target="_blank" rel="noopener">${ico('chat')} Écrire sur WhatsApp</a></div>`).join('');

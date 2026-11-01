@@ -26,7 +26,7 @@ const CONFIG = {
   mentionPrix: 'TVA non applicable, art. 293 B du CGI',  // franchise en base de TVA (micro-entreprise) — affiché sur les devis et tarifs
   agenceDistance: 'ducos',   // agence qui traite les interventions à distance
   deplacementOffertDes: 200, // déplacement offert à partir de ce montant de prestation (€)
-  margeHaute: 1.3,           // fourchette haute = prix de base × margeHaute (hors packs, qui ont un prix fixe)
+  margeHaute: 1,             // 1 = pas de fourchette : on affiche « à partir de » (les formules ont un prix fixe)
   validiteDevis: 30,         // jours
   paiement3fois: 500,        // paiement en 3 fois sans frais à partir de ce montant (sites, applications, installations)
   placesParCreneau: 3,       // clients max par agence le matin, et autant l'après-midi (même valeur que CAPACITE dans le script Google)
@@ -45,7 +45,7 @@ const ENTREPRISE = {
 const HORAIRES = { 1: [8, 17], 2: [8, 17], 3: [8, 17], 4: [8, 17], 5: [8, 17], 6: [8, 12] };
 
 const AGENCES = {
-  ducos:  { nom: 'Ducos',     de: 'de Ducos',  detail: 'Sud et Centre',      tel: '0696 77 99 02' },
+  ducos:  { nom: 'Ducos',     de: 'de Ducos',  detail: 'Sud et Centre',      tel: '0696 48 26 78' },
   robert: { nom: 'Le Robert', de: 'du Robert', detail: 'Atlantique et Nord', tel: '0696 48 26 78' }
 };
 
@@ -557,14 +557,14 @@ const PACKS = [
   { id: 'aerien',  univers: 'crea', icon: 'drone',    pour: 'Drone', nom: 'Vue aérienne de mon bien', prix: 229,
     inclus: ['Photos aériennes HD', 'Vidéo montée', 'Idéal location, vente, commerce'], items: { drone: ['photo', 'video'] } },
   // Continuité et conformité (besoins forts des Antilles)
-  { id: 'cyclonemaison', univers: 'maison', icon: 'battery', pour: 'Maison', nom: 'Ma maison prête pour les cyclones', prix: 99,
-    inclus: ['Onduleur réglé (PC, box, TV)', 'Sauvegarde automatique', 'Copie en ligne de vos photos'], items: { ups: ['auto', 'box'], sauvegarde: ['auto', 'cloud'] } },
+  { id: 'cyclonemaison', univers: 'maison', icon: 'battery', pour: 'Maison', nom: 'Ma maison prête pour les cyclones', prix: 199,
+    inclus: ['Onduleur 600 VA fourni et réglé', 'Sauvegarde automatique', 'Copie en ligne de vos photos'], items: { ups: ['ups600', 'auto', 'box'], sauvegarde: ['auto', 'cloud'] } },
   { id: 'cyclonepro', univers: 'pro', icon: 'battery', pour: 'Plan cyclone', nom: 'Entreprise prête pour les cyclones', prix: 290,
-    inclus: ['Plan et procédure écrits', 'Internet de secours automatique', 'Sauvegarde hors de l’île'], items: { cyclone: ['secours', 'cloud'] } },
+    inclus: ['Plan et procédure écrits', 'Internet de secours automatique', 'Sauvegarde hors de l’île', 'Matériel : le vôtre ou sur devis'], items: { cyclone: ['secours', 'cloud'] } },
   { id: 'efacture', univers: 'pro', icon: 'doc', pour: 'Factures & gestion', nom: 'Facture électronique en règle', prix: 199,
     inclus: ['Plateforme agréée choisie et réglée', 'Clients et articles repris', '3 mois de suivi'], items: { efacture: ['reprise', 'suivi'] } },
   { id: 'gitedistance', univers: 'crea', icon: 'lock', pour: 'Immobilier', nom: 'Gérer mon gîte à distance', prix: 299,
-    inclus: ['Serrure à code par séjour', 'Climatisation coupée à distance', 'Alerte fuite, fumée et bruit'], items: { locsaison: ['serrure', 'clim', 'capteurs'] } },
+    inclus: ['Serrure à code par séjour', 'Climatisation coupée à distance', 'Alerte fuite, fumée et bruit', 'Matériel : le vôtre ou sur devis'], items: { locsaison: ['serrure', 'clim', 'capteurs'] } },
   { id: 'equipe', univers: 'pro', icon: 'shield', pour: 'Cybersécurité', nom: 'Équipe formée contre les arnaques', prix: 390,
     inclus: ['Demi-journée de formation', 'Faux email piégé et bilan', 'Fiche mémo pour chacun'], items: { formation: ['phishing'] } },
   { id: 'plan', univers: 'pro', icon: 'briefcase', pour: 'Conseil & données', nom: 'Plan numérique + dossier d’aide', prix: 490,

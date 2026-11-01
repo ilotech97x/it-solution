@@ -1,6 +1,6 @@
 # IloTech
 
-> Entreprise informatique martiniquaise (EI Erwan Labiche), deux agences : Ducos (0696 77 99 02) et Le Robert (0696 48 26 78). Interventions à domicile dans toute la Martinique, en agence ou à distance ; sites, IA, marketing et facture électronique aussi à distance pour la Guadeloupe, la Guyane et Saint-Martin. Devis gratuit, prix annoncé avant toute intervention, rendez-vous en ligne sur https://ilo-tech.com/.
+> Entreprise informatique martiniquaise (EI Erwan Labiche), deux agences, Ducos et Le Robert, un seul numéro : 0696 48 26 78. Interventions à domicile dans toute la Martinique, en agence ou à distance ; sites, IA, marketing et facture électronique aussi à distance pour la Guadeloupe, la Guyane et Saint-Martin. Devis gratuit, prix annoncé avant toute intervention, rendez-vous en ligne sur https://ilo-tech.com/.
 
 ## Services
 - Ordinateur : Dépannage PC (dès 39 €), Accélérer Windows (dès 39 €), Réparation PC fixe (dès 39 €), Réparation PC portable (dès 39 €)
@@ -77,4 +77,4 @@
 
 ## Contact
 - Rendez-vous en ligne : https://ilo-tech.com/
-- WhatsApp et téléphone : Ducos 0696 77 99 02, Le Robert 0696 48 26 78
+- WhatsApp et téléphone (Ducos et Le Robert) : 0696 48 26 78

@@ -796,7 +796,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
 
     <h2>Où intervenons-nous en Martinique ?</h2>
     ${p.distance ? '<p><b>À distance dans toutes les Antilles</b> : ce service se fait aussi entièrement à distance, pour les entreprises de Guadeloupe, de Guyane, de Saint-Martin et de Saint-Barthélemy (échanges en visio, WhatsApp et email).</p>' : ''}
-    <p>Nos agences de <b>Ducos</b> (${esc(AGENCES.ducos.tel)}) et du <b>Robert</b> (${esc(AGENCES.robert.tel)}) couvrent toute l’île. Déplacement offert dès ${eur(CONFIG.deplacementOffertDes)} de prestation, gratuit en agence et à distance.</p>
+    <p>Nos agences de <b>Ducos</b> et du <b>Robert</b> couvrent toute l’île, un seul numéro : <b>${esc(AGENCES.robert.tel)}</b>. Déplacement offert dès ${eur(CONFIG.deplacementOffertDes)} de prestation, gratuit en agence et à distance.</p>
     <ul class="seo-zones">${zones}</ul>
 
     <section class="seo-cta" style="--t:${coul}">
@@ -990,7 +990,7 @@ fs.writeFileSync(path.join(dir, 'pages-seo.js'), `// Généré par generer-pages
 // llms.txt : présentation du site pour les assistants IA (ChatGPT, Perplexity, Copilot, Gemini)
 fs.writeFileSync(path.join(dir, 'llms.txt'), `# IloTech
 
-> Entreprise informatique martiniquaise (EI Erwan Labiche), deux agences : Ducos (0696 77 99 02) et Le Robert (0696 48 26 78). Interventions à domicile dans toute la Martinique, en agence ou à distance ; sites, IA, marketing et facture électronique aussi à distance pour la Guadeloupe, la Guyane et Saint-Martin. Devis gratuit, prix annoncé avant toute intervention, rendez-vous en ligne sur ${SITE}.
+> Entreprise informatique martiniquaise (EI Erwan Labiche), deux agences, Ducos et Le Robert, un seul numéro : 0696 48 26 78. Interventions à domicile dans toute la Martinique, en agence ou à distance ; sites, IA, marketing et facture électronique aussi à distance pour la Guadeloupe, la Guyane et Saint-Martin. Devis gratuit, prix annoncé avant toute intervention, rendez-vous en ligne sur ${SITE}.
 
 ## Services
 ${CATEGORIES.map(c => `- ${c.nom} : ${c.services.map(id => svc(id)).filter(Boolean).map(x => `${x.nom} (${prixDe(x)})`).join(', ')}`).join('\n')}
@@ -1003,6 +1003,6 @@ ${GUIDES.map(x => `- [${x.h1 || x.slug}](${SITE}${x.slug}.html)`).join('\n')}
 
 ## Contact
 - Rendez-vous en ligne : ${SITE}
-- WhatsApp et téléphone : Ducos 0696 77 99 02, Le Robert 0696 48 26 78
+- WhatsApp et téléphone (Ducos et Le Robert) : 0696 48 26 78
 `);
 console.log(`${PAGES.length} pages service, ${GUIDES.length} guides, conseils.html, 404.html, sitemap.xml (${urls.length} adresses)`);
