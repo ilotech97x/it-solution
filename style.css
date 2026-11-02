@@ -1123,3 +1123,23 @@ body.grand .g5{grid-template-columns:repeat(3,minmax(0,1fr))}
 .mat-choix{display:flex;flex-wrap:wrap;gap:8px}
 .mat-choix .chip{display:inline-flex;gap:8px;align-items:center;text-align:left;white-space:normal}
 .mat-choix .chip em{font-style:normal;opacity:.85;font-size:.85em}
+
+/* =====================================================================
+   EN-TÊTE ET PAGES : rien ne dépasse de 320 px à 1180 px
+   ===================================================================== */
+@media (max-width:1180px) and (min-width:701px){
+  .top .brand-text>span,.studio-badge>span{display:none}
+  .top{gap:10px}
+}
+@media (max-width:900px) and (min-width:701px){.top-actions{flex-wrap:wrap;justify-content:flex-end}}
+@media (max-width:380px){
+  .top{padding:8px 8px;gap:6px}
+  .top .it{display:none}
+  .top .logo{height:32px}
+  .top-actions{gap:4px}
+  .btn-menu{padding:6px 10px}
+}
+@media (max-width:480px){
+  .v-prix-2{width:min(250px,calc(100% - 24px))}
+  .doc .price-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+}

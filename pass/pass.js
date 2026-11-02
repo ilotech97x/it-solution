@@ -149,7 +149,7 @@ async function pageAccueil() {
       <button class="btn btn-p">Rechercher</button></form></div></section>
     <div class="wrap"><div class="puces">${[['', '✨', 'Tout'], ...Object.entries(CATS).map(([k, [i, t]]) => [k, i, t])].map(([k, i, t]) => `<a href="#/?${new URLSearchParams({ ...p, cat: k })}" class="${(p.cat || '') === k ? 'on' : ''}">${i} ${esc(t)}</a>`).join('')}</div>
       <section class="section"><div id="liste" class="chargement">Chargement…</div></section>
-      <section class="section"><div class="vide-etat" style="text-align:left;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center">
+      <section class="section"><div class="vide-etat appel-pro">
         <div><h2>Vous organisez des événements ?</h2><p class="muted" style="margin:0">Billetterie gratuite pour démarrer : billets QR code, paiement à l’entrée, contrôle avec votre téléphone, liste des participants.</p></div>
         <a class="btn btn-p" href="#/orga">Devenir organisateur</a></div></section></div>`);
   $('#fRech').addEventListener('submit', e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); terrPrefere(d.territoire); const u = new URLSearchParams(); Object.entries({ ...d, cat: p.cat || '' }).forEach(([k, v]) => (v || k === 'territoire') && u.set(k, v)); aller('#/?' + u); });
@@ -305,7 +305,7 @@ function pageInscription() {
       <label>Email<input type="email" name="email" required autocomplete="email"></label>
       <label>Téléphone <span class="aide">(seulement pour l’organisateur de vos événements)</span><input type="tel" name="telephone" pattern="[0-9 +]{6,20}" autocomplete="tel"></label>
       <label>Mot de passe <span class="aide">(8 caractères minimum)</span><input type="password" name="mdp" required minlength="8" autocomplete="new-password"></label>
-      <label style="display:flex;gap:8px;font-weight:400"><input type="checkbox" required style="width:auto"> J’accepte les <a href="cgu.html" target="_blank">conditions</a> et la <a href="https://ilo-tech.com/confidentialite.html" target="_blank">confidentialité</a>.</label>
+      <label style="display:flex;gap:8px;font-weight:400"><input type="checkbox" required style="width:auto"> <span>J’accepte les <a href="cgu.html" target="_blank">conditions</a> et la <a href="https://ilo-tech.com/confidentialite.html" target="_blank">confidentialité</a>.</span></label>
       <button class="btn btn-p">Créer mon compte</button></form></div></div>`);
   $('#fIns').addEventListener('submit', async e => {
     e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)), b = e.target.querySelector('button'); b.disabled = true;
@@ -365,7 +365,7 @@ function pageDevenirOrga() {
     <form class="f" id="fOrga"><label>Nom de l’organisateur (association, collectif, entreprise)<input name="orga_nom" required maxlength="80" value="${esc(profil?.orga_nom || '')}"></label>
       <label>SIRET ou numéro RNA (association) <span class="aide">(facultatif mais accélère la vérification)</span><input name="siret" maxlength="20" value="${esc(profil?.siret || '')}"></label>
       <label>Vos événements en quelques lignes<textarea name="bio" maxlength="1500" required>${esc(profil?.bio || '')}</textarea></label>
-      <label style="display:flex;gap:8px;font-weight:400"><input type="checkbox" required style="width:auto"> Je m’engage à publier des événements réels, déclarés, et à respecter les participants (<a href="cgu.html" target="_blank">conditions</a>).</label>
+      <label style="display:flex;gap:8px;font-weight:400"><input type="checkbox" required style="width:auto"> <span>Je m’engage à publier des événements réels, déclarés, et à respecter les participants (<a href="cgu.html" target="_blank">conditions</a>).</span></label>
       <button class="btn btn-p">Envoyer ma demande</button></form>`}</div></div>`);
   $('#fOrga')?.addEventListener('submit', async e => {
     e.preventDefault(); const d = Object.fromEntries(new FormData(e.target));

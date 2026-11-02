@@ -4,23 +4,27 @@ const pub = h => { if (!$('#app')) return location.reload(); $('#app').innerHTML
 const hautPublic = () => `<header class="pub-haut"><a class="marque" href="#/"><img src="img/logo.svg" alt="">NEXORA</a>
   <div class="actions"><a class="btn" href="#/connexion">Se connecter</a><a class="btn btn-p" href="#/inscription">Commencer</a></div></header>`;
 const MODULES = [['👥', 'CRM', 'Clients, prospects, contacts, pipeline commercial, activités et rappels, fiche client à 360°.', 'Disponible'],
-  ['🧾', 'Devis et factures', 'Devis, factures, avoirs, paiements partiels, relances visuelles, PDF, numérotation sans trou.', 'Disponible'],
-  ['📊', 'Tableau de bord', 'Chiffre d’affaires, encaissements, impayés et retards, pipeline, meilleurs clients, calculés en direct.', 'Disponible'],
+  ['🧾', 'Devis et factures', 'Devis, factures, avoirs, paiements partiels, PDF, numérotation sans trou, TVA des DOM (8,5 %, 2,1 %).', 'Disponible'],
+  ['🔁', 'Abonnements et relances', 'Factures récurrentes préparées à chaque échéance, relances graduées par email ou WhatsApp.', 'Disponible'],
+  ['🛒', 'Achats et dépenses', 'Fournisseurs, factures d’achat, TVA déductible, octroi de mer, ce qui reste à payer.', 'Disponible'],
+  ['📦', 'Stock et inventaire', 'Entrées, sorties, inventaire, ventes décomptées automatiquement, alertes avant la rupture.', 'Disponible'],
+  ['🏦', 'Trésorerie', 'Banque et caisse, soldes en direct, prévision sur 12 semaines avec les salaires.', 'Disponible'],
+  ['📈', 'Rapports et TVA', 'Résultat, TVA à reverser, dépenses par catégorie, journaux des ventes et des achats pour le comptable.', 'Disponible'],
+  ['👥', 'Employés et absences', 'Équipe, contrats, coût mensuel, congés et arrêts, qui est absent aujourd’hui.', 'Disponible'],
   ['🏢', 'Multi-entreprises', 'Plusieurs sociétés par compte, équipe, rôles et droits, journal d’activité, export complet.', 'Disponible'],
-  ['📦', 'Stock et achats', 'Produits, entrepôts, mouvements, fournisseurs, bons de commande.', 'Prochaine étape'],
-  ['🏦', 'Finance et projets', 'Dépenses, trésorerie, budgets, projets, temps passé, rentabilité.', 'Prévu'],
-  ['🤖', 'NEXORA Intelligence', 'Un assistant qui analyse vos chiffres et prépare devis et relances, avec votre validation.', 'Prévu'],
-  ['📄', 'Facture électronique', 'Factur-X et raccordement à une plateforme agréée pour la réforme 2026-2027.', 'Prévu']];
+  ['📅', 'Interventions et projets', 'Planning des chantiers et interventions, temps passé, rentabilité par projet.', 'Prochaine étape'],
+  ['📄', 'Facture électronique', 'Factur-X et raccordement à une plateforme agréée pour la réforme 2026-2027.', 'Prévu'],
+  ['🤖', 'NEXORA Intelligence', 'Un assistant qui analyse vos chiffres et prépare devis et relances, avec votre validation.', 'Prévu']];
 
 NX.publiques[''] = async () => {
   pub(`${hautPublic()}<section class="hero-nx"><div class="in"><div><span class="sur">The Business Operating System</span>
       <h1>Toute l’entreprise. <em>Un seul espace.</em></h1>
-      <p>Clients, devis, factures, paiements et tableau de bord, reliés entre eux et partagés avec votre équipe. Pensé pour les indépendants, les TPE et les PME, aux Antilles et partout ailleurs.</p>
+      <p>Clients, devis et factures, achats, stock, trésorerie, TVA et équipe : toute la gestion reliée, partagée avec votre équipe et votre comptable. Pensé pour les indépendants, les TPE et les PME des Antilles, de Guyane, de La Réunion et d’ailleurs.</p>
       <div class="actions" style="margin-top:22px"><a class="btn btn-a" href="#/inscription">Créer mon espace</a><a class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.25)" href="#/connexion">J’ai déjà un compte</a></div>
       <p class="petit" style="margin-top:14px;color:#8FA0BA">Gratuit pendant la phase pilote. Essayez avec une entreprise de démonstration en un clic.</p></div>
     <div class="apercu" aria-hidden="true"><div class="l"><span>Chiffre d’affaires du mois</span><b>exemple</b></div><div class="l"><span>Devis envoyés</span><span class="tag info">en attente</span></div>
       <div class="l"><span>Facture F-2026-0042</span><span class="tag ok">payée</span></div><div class="l"><span>Facture F-2026-0041</span><span class="tag att">partielle</span></div><div class="l"><span>Relancer l’Hôtel…</span><span class="tag ko">en retard</span></div></div></div></section>
-    <section class="sect"><span class="sur">Modules</span><h2 style="font-size:28px">Un socle solide, puis module par module</h2><p class="muted" style="max-width:720px">Chaque module n’est annoncé « disponible » que lorsqu’il fonctionne vraiment et qu’il est testé.</p>
+    <section class="sect"><span class="sur">Modules</span><h2 style="font-size:28px">Tout ce qu’il faut pour gérer, au même endroit</h2><p class="muted" style="max-width:720px">Chaque module n’est annoncé « disponible » que lorsqu’il fonctionne vraiment et qu’il est testé.</p>
       <div class="modules">${MODULES.map(([i, t, d, s]) => `<div class="module"><b>${i} ${t} ${tag([s === 'Disponible' ? 'ok' : s === 'Prochaine étape' ? 'info' : '', s])}</b><span class="muted">${d}</span></div>`).join('')}</div></section>
     <section class="sect" style="padding-top:0"><div class="carte" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px">
       <div><h3>🔒 Vos données isolées</h3><p class="muted">Chaque entreprise a ses propres données, protégées dans la base elle-même. Même IloTech n’y a pas accès.</p></div>
@@ -30,7 +34,7 @@ NX.publiques[''] = async () => {
 };
 
 function formAuth(id, titre, champs, bouton, bas) {
-  pub(`${hautPublic()}<div class="carte-auth"><div class="carte"><h1>${titre}</h1><p class="muted">Un seul compte IloTech pour NEXORA, Kivora, EventPass et Kaz An Nou.</p>
+  pub(`${hautPublic()}<div class="carte-auth"><div class="carte"><h1>${titre}</h1><p class="muted">Un seul compte IloTech pour NEXORA, Woulib, EventPass et Kaz An Nou.</p>
     <form class="f" id="${id}">${champs}<button class="btn btn-p">${bouton}</button></form>${bas}</div></div>`);
 }
 const apresConnexion = async () => {
@@ -110,9 +114,10 @@ NX.publiques.bienvenue = async () => {
 // ---------------------------------------------------------------- tableau de bord
 NX.pages[''] = async () => {
   vue(entete(`Bonjour ${esc(profil?.prenom || '')}`, esc(ORG.nom) + ' · ' + esc(ROLES[ROLE])) + '<div class="chargement">Calcul des indicateurs…</div>');
-  const [t, retard, taches] = await Promise.all([q(sb.rpc('nx_tableau', { org: ORG.id })),
+  const [t, retard, taches, e, tr] = await Promise.all([q(sb.rpc('nx_tableau', { org: ORG.id })),
     q(sb.from('nx_factures').select('id, numero, total_ttc, paye, echeance, client_snap').eq('org_id', ORG.id).eq('type', 'facture').in('statut', ['validee', 'partielle']).lt('echeance', aujourdhui()).order('echeance').limit(6)),
-    q(sb.from('nx_activites').select('id, titre, type, echeance, client_id, nx_clients(nom)').eq('org_id', ORG.id).eq('fait', false).order('echeance', { ascending: true, nullsFirst: false }).limit(6))]);
+    q(sb.from('nx_activites').select('id, titre, type, echeance, client_id, nx_clients(nom)').eq('org_id', ORG.id).eq('fait', false).order('echeance', { ascending: true, nullsFirst: false }).limit(6)),
+    q(sb.rpc('nx_tableau_erp', { org: ORG.id })).catch(() => null), peut('tresorerie') ? q(sb.rpc('nx_tresorerie', { org: ORG.id })).catch(() => null) : null]);
   const evol = t.ca_mois_prec > 0 ? Math.round((t.ca_mois - t.ca_mois_prec) / t.ca_mois_prec * 100) : null;
   const max = Math.max(1, ...t.mois.map(m => Number(m.ht)));
   const nomMois = m => new Date(m + '-15').toLocaleDateString('fr-FR', { month: 'short' });
@@ -128,6 +133,11 @@ NX.pages[''] = async () => {
       <div class="kpi"><span>Reste à encaisser</span><b>${montant(t.impayes)}</b><small class="${t.nb_retard ? 'baisse' : ''}">${t.nb_retard ? `dont ${montant(t.en_retard)} en retard (${t.nb_retard})` : 'aucune facture en retard'}</small></div>
       <div class="kpi"><span>Devis en attente</span><b>${montant(t.devis_ouverts)}</b><small>${t.nb_devis_ouverts} devis · ${t.conversion == null ? 'conversion : pas encore de données' : `conversion ${t.conversion} %`}</small></div>
       <div class="kpi"><span>Pipeline pondéré</span><b>${montant(t.pipeline)}</b><small>${t.nb_clients} clients · ${t.nb_prospects} prospects</small></div></div>
+    ${e ? `<div class="kpis kpis-gestion">${tr ? `<a class="kpi" href="#/tresorerie"><span>🏦 Trésorerie</span><b style="${tr.total < 0 ? 'color:var(--ko)' : ''}">${montant(tr.total)}</b><small>${tr.comptes.length ? 'tous comptes' : 'ajoutez votre compte bancaire'}</small></a>` : ''}
+      <a class="kpi" href="#/depenses"><span>🛒 Dépenses du mois (HT)</span><b>${montant(e.depenses_mois)}</b><small class="${e.a_payer_retard ? 'baisse' : ''}">${montant(e.a_payer)} à payer${e.a_payer_retard ? ` · ${e.a_payer_retard} en retard` : ''}</small></a>
+      <a class="kpi" href="#/rapports?p=mois"><span>📈 Résultat du mois</span><b style="color:${t.ca_mois - e.depenses_mois < 0 ? 'var(--ko)' : 'var(--ok)'}">${montant(t.ca_mois - e.depenses_mois)}</b><small>ventes − dépenses (HT)</small></a>
+      <a class="kpi" href="#/stock"><span>📦 Stock</span><b style="${e.stock_bas.length ? 'color:var(--ko)' : ''}">${e.stock_bas.length ? e.stock_bas.length + ' à commander' : 'OK'}</b><small>${e.stock_bas.length ? esc(e.stock_bas.slice(0, 2).map(x => x.nom).join(', ')) : 'aucune rupture en vue'}</small></a>
+      ${e.abonnements_dus || e.absences_a_valider || e.absents.length ? `<a class="kpi" href="${e.abonnements_dus ? '#/abonnements' : '#/employes/absences'}"><span>🔔 À traiter</span><b>${e.abonnements_dus + e.absences_a_valider}</b><small>${[e.abonnements_dus && e.abonnements_dus + ' facture(s) d’abonnement', e.absences_a_valider && e.absences_a_valider + ' absence(s) à valider', e.absents.length && 'absent : ' + esc(e.absents.join(', '))].filter(Boolean).join(' · ')}</small></a>` : ''}</div>` : ''}
     <div class="deux"><div class="carte"><h2>Chiffre d’affaires HT, 12 derniers mois</h2><div class="graph" role="img" aria-label="Chiffre d’affaires des 12 derniers mois">
         ${t.mois.map(m => `<div title="${esc(nomMois(m.mois))} : ${montant(m.ht)}"><i style="height:${Math.max(1, Number(m.ht) / max * 100)}%"></i><small>${nomMois(m.mois)}</small></div>`).join('')}</div></div>
       <div class="carte"><h2>Meilleurs clients (12 mois)</h2>${t.top_clients.length ? t.top_clients.map(c => `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:8px"><a href="#/clients/${c.id}">${esc(c.nom)}</a><b>${montant(c.ht)}</b></div>

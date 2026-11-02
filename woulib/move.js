@@ -1,5 +1,5 @@
-/* Kivora, partie « Woulib » : réservation de VTC et taxis (chauffeurs professionnels vérifiés). APP : app.js ; base commune : commun/base.js.
-   Prix estimé, attribution des courses et étapes contrôlés par la base (woulib.sql). Paiement direct au chauffeur. */
+/* Woulib Move : VTC, taxis, transferts (chauffeurs professionnels vérifiés) et espace des livreurs. APP et registre : app.js ; base commune : commun/base.js.
+   Prix estimé, attribution des courses et étapes contrôlés par la base (move.sql). Paiement direct au chauffeur. */
 'use strict';
 const CATS = { eco: ['🚗', 'Éco', '4 places'], berline: ['🚘', 'Berline', '4 places, confort'], van: ['🚐', 'Van', '5 à 8 places'], pmr: ['♿', 'Accessible', 'fauteuil roulant'] };
 const ETAPES_C = [['demande', '🔎', 'Recherche'], ['acceptee', '👍', 'Acceptée'], ['en_route', '🚗', 'En route'], ['arrivee', '📍', 'Arrivé'], ['a_bord', '🛣️', 'À bord'], ['terminee', '🏁', 'Terminée']];
@@ -15,29 +15,30 @@ let minuterie = null, suiviGps = null;
 
 
 // ---------------------------------------------------------------- réserver
-APP.pages.woulib = async () => {
+declarerUnivers('move', { routes: /^#\/(move|woulib|course|courses|chauffeur|livraison|partage|admin\/woulib|gps)\b/, zone: 'move', accueil: '#/move', appel: 'Réserver un trajet' });
+
+APP.pages.move = async () => {
+  await chargerRegistre(); if (!universOuvert('move')) return universFerme('move');
   let terr = terrPrefere() || profil?.territoire || 'Martinique'; if (!TERRITOIRES[terr] || terr === 'Autre pays') terr = 'Martinique';
   const pts = { depart: null, arrivee: null };
   let cat = 'eco', carte = null, calques = null, L = null, estim = {};
-  vue(`<section class="hero"><div class="wrap">
-    <div class="press"><span class="clignote">🚗</span> Woulib, on y va !</div>
-    <h1>Un chauffeur pro, <em>au prix annoncé</em>.</h1>
-    <p>VTC et taxis vérifiés par nos soins. Le prix est estimé avant de réserver, vous suivez votre chauffeur sur la carte et vous le payez directement.</p></div></section>
-    <div class="wrap"><div class="fiche fiche-d">
-      <div><div id="carte" style="height:min(62vh,520px);border-radius:24px;border:2px solid var(--ligne);background:var(--rose-doux)"></div>
-        <div class="etapes" style="margin-top:18px"><div class="etape"><b>1. Où allez-vous ?</b><p class="muted petit">Départ, arrivée, et le prix s’affiche.</p></div><div class="etape"><b>2. Un chauffeur accepte</b><p class="muted petit">Vous voyez sa voiture et sa plaque.</p></div><div class="etape"><b>3. Vous le payez</b><p class="muted petit">Espèces ou carte, directement au chauffeur.</p></div></div></div>
+  const telConnu = !!contact?.telephone;
+  vue(`<div class="wrap page-move"><h1 class="titre-move">🚗 Où allez-vous ?</h1>
+    <div class="fiche fiche-d"><div><div id="carte" class="carte-move"></div></div>
       <aside><form class="f panier colle" id="fRes">
-        <label>Territoire<select name="territoire" id="terr">${optsTerritoires(terr).replace(/<option[^>]*>Autre pays<\/option>/, '')}</select></label>
         ${['depart', 'arrivee'].map(k => `<div><label>${k === 'depart' ? '🟢 Départ' : '🏁 Arrivée'}<div style="display:flex;gap:6px"><input id="${k}" placeholder="${k === 'depart' ? 'Adresse, lieu, hôtel…' : 'Où allez-vous ?'}" autocomplete="off" maxlength="200" style="flex:1">
           <button type="button" class="btn btn-s" data-chercher="${k}" aria-label="Chercher">🔎</button></div></label><div id="res-${k}" class="petit"></div>
           <div class="puces" style="margin:6px 0 0">${k === 'depart' ? '<a href="#" data-mapos="1">📍 Ma position</a>' : ''}<a href="#" data-aero="${k}">✈️ Aéroport</a><span class="favs puces" data-pour="${k}" style="display:contents"></span></div></div>`).join('')}
         <div class="types" id="cats">${Object.entries(CATS).map(([k, [i, t, d]]) => `<button type="button" class="type" data-cat="${k}" style="text-align:left;cursor:pointer"><span><b>${i} ${t}</b><div class="muted petit">${d}</div></span><span class="prix" id="px-${k}">—</span></button>`).join('')}</div>
-        <div class="ligne2"><label>Passagers<input name="passagers" type="number" min="1" max="8" value="1"></label><label>Bagages<input name="bagages" type="number" min="0" max="10" value="0"></label></div>
         <label>Quand ?<select name="quand"><option value="">Maintenant</option><option value="plus">Plus tard</option></select></label><div id="heure"></div>
-        <label>Téléphone<input name="telephone" type="tel" required pattern="[0-9 +]{6,20}" value="${esc(contact?.telephone || '')}" autocomplete="tel"></label>
-        <label>Un mot pour le chauffeur <span class="aide">(facultatif)</span><input name="note" maxlength="300" placeholder="Siège enfant, n° de vol, portail bleu…"></label>
+        ${telConnu ? '' : `<label>Téléphone<input name="telephone" type="tel" required pattern="[0-9 +]{6,20}" autocomplete="tel"></label>`}
+        <details class="plus-options"><summary>👥 Passagers, bagages, message${telConnu ? ', téléphone' : ''}, territoire</summary>
+          <div class="ligne2"><label>Passagers<input name="passagers" type="number" min="1" max="8" value="1"></label><label>Bagages<input name="bagages" type="number" min="0" max="10" value="0"></label></div>
+          <label>Un mot pour le chauffeur<input name="note" maxlength="300" placeholder="Siège enfant, n° de vol, portail bleu…"></label>
+          ${telConnu ? `<label>Téléphone<input name="telephone" type="tel" required pattern="[0-9 +]{6,20}" value="${esc(contact.telephone)}" autocomplete="tel"></label>` : ''}
+          <label>Territoire<select name="territoire" id="terr">${optsTerritoires(terr).replace(/<option[^>]*>Autre pays<\/option>/, '')}</select></label></details>
         <div id="total"></div><button class="btn btn-p" id="reserver">Réserver</button>
-        <p class="muted petit" style="margin:0">Prix estimé selon la distance, à régler au chauffeur. Péages, attente longue ou détour demandé en plus.</p></form></aside></div></div>`);
+        <p class="muted petit" style="margin:0">Chauffeurs VTC et taxis vérifiés. Prix estimé selon la distance, réglé directement au chauffeur (péages, longue attente ou détour en plus).</p></form></aside></div></div>`);
 
   const majTotal = () => {
     Object.keys(CATS).forEach(k => { $('#px-' + k).textContent = estim[k] ? eur(estim[k].prix) : '—'; document.querySelector(`[data-cat="${k}"]`).style.borderColor = k === cat ? 'var(--rose)' : ''; });
@@ -138,6 +139,7 @@ APP.pages.course = async id => {
       <div class="actions">${!client && c.telephone ? `<a class="btn btn-s btn-wa" href="${wa(c.telephone, 'Bonjour, votre chauffeur Woulib ici.')}" target="_blank" rel="noopener">WhatsApp au client</a><a class="btn btn-s" href="tel:${esc(c.telephone)}">📞 Appeler</a>` : ''}
         ${client && ch?.telephone && ACTIVES.includes(c.statut) ? `<a class="btn btn-s btn-wa" href="${wa(ch.telephone, 'Bonjour, votre client Woulib ici.')}" target="_blank" rel="noopener">WhatsApp au chauffeur</a><a class="btn btn-s" href="tel:${esc(ch.telephone)}">📞 Appeler</a>` : ''}
         ${!client ? boutonsChauffeur(c) : ''}
+        ${!client && ACTIVES.includes(c.statut) ? (c.statut === 'a_bord' ? `<a class="btn btn-s btn-j" href="${lienGps(c.arrivee_lat, c.arrivee_lng, c.arrivee_txt)}">🧭 GPS vers l’arrivée</a>` : `<a class="btn btn-s btn-j" href="${lienGps(c.depart_lat, c.depart_lng, c.depart_txt)}">🧭 GPS vers le client</a>`) : ''}
         ${client && ['demande', 'acceptee', 'en_route'].includes(c.statut) ? '<button class="btn btn-s btn-ko" data-av="annulee">Annuler</button>' : ''}</div>
       ${client && !fini && c.statut !== 'terminee' ? `<div class="actions" style="margin-top:10px"><button class="btn btn-s btn-j" id="partager">📤 Partager mon trajet</button><button class="btn btn-s btn-ko" id="sos">🆘 Urgence</button></div>
         <div id="sosZone">${sos ? panneauSos() : ''}</div>` : ''}</div>
@@ -185,7 +187,7 @@ APP.pages.courses = async () => {
   vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><h1>Mes courses</h1>
     ${l.length ? l.map(c => `<a class="ligne-l" style="grid-template-columns:48px 1fr auto;text-decoration:none;color:inherit" href="#/course/${c.id}"><span style="font-size:32px">${CATS[c.categorie][0]}</span>
       <div><b>${esc(c.depart_txt)} → ${esc(c.arrivee_txt)}</b> ${tag(ST_COURSE[c.statut])}<div class="muted petit">${esc(jourHeure(c.heure || c.created_at))} · ${eur(c.prix_estime)} · ${c.distance_km} km</div></div><span>›</span></a>`).join('')
-      : '<div class="vide-etat"><div class="ico">🚗</div><h3>Aucune course pour l’instant</h3><a class="btn btn-p" href="#/woulib">Réserver un chauffeur</a></div>'}</div>`);
+      : '<div class="vide-etat"><div class="ico">🚗</div><h3>Aucune course pour l’instant</h3><a class="btn btn-p" href="#/move">Réserver un chauffeur</a></div>'}</div>`);
 };
 
 // ---------------------------------------------------------------- espace chauffeur
@@ -222,9 +224,9 @@ APP.pages.chauffeur = async sous => {
         <p class="muted petit" style="margin-top:-6px">${gains.nb_livraisons} livraison(s) et ${gains.nb_courses} course(s) sur 30 jours. Montants indicatifs : frais de livraison et prix estimés des courses.</p>
         ${gains.a_reverser.length ? `<div class="panneau" style="padding:12px;border-color:var(--jaune)"><b>💶 À remettre aux restaurants</b>${gains.a_reverser.map(x => `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px"><span>${esc(x.nom)}${x.telephone ? ` · <a href="tel:${esc(x.telephone)}">${esc(x.telephone)}</a>` : ''}</span><b>${eur(x.montant)}</b></div>`).join('')}
           <p class="muted petit" style="margin:6px 0 0">Le prix des repas encaissé chez les clients appartient aux restaurants. Le restaurant confirme la réception dans son espace.</p></div>` : ''}` : ''}
-      ${lvActives.length ? `<h2>🛵 Ma livraison en cours</h2>${lvActives.map(x => `<a class="ligne-l" style="grid-template-columns:1fr auto;text-decoration:none;color:inherit" href="#/livraison/${x.id}"><div><b>${esc(x.restaurant)} → ${esc(x.depot_commune || '')}</b> ${tag(ST_LV[x.statut])}
+      ${lvActives.length ? `<h2>🛵 Ma livraison en cours</h2>${lvActives.map(x => `<a class="ligne-l" style="grid-template-columns:minmax(0,1fr) auto;text-decoration:none;color:inherit" href="#/livraison/${x.id}"><div><b>${esc(x.restaurant)} → ${esc(x.depot_commune || '')}</b> ${tag(ST_LV[x.statut])}
         <div class="muted petit">${eur(x.a_encaisser)} à encaisser · ${eur(x.gain)} pour vous</div></div><span class="btn btn-s btn-p">Ouvrir</span></a>`).join('')}` : ''}
-      ${enCours.length ? `<h2>🚗 Mes courses acceptées</h2>${enCours.map(c => `<a class="ligne-l" style="grid-template-columns:1fr auto;text-decoration:none;color:inherit" href="#/course/${c.id}"><div><b>${esc(c.depart_txt)} → ${esc(c.arrivee_txt)}</b> ${tag(ST_COURSE[c.statut])}
+      ${enCours.length ? `<h2>🚗 Mes courses acceptées</h2>${enCours.map(c => `<a class="ligne-l" style="grid-template-columns:minmax(0,1fr) auto;text-decoration:none;color:inherit" href="#/course/${c.id}"><div><b>${esc(c.depart_txt)} → ${esc(c.arrivee_txt)}</b> ${tag(ST_COURSE[c.statut])}
         <div class="muted petit">${c.heure ? '🗓️ ' + esc(jourHeure(c.heure)) + ' · ' : ''}${eur(c.prix_estime)} · ${c.distance_km} km · ${esc(c.client_nom)}</div></div><span class="btn btn-s btn-p">Ouvrir</span></a>`).join('')}` : ''}
       ${ch.livraisons ? `<h2>🛵 Livraisons à prendre (${lvDispo.length})</h2><p class="muted petit">Les plus proches de vous en premier. L’adresse exacte du client s’affiche après acceptation.</p>
         ${lvDispo.length ? lvDispo.map(x => `<div class="ligne-l" style="grid-template-columns:48px 1fr auto"><span style="font-size:32px">🍱</span><div><b>${esc(x.restaurant)}</b> (${esc(x.retrait_commune)}) → ${esc(x.depot_commune || '?')}
@@ -269,10 +271,10 @@ APP.pages.livraison = async id => {
         <div style="font:700 22px var(--titres)">${eur(d.gain)} pour vous</div>
         <p class="petit">💶 À encaisser chez le client : <b>${eur(d.a_encaisser)}</b> (dont ${eur(d.part_restaurant)} à remettre au restaurant)</p>
         <div class="panneau" style="padding:10px;margin:10px 0"><b>🍽️ Retrait</b> · ${esc(r.nom)}<div class="petit">${esc(adrR)}</div>
-          <div class="actions" style="margin-top:6px">${gps(r.lat, r.lng) ? `<a class="btn btn-s" href="${gps(r.lat, r.lng)}" target="_blank" rel="noopener">🧭 Itinéraire</a>` : ''}${r.telephone ? `<a class="btn btn-s" href="tel:${esc(r.telephone)}">📞 Restaurant</a>` : ''}</div></div>
+          <div class="actions" style="margin-top:6px">${gps(r.lat, r.lng) ? `<a class="btn btn-s btn-j" href="${lienGps(r.lat, r.lng, r.nom)}">🧭 GPS Woulib</a><a class="btn btn-s" href="${gps(r.lat, r.lng)}" target="_blank" rel="noopener">Google Maps</a>` : ''}${r.telephone ? `<a class="btn btn-s" href="tel:${esc(r.telephone)}">📞 Restaurant</a>` : ''}</div></div>
         ${!fini ? `<div class="panneau" style="padding:10px;margin:10px 0"><b>🏠 Client</b> · ${esc(c.nom)}<div class="petit">${esc(adrC)}${c.note ? `<br>📝 ${esc(c.note)}` : ''}</div>
-          <div class="actions" style="margin-top:6px">${gps(c.lat, c.lng) ? `<a class="btn btn-s" href="${gps(c.lat, c.lng)}" target="_blank" rel="noopener">🧭 Itinéraire</a>` : adrC ? `<a class="btn btn-s" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adrC)}" target="_blank" rel="noopener">🧭 Itinéraire</a>` : ''}
-            ${c.telephone ? `<a class="btn btn-s" href="tel:${esc(c.telephone)}">📞 Client</a><a class="btn btn-s btn-wa" href="${wa(c.telephone, 'Bonjour, votre livreur Kivora ici.')}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</div></div>
+          <div class="actions" style="margin-top:6px">${gps(c.lat, c.lng) ? `<a class="btn btn-s btn-j" href="${lienGps(c.lat, c.lng, c.nom)}">🧭 GPS Woulib</a><a class="btn btn-s" href="${gps(c.lat, c.lng)}" target="_blank" rel="noopener">Google Maps</a>` : adrC ? `<a class="btn btn-s" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adrC)}" target="_blank" rel="noopener">🧭 Itinéraire</a>` : ''}
+            ${c.telephone ? `<a class="btn btn-s" href="tel:${esc(c.telephone)}">📞 Client</a><a class="btn btn-s btn-wa" href="${wa(c.telephone, 'Bonjour, votre livreur Woulib ici.')}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</div></div>
           <p class="petit"><b>Articles :</b> ${(d.articles || []).map(a => `${a.quantite} × ${esc(a.nom)}`).join(', ')}</p>` : ''}
         <div class="actions">${{ acceptee: '<button class="btn btn-p" data-lv="au_restaurant">🍽️ Je suis au restaurant</button><button class="btn btn-s btn-ko" data-lv="recherche">Me désister</button>',
           au_restaurant: `<button class="btn btn-p" data-lv="recuperee">📦 J’ai la commande</button><button class="btn btn-s btn-ko" data-lv="recherche">Me désister</button>${d.commande_statut === 'acceptee' ? '<p class="muted petit" style="width:100%">Le restaurant n’a pas encore lancé la préparation.</p>' : ''}`,
@@ -337,13 +339,13 @@ function formChauffeur(ch) {
 // ---------------------------------------------------------------- administration
 async function adminWoulib() {
   if (!exigeCompte()) return;
-  if (profil?.role !== 'admin') return vue('<div class="wrap"><p>Réservé à l’administration.</p></div>');
+  if (profil?.role !== 'admin' && !mesModerations.includes('move')) return vue('<div class="wrap"><p>Réservé à l’administration.</p></div>');
   const [chs, tarifs] = await Promise.all([q(sb.from('chauffeurs').select('*').order('created_at', { ascending: false }).limit(100)), q(sb.from('tarifs_move').select('*').order('territoire').order('categorie'))]);
   const ids = [...new Set(chs.map(x => x.id))];
   const [pr, ct] = ids.length ? await Promise.all([q(sb.from('profiles').select('id, prenom, nom').in('id', ids)), q(sb.from('contacts').select('*').in('id', ids))]) : [[], []];
   const terrA = param().t || 'Martinique';
   vue(`<div class="wrap" style="padding-top:22px">${ongletsAdmin('woulib')}<h2>Chauffeurs (${chs.length})</h2>
-    ${chs.map(x => { const p = pr.find(y => y.id === x.id), c = ct.find(y => y.id === x.id); return `<div class="ligne-l" style="grid-template-columns:1fr auto"><div><b>${esc(p?.prenom)} ${esc(p?.nom)}</b> ${tag(ST_CH[x.statut])} <span class="tag">${x.type.toUpperCase()}</span>
+    ${chs.map(x => { const p = pr.find(y => y.id === x.id), c = ct.find(y => y.id === x.id); return `<div class="ligne-l" style="grid-template-columns:minmax(0,1fr) auto"><div><b>${esc(p?.prenom)} ${esc(p?.nom)}</b> ${tag(ST_CH[x.statut])} <span class="tag">${x.type.toUpperCase()}</span>
       <div class="muted petit">${x.numero_carte ? 'Carte ' + esc(x.numero_carte) : 'Livreur'}${x.livraisons && x.type !== 'livreur' ? ' · livre aussi' : ''}${x.siret ? ' · SIRET ' + esc(x.siret) : ''} · ${esc(x.vehicule)} ${esc(x.couleur || '')} · ${esc(x.immatriculation || '')} · ${x.type === 'livreur' ? 'livraisons' : CATS[x.categorie][1]} · ${esc(x.territoire)}</div>
       <div class="petit">${esc(c?.email || '')} ${c?.telephone ? `· <a href="${wa(c.telephone, 'Bonjour, ici Woulib (IloTech) pour la vérification de votre compte chauffeur.')}" target="_blank" rel="noopener">${esc(c.telephone)}</a>` : ''}</div></div>
       <div class="actions">${x.statut !== 'valide' ? `<button class="btn btn-s btn-ok" data-ch="${x.id}" data-v="valide">Valider</button>` : `<button class="btn btn-s btn-ko" data-ch="${x.id}" data-v="suspendu">Suspendre</button>`}${x.statut === 'demande' ? `<button class="btn btn-s btn-ko" data-ch="${x.id}" data-v="refuse">Refuser</button>` : ''}</div></div>`; }).join('') || '<p class="muted">Aucun chauffeur inscrit.</p>'}
@@ -388,6 +390,8 @@ APP.pages.partage = async jeton => {
     } catch (e) { /* carte facultative */ }
     if (fini) { clearInterval(minuterie); minuterie = null; }
   };
-  try { await dessiner(); } catch (err) { return vue(`<div class="wrap vide-etat" style="margin-top:30px"><h3>${esc(erreur(err))}</h3><a class="btn" href="#/">Découvrir Kivora</a></div>`); }
+  try { await dessiner(); } catch (err) { return vue(`<div class="wrap vide-etat" style="margin-top:30px"><h3>${esc(erreur(err))}</h3><a class="btn" href="#/">Découvrir Woulib</a></div>`); }
   clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/partage/') && !document.hidden) dessiner().catch(() => {}); }, 10000);
 };
+
+APP.pages.woulib = APP.pages.move;   // anciens liens #/woulib

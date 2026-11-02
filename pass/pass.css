@@ -250,3 +250,14 @@ table.t th{background:var(--doux-fond);font:900 12px var(--corps);text-transform
   .joueur{grid-template-columns:1fr;text-align:center}
   .avatar-px{margin:0 auto}
 }
+
+/* petits écrans (320–380 px) : aucun champ ni bouton ne dépasse */
+.f{grid-template-columns:minmax(0,1fr)}
+.f label,.f .ligne2>*,.f .ligne3>*{min-width:0}
+.f .ligne2{grid-template-columns:repeat(2,minmax(0,1fr))}.f .ligne3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:760px){.f .ligne2,.f .ligne3{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:380px){.wrap{padding:0 14px}.carte-f{padding:18px 16px;margin:18px auto}.nav a{padding:8px 9px;font-size:14px}.logo span{font-size:18px}}
+.bas{grid-template-columns:repeat(5,minmax(0,1fr))}.bas a{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn{max-width:100%}.vide-etat .btn{white-space:normal}
+.appel-pro{text-align:left;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
+@media (max-width:900px){.appel-pro{grid-template-columns:minmax(0,1fr)}}

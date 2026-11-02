@@ -215,3 +215,25 @@ label{display:grid;gap:5px;font-size:13px;font-weight:600;color:var(--doux)}
   .sect{padding:40px 16px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* petits écrans : les champs ne dépassent jamais */
+.f{grid-template-columns:minmax(0,1fr)}
+label,input,select,textarea{min-width:0}
+
+/* gestion (ERP) : onglets en liens, indicateurs cliquables, comptes, périodes, graphique double */
+.onglets a{padding:9px 12px;font:600 14px var(--police);color:var(--doux);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap}
+.onglets a.on{color:var(--titre);border-bottom-color:var(--cyan)}
+a.kpi{display:block;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}a.kpi:hover{border-color:var(--cyan);transform:translateY(-1px)}
+.grille-cptes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.puces-p{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.puces-p a{padding:6px 12px;border:1px solid var(--ligne);border-radius:99px;text-decoration:none;color:var(--texte);font-size:13.5px;font-weight:600;background:var(--surface)}
+.puces-p a.on{background:var(--nuit);color:#fff;border-color:var(--nuit)}
+.g-double div>span{display:flex;gap:3px;align-items:flex-end;height:100%;width:100%;justify-content:center}.g-double i{max-width:16px}
+.g-double i.b,.pastille.b{background:var(--violet)}
+.pastille{display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--cyan);vertical-align:-1px}
+.modale .g4{grid-template-columns:2fr 1fr 1fr 1fr}
+@media (max-width:640px){.modale .g4{grid-template-columns:1fr 1fr}.modale .g4 label:first-child{grid-column:1/-1}}
+.graph div{min-width:0}.graph small{white-space:nowrap}
+@media (max-width:640px){.graph{gap:3px}.graph div:nth-child(even) small{visibility:hidden}.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}}
+.deux>*,.fiche>*,.kpis>*{min-width:0}
+@media (max-width:1000px){.deux,.fiche{grid-template-columns:minmax(0,1fr)}}

@@ -1,7 +1,7 @@
 {
-  "name": "Kivora — repas livrés et chauffeurs Woulib",
-  "short_name": "Kivora",
-  "description": "Les restaurants d’ici livrés ou à emporter, et des chauffeurs VTC et taxis vérifiés avec Woulib.",
+  "name": "Woulib — repas, VTC, taxis et GPS",
+  "short_name": "Woulib",
+  "description": "Les restaurants d’ici livrés ou à emporter, des chauffeurs VTC et taxis vérifiés, et un GPS avec les alertes route des conducteurs.",
   "lang": "fr",
   "start_url": "./#/",
   "scope": "./",
@@ -9,7 +9,7 @@
   "orientation": "portrait",
   "background_color": "#FFF8F3",
   "theme_color": "#FF5A36",
-  "categories": ["food", "travel", "lifestyle"],
+  "categories": ["food", "travel", "navigation", "lifestyle"],
   "icons": [
     { "src": "img/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "img/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },

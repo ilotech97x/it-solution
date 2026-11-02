@@ -1,4 +1,4 @@
-/* NEXORA — ventes : catalogue, devis, factures, avoirs, paiements, impression PDF.
+/* NEXORA — ventes : catalogue (avec marge et stock), devis, factures, avoirs, paiements, impression PDF.
    Les totaux affichés pendant la saisie sont indicatifs : la base recalcule et fait foi (arrondi au centime par ligne, TVA arrondie par taux). */
 'use strict';
 const ST_DEVIS = { brouillon: ['', 'Brouillon'], envoye: ['info', 'Envoyé'], accepte: ['ok', 'Accepté'], refuse: ['ko', 'Refusé'], expire: ['', 'Expiré'] };
@@ -19,17 +19,22 @@ function calculer(lignes) {   // même règle que la base, pour l'affichage pend
 NX.pages.catalogue = async () => {
   const l = await q(sb.from('nx_produits').select('*').eq('org_id', ORG.id).order('nom'));
   vue(entete('Catalogue', 'Vos prestations et produits, réutilisables dans les devis et factures', peut('catalogue') ? '<button class="btn btn-p" id="nvP">+ Ajouter</button>' : '')
-    + tableau(['Référence', 'Désignation', 'Unité', '#Prix HT', '#TVA', ''], l.map(p => `<tr style="${p.actif ? '' : 'opacity:.55'}"><td class="mono petit">${esc(p.reference || '')}</td><td><b>${esc(p.nom)}</b>${p.description ? `<br><span class="muted petit">${esc(p.description)}</span>` : ''}</td>
-      <td>${esc(p.unite)}</td><td class="num">${montant(p.prix_ht)}</td><td class="num">${ORG.franchise_tva ? '—' : nombre(p.taux_tva) + ' %'}</td><td class="num">${peut('catalogue') ? `<button class="btn btn-s" data-modif="${p.id}">Modifier</button>` : ''}</td></tr>`),
+    + tableau(['Référence', 'Désignation', 'Unité', '#Prix HT', '#Marge', '#Stock', '#TVA', ''], l.map(p => `<tr style="${p.actif ? '' : 'opacity:.55'}"><td class="mono petit">${esc(p.reference || '')}</td><td><b>${esc(p.nom)}</b>${p.description ? `<br><span class="muted petit">${esc(p.description)}</span>` : ''}</td>
+      <td>${esc(p.unite)}</td><td class="num">${montant(p.prix_ht)}</td><td class="num petit">${p.prix_achat_ht != null && Number(p.prix_ht) > 0 ? Math.round((p.prix_ht - p.prix_achat_ht) / p.prix_ht * 100) + ' %' : '—'}</td>
+      <td class="num">${p.stock_gere ? `<a href="#/stock" style="${Number(p.stock) <= Number(p.seuil_alerte || 0) ? 'color:var(--ko);font-weight:700' : ''}">${nombre(p.stock)}</a>` : '—'}</td><td class="num">${ORG.franchise_tva ? '—' : nombre(p.taux_tva) + ' %'}</td><td class="num">${peut('catalogue') ? `<button class="btn btn-s" data-modif="${p.id}">Modifier</button>` : ''}</td></tr>`),
       vide('Catalogue vide', 'Ajoutez vos prestations (main-d’œuvre, forfaits, déplacements) et produits.', peut('catalogue') ? '<button class="btn btn-p" id="nvP2">+ Ajouter une prestation</button>' : '')));
-  const form = async (p = { unite: 'unité', taux_tva: ORG.taux_tva_defaut, actif: true }) => {
+  const form = async (p = { unite: 'unité', taux_tva: ORG.taux_tva_defaut, actif: true, type: 'service' }) => {
     const d = await modale(p.id ? 'Modifier' : 'Nouvelle prestation ou produit', `<div class="g3"><label style="grid-column:span 2">Désignation<input name="nom" required maxlength="160" value="${esc(p.nom || '')}"></label><label>Référence<input name="reference" maxlength="40" value="${esc(p.reference || '')}"></label></div>
       <label>Description<input name="description" maxlength="1000" value="${esc(p.description || '')}"></label>
       <div class="g3"><label>Prix HT (€)<input name="prix_ht" type="number" step="0.01" required value="${p.prix_ht ?? ''}"></label><label>Unité<input name="unite" maxlength="20" list="unites" value="${esc(p.unite)}"><datalist id="unites"><option>unité<option>heure<option>jour<option>forfait<option>mois<option>m²<option>km</datalist></label>
         <label>TVA (%)<input name="taux_tva" type="number" min="0" max="100" step="0.1" value="${p.taux_tva}" ${ORG.franchise_tva ? 'disabled' : ''}></label></div>
+      <div class="g3"><label>Type<select name="type"><option value="service" ${p.type !== 'bien' ? 'selected' : ''}>Prestation (service)</option><option value="bien" ${p.type === 'bien' ? 'selected' : ''}>Produit (matériel, marchandise)</option></select></label>
+        <label>Prix d’achat HT (€)<input name="prix_achat_ht" type="number" min="0" step="0.01" value="${p.prix_achat_ht ?? ''}"></label><label>Seuil d’alerte stock<input name="seuil_alerte" type="number" min="0" step="any" value="${p.seuil_alerte ?? ''}"></label></div>
+      <label class="case"><input type="checkbox" name="stock_gere" ${p.stock_gere ? 'checked' : ''}> Suivre le stock de ce produit (les ventes validées le décomptent)</label>
       <label class="case"><input type="checkbox" name="actif" ${p.actif ? 'checked' : ''}> Proposé dans les devis et factures</label>`);
     if (!d) return;
-    const v = { nom: d.nom.trim(), reference: d.reference.trim() || null, description: d.description.trim(), prix_ht: Number(d.prix_ht), unite: d.unite.trim() || 'unité', taux_tva: ORG.franchise_tva ? 0 : Number(d.taux_tva || 0), actif: !!d.actif };
+    const v = { nom: d.nom.trim(), reference: d.reference.trim() || null, description: d.description.trim(), prix_ht: Number(d.prix_ht), unite: d.unite.trim() || 'unité', taux_tva: ORG.franchise_tva ? 0 : Number(d.taux_tva || 0), actif: !!d.actif,
+      type: d.type, stock_gere: d.type === 'bien' && !!d.stock_gere, prix_achat_ht: d.prix_achat_ht === '' ? null : Number(d.prix_achat_ht), seuil_alerte: d.seuil_alerte === '' ? null : Number(d.seuil_alerte) };
     try { if (p.id) await q(sb.from('nx_produits').update(v).eq('id', p.id)); else await q(sb.from('nx_produits').insert({ org_id: ORG.id, ...v })); toast('Enregistré.'); NX.pages.catalogue(); } catch (err) { toast(erreur(err), true); }
   };
   $('#page').onclick = e => { if (e.target.id === 'nvP' || e.target.id === 'nvP2') form(); const m = e.target.closest('[data-modif]'); if (m) form(l.find(p => p.id === m.dataset.modif)); };
