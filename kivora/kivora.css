@@ -268,3 +268,16 @@ table.t th{background:var(--doux-fond);font:900 12px var(--corps);text-transform
   --grad-ciel:linear-gradient(135deg,#2BB673,#FFB020)
 }
 .hero::before{background:#FFD0C2}.hero::after{background:#D3F2E2}
+/* partie Woulib (trajets) : bleu route, lagon */
+body[data-zone=woulib],.univ-woulib{--rose:#2563EB;--rose-presse:#1D4ED8;--rose-doux:#DBEAFE;--ciel:#0EA5E9;--ciel-presse:#0369A1;--ciel-doux:#E0F2FE;
+  --grad:linear-gradient(135deg,#2563EB 0%,#0EA5E9 60%,#2BD4B4 100%)}
+body[data-zone=woulib]{--fond:#F4F8FF;--doux-fond:#EAF1FE;--ligne:#DCE6F7;--titre:#0B2545}
+body[data-zone=woulib] .hero::before{background:#C7DBFF}
+/* accueil : les deux univers */
+.univers{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-top:6px}
+.univ{display:grid;gap:8px;align-content:start;padding:22px;border-radius:var(--r2);background:var(--surface);border:2px solid var(--ligne);box-shadow:0 6px 0 var(--ligne);
+  text-decoration:none;color:var(--texte);transition:transform .15s var(--ressort),border-color .15s}
+.univ:hover{transform:translateY(-3px);border-color:var(--rose)}
+.univ .u-ico{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;font-size:34px;background:var(--rose-doux)}
+.univ b{font:700 26px var(--titres);color:var(--titre)}
+.univ em{font-style:normal;justify-self:start;margin-top:6px}

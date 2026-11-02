@@ -1,8 +1,8 @@
-/* Woulib — réservation de VTC et taxis (chauffeurs professionnels vérifiés). Base commune : commun/base.js.
+/* Kivora, partie « Woulib » : réservation de VTC et taxis (chauffeurs professionnels vérifiés). APP : app.js ; base commune : commun/base.js.
    Prix estimé, attribution des courses et étapes contrôlés par la base (woulib.sql). Paiement direct au chauffeur. */
 'use strict';
 const CATS = { eco: ['🚗', 'Éco', '4 places'], berline: ['🚘', 'Berline', '4 places, confort'], van: ['🚐', 'Van', '5 à 8 places'], pmr: ['♿', 'Accessible', 'fauteuil roulant'] };
-const ETAPES = [['demande', '🔎', 'Recherche'], ['acceptee', '👍', 'Acceptée'], ['en_route', '🚗', 'En route'], ['arrivee', '📍', 'Arrivé'], ['a_bord', '🛣️', 'À bord'], ['terminee', '🏁', 'Terminée']];
+const ETAPES_C = [['demande', '🔎', 'Recherche'], ['acceptee', '👍', 'Acceptée'], ['en_route', '🚗', 'En route'], ['arrivee', '📍', 'Arrivé'], ['a_bord', '🛣️', 'À bord'], ['terminee', '🏁', 'Terminée']];
 const ST_COURSE = { demande: ['att', 'Recherche'], acceptee: ['ok', 'Acceptée'], en_route: ['ok', 'En route'], arrivee: ['ok', 'Chauffeur arrivé'], a_bord: ['ok', 'À bord'],
   terminee: ['gris', 'Terminée'], annulee: ['ko', 'Annulée'], expiree: ['gris', 'Expirée'] };
 const ST_CH = { demande: ['att', 'En vérification'], valide: ['ok', 'Validé'], refuse: ['ko', 'Refusé'], suspendu: ['ko', 'Suspendu'] };
@@ -13,16 +13,9 @@ const AEROPORTS = { Martinique: ['Aéroport Aimé Césaire, Le Lamentin', 14.591
   'La Réunion': ['Aéroport Roland Garros, Sainte-Marie', -20.8871, 55.5103], Mayotte: ['Aéroport de Dzaoudzi-Pamandzi', -12.8047, 45.2811] };
 let minuterie = null, suiviGps = null;
 
-const APP = {
-  nom: 'Woulib', titre: 'Woulib — VTC et taxis, réservés en 1 minute', accueilConnecte: '#/', pourTel: 'que votre chauffeur puisse vous joindre',
-  menu: () => [['#/', 'Réserver'], ...(moi ? [['#/courses', 'Mes courses']] : []), ['#/chauffeur', 'Chauffeurs'], ...(profil?.role === 'admin' ? [['#/admin', 'Admin']] : [])],
-  menuBas: () => [['#/', '🚗', 'Réserver'], ['#/courses', '🧾', 'Courses'], ['#/notifs', '🔔', 'Alertes', nbNotifs], ['#/chauffeur', '🧑‍✈️', 'Chauffeur'], [moi ? '#/compte' : '#/connexion', '🙂', moi ? 'Compte' : 'Connexion']],
-  quitter: h => { clearInterval(minuterie); minuterie = null; if (h !== '#/chauffeur' && suiviGps !== null) { navigator.geolocation.clearWatch(suiviGps); suiviGps = null; } },
-  pages: {}
-};
 
 // ---------------------------------------------------------------- réserver
-APP.pages[''] = async () => {
+APP.pages.woulib = async () => {
   let terr = terrPrefere() || profil?.territoire || 'Martinique'; if (!TERRITOIRES[terr] || terr === 'Autre pays') terr = 'Martinique';
   const pts = { depart: null, arrivee: null };
   let cat = 'eco', carte = null, calques = null, L = null, estim = {};
@@ -114,7 +107,7 @@ APP.pages.course = async id => {
   const dessiner = async () => {
     const [r] = await q(sb.rpc('detail_course', { cid: id }));
     const c = r.course, ch = r.chauffeur, client = c.client_id === moi.id;
-    const fini = ['annulee', 'expiree'].includes(c.statut), pos = ETAPES.findIndex(e => e[0] === c.statut);
+    const fini = ['annulee', 'expiree'].includes(c.statut), pos = ETAPES_C.findIndex(e => e[0] === c.statut);
     if (client && c.statut === 'terminee' && avisFait === null) avisFait = (await q(sb.from('avis_course').select('id').eq('course_id', id))).length > 0;
     if (!$('#carteC')) {
       vue(`<div class="wrap" style="padding-top:22px;max-width:900px"><a href="${client ? '#/courses' : '#/chauffeur'}" class="petit">← ${client ? 'Mes courses' : 'Espace chauffeur'}</a>
@@ -124,7 +117,7 @@ APP.pages.course = async id => {
     $('#infos').innerHTML = `<div class="panneau"><span class="px">Course ${esc(c.id.slice(0, 6).toUpperCase())}${c.heure ? ' · prévue ' + esc(jourHeure(c.heure)) : ''}</span>
       <h1 style="margin:6px 0;font-size:26px">${esc(c.depart_txt)} → ${esc(c.arrivee_txt)}</h1>
       ${fini ? `<div class="verdict ko"><big>${c.statut === 'annulee' ? '❌' : '⌛'}</big>Course ${c.statut === 'annulee' ? 'annulée' : 'expirée : aucun chauffeur disponible'}</div>`
-        : `<div class="quetes" style="margin:12px 0">${ETAPES.map((e, i) => `<div class="quete ${i < pos || c.statut === 'terminee' ? 'faite' : i === pos ? 'actuelle' : ''}"><span class="q-coche">${i <= pos ? '✓' : ''}</span><span class="q-ico">${e[1]}</span><span class="q-titre">${e[2]}</span></div>`).join('')}</div>`}
+        : `<div class="quetes" style="margin:12px 0">${ETAPES_C.map((e, i) => `<div class="quete ${i < pos || c.statut === 'terminee' ? 'faite' : i === pos ? 'actuelle' : ''}"><span class="q-coche">${i <= pos ? '✓' : ''}</span><span class="q-ico">${e[1]}</span><span class="q-titre">${e[2]}</span></div>`).join('')}</div>`}
       <div style="font:700 24px var(--titres)">${eur(c.prix_estime)} <span class="muted petit" style="font:600 14px var(--texte)">estimé · ${c.distance_km} km · ${CATS[c.categorie][0]} ${CATS[c.categorie][1]} · ${c.passagers} pers.</span></div>
       ${c.note ? `<p class="petit">📝 ${esc(c.note)}</p>` : ''}
       ${ch ? `<div class="ligne-l" style="grid-template-columns:48px 1fr;margin-top:12px"><span style="font-size:34px">🧑‍✈️</span><div><b>${esc(ch.prenom || 'Votre chauffeur')}</b>${ch.note ? ` · ⭐ ${ch.note}` : ''} <span class="tag">${ch.type === 'taxi' ? 'Taxi' : 'VTC'}</span>
@@ -165,12 +158,7 @@ APP.pages.courses = async () => {
   vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><h1>Mes courses</h1>
     ${l.length ? l.map(c => `<a class="ligne-l" style="grid-template-columns:48px 1fr auto;text-decoration:none;color:inherit" href="#/course/${c.id}"><span style="font-size:32px">${CATS[c.categorie][0]}</span>
       <div><b>${esc(c.depart_txt)} → ${esc(c.arrivee_txt)}</b> ${tag(ST_COURSE[c.statut])}<div class="muted petit">${esc(jourHeure(c.heure || c.created_at))} · ${eur(c.prix_estime)} · ${c.distance_km} km</div></div><span>›</span></a>`).join('')
-      : '<div class="vide-etat"><div class="ico">🚗</div><h3>Aucune course pour l’instant</h3><a class="btn btn-p" href="#/">Réserver un chauffeur</a></div>'}</div>`);
-};
-APP.pages.compte = async () => {
-  if (!exigeCompte()) return;
-  vue(`<div class="wrap"><div class="carte-f"><h1>Mon compte</h1><p>${esc(profil?.prenom)} ${esc(profil?.nom)}<br><span class="muted">${esc(moi.email)}</span></p>
-    <div class="actions"><a class="btn" href="#/courses">Mes courses</a><a class="btn" href="#/chauffeur">Espace chauffeur</a><a class="btn" href="https://immo.ilo-tech.com/#/compte/profil">Modifier mon profil</a><a class="btn btn-ko" href="#/deconnexion">Se déconnecter</a></div></div></div>`);
+      : '<div class="vide-etat"><div class="ico">🚗</div><h3>Aucune course pour l’instant</h3><a class="btn btn-p" href="#/woulib">Réserver un chauffeur</a></div>'}</div>`);
 };
 
 // ---------------------------------------------------------------- espace chauffeur
@@ -236,26 +224,26 @@ function formChauffeur(ch) {
 }
 
 // ---------------------------------------------------------------- administration
-APP.pages.admin = async () => {
+async function adminWoulib() {
   if (!exigeCompte()) return;
   if (profil?.role !== 'admin') return vue('<div class="wrap"><p>Réservé à l’administration.</p></div>');
   const [chs, tarifs] = await Promise.all([q(sb.from('chauffeurs').select('*').order('created_at', { ascending: false }).limit(100)), q(sb.from('tarifs_move').select('*').order('territoire').order('categorie'))]);
   const ids = [...new Set(chs.map(x => x.id))];
   const [pr, ct] = ids.length ? await Promise.all([q(sb.from('profiles').select('id, prenom, nom').in('id', ids)), q(sb.from('contacts').select('*').in('id', ids))]) : [[], []];
   const terrA = param().t || 'Martinique';
-  vue(`<div class="wrap" style="padding-top:22px"><h1>Administration Woulib</h1><h2>Chauffeurs (${chs.length})</h2>
+  vue(`<div class="wrap" style="padding-top:22px">${ongletsAdmin('woulib')}<h2>Chauffeurs (${chs.length})</h2>
     ${chs.map(x => { const p = pr.find(y => y.id === x.id), c = ct.find(y => y.id === x.id); return `<div class="ligne-l" style="grid-template-columns:1fr auto"><div><b>${esc(p?.prenom)} ${esc(p?.nom)}</b> ${tag(ST_CH[x.statut])} <span class="tag">${x.type.toUpperCase()}</span>
       <div class="muted petit">Carte ${esc(x.numero_carte)}${x.siret ? ' · SIRET ' + esc(x.siret) : ''} · ${esc(x.vehicule)} ${esc(x.couleur || '')} · ${esc(x.immatriculation)} · ${CATS[x.categorie][1]} · ${esc(x.territoire)}</div>
       <div class="petit">${esc(c?.email || '')} ${c?.telephone ? `· <a href="${wa(c.telephone, 'Bonjour, ici Woulib (IloTech) pour la vérification de votre compte chauffeur.')}" target="_blank" rel="noopener">${esc(c.telephone)}</a>` : ''}</div></div>
       <div class="actions">${x.statut !== 'valide' ? `<button class="btn btn-s btn-ok" data-ch="${x.id}" data-v="valide">Valider</button>` : `<button class="btn btn-s btn-ko" data-ch="${x.id}" data-v="suspendu">Suspendre</button>`}${x.statut === 'demande' ? `<button class="btn btn-s btn-ko" data-ch="${x.id}" data-v="refuse">Refuser</button>` : ''}</div></div>`; }).join('') || '<p class="muted">Aucun chauffeur inscrit.</p>'}
     <h2 style="margin-top:26px">Tarifs</h2><p class="muted petit">Prix = prise en charge + km × prix au km, jamais moins que le minimum. Distance = vol d’oiseau × 1,35.</p>
-    <div class="puces">${NOMS_TERRITOIRES.map(t => `<a href="#/admin?t=${encodeURIComponent(t)}" class="${t === terrA ? 'on' : ''}">${esc(t)}</a>`).join('')}</div>
+    <div class="puces">${NOMS_TERRITOIRES.map(t => `<a href="#/admin/woulib?t=${encodeURIComponent(t)}" class="${t === terrA ? 'on' : ''}">${esc(t)}</a>`).join('')}</div>
     <form class="f" id="fT">${tarifs.filter(t => t.territoire === terrA).map(t => `<div class="ligne3" data-cat="${t.categorie}"><b style="align-self:center">${CATS[t.categorie][0]} ${CATS[t.categorie][1]}</b>
       <label>Prise en charge (€)<input name="p" type="number" step="0.1" min="0" value="${t.prise_en_charge}"></label><label>Prix / km (€)<input name="k" type="number" step="0.01" min="0" value="${t.prix_km}"></label><label>Minimum (€)<input name="m" type="number" step="0.5" min="0" value="${t.minimum}"></label></div>`).join('')}
       <button class="btn btn-p">Enregistrer les tarifs ${esc(terrA)}</button></form></div>`);
   $('#app').onclick = async ev => {
     const b = ev.target.closest('[data-ch]'); if (!b) return;
-    try { await q(sb.from('chauffeurs').update({ statut: b.dataset.v }).eq('id', b.dataset.ch)); toast('C’est fait.'); APP.pages.admin(); } catch (err) { toast(erreur(err), true); }
+    try { await q(sb.from('chauffeurs').update({ statut: b.dataset.v }).eq('id', b.dataset.ch)); toast('C’est fait.'); adminWoulib(); } catch (err) { toast(erreur(err), true); }
   };
   $('#fT').addEventListener('submit', async ev => {
     ev.preventDefault();
@@ -268,4 +256,3 @@ APP.pages.admin = async () => {
   });
 };
 
-demarrer();

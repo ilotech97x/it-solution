@@ -1,4 +1,4 @@
-/* Kivora — commande de repas (restaurants, livraison, à emporter). Base commune : commun/base.js.
+/* Kivora, partie « Manger » : restaurants, livraison, à emporter. APP et accueil : app.js ; base commune : commun/base.js.
    Prix, totaux et étapes de commande contrôlés par la base (kivora.sql). */
 'use strict';
 const CUISINES = { creole: ['🍛', 'Créole'], snack: ['🌯', 'Snack'], burger: ['🍔', 'Burgers'], pizza: ['🍕', 'Pizzas'], asiatique: ['🥡', 'Asiatique'], sushi: ['🍣', 'Sushis'],
@@ -13,16 +13,9 @@ let suivi = null;   // minuterie de rafraîchissement (suivi de commande, tablea
 // panier : gardé sur l'appareil, un par restaurant
 const panier = { lire: r => { try { return JSON.parse(localStorage.getItem('kvPanier-' + r)) || {}; } catch (e) { return {}; } }, ecrire: (r, p) => { try { localStorage.setItem('kvPanier-' + r, JSON.stringify(p)); } catch (e) { /* stockage indisponible */ } } };
 
-const APP = {
-  nom: 'Kivora', titre: 'Kivora — vos restaurants livrés ou à emporter', accueilConnecte: '#/', pourTel: 'que le restaurant puisse vous joindre',
-  menu: () => [['#/', 'Restaurants'], ...(moi ? [['#/commandes', 'Mes commandes'], ['#/pro', 'Espace restaurateur']] : [['#/pro', 'Restaurateurs']]), ...(profil?.role === 'admin' ? [['#/admin', 'Admin']] : [])],
-  menuBas: () => [['#/', '🍽️', 'Manger'], ['#/commandes', '🧾', 'Commandes'], ['#/notifs', '🔔', 'Alertes', nbNotifs], ['#/pro', '👩‍🍳', 'Restaurateur'], [moi ? '#/compte' : '#/connexion', '🙂', moi ? 'Compte' : 'Connexion']],
-  quitter: () => { clearInterval(suivi); suivi = null; },
-  pages: {}
-};
 
 // ---------------------------------------------------------------- accueil : restaurants
-APP.pages[''] = async () => {
+APP.pages.manger = async () => {
   const p = param(), terr = p.territoire ?? terrPrefere();
   vue(`<section class="hero"><div class="wrap">
     <div class="press"><span class="clignote">🍽️</span> On mange quoi ce soir ?</div>
@@ -32,12 +25,12 @@ APP.pages[''] = async () => {
       <select name="territoire" aria-label="Territoire">${optsTerritoires(terr, 'Tous les territoires')}</select>
       <select name="mode" aria-label="Mode"><option value="">Livraison ou à emporter</option><option value="livraison" ${p.mode === 'livraison' ? 'selected' : ''}>🛵 Livraison</option><option value="emporter" ${p.mode === 'emporter' ? 'selected' : ''}>🛍️ À emporter</option></select>
       <button class="btn btn-p">Rechercher</button></form></div></section>
-    <div class="wrap"><div class="puces">${[['', '✨', 'Tout'], ...Object.entries(CUISINES).map(([k, [i, t]]) => [k, i, t])].map(([k, i, t]) => `<a href="#/?${new URLSearchParams({ ...p, cuisine: k })}" class="${(p.cuisine || '') === k ? 'on' : ''}">${i} ${esc(t)}</a>`).join('')}</div>
+    <div class="wrap"><div class="puces">${[['', '✨', 'Tout'], ...Object.entries(CUISINES).map(([k, [i, t]]) => [k, i, t])].map(([k, i, t]) => `<a href="#/manger?${new URLSearchParams({ ...p, cuisine: k })}" class="${(p.cuisine || '') === k ? 'on' : ''}">${i} ${esc(t)}</a>`).join('')}</div>
       <section class="section"><div id="liste" class="chargement">Chargement…</div></section>
       <section class="section"><div class="vide-etat appel-pro">
         <div><h2>Vous avez un restaurant ?</h2><p class="muted" style="margin:0">Inscription gratuite pour démarrer : votre carte en ligne, les commandes en direct sur votre téléphone, vos clients vous paient directement.</p></div>
         <a class="btn btn-p" href="#/pro">Inscrire mon restaurant</a></div></section></div>`);
-  $('#fRech').addEventListener('submit', e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); terrPrefere(d.territoire); const u = new URLSearchParams(); Object.entries({ ...d, cuisine: p.cuisine || '' }).forEach(([k, v]) => (v || k === 'territoire') && u.set(k, v)); aller('#/?' + u); });
+  $('#fRech').addEventListener('submit', e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); terrPrefere(d.territoire); const u = new URLSearchParams(); Object.entries({ ...d, cuisine: p.cuisine || '' }).forEach(([k, v]) => (v || k === 'territoire') && u.set(k, v)); aller('#/manger?' + u); });
   let r = sb.from('restaurants').select('*').in('statut', ['publie', 'pause']).order('ouvert', { ascending: false }).order('created_at', { ascending: false }).limit(80);
   if (terr) r = r.eq('territoire', terr);
   if (p.cuisine) r = r.eq('cuisine', p.cuisine);
@@ -58,7 +51,7 @@ const carteResto = (x, n) => `<a class="ev" href="#/resto/${x.id}"><div class="a
 APP.pages.resto = async id => {
   attente();
   const r = await q(sb.from('restaurants').select('*').eq('id', id).maybeSingle());
-  if (!r) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Restaurant introuvable</h3><a href="#/">Tous les restaurants</a></div>');
+  if (!r) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Restaurant introuvable</h3><a href="#/manger">Tous les restaurants</a></div>');
   const [plats, n] = await Promise.all([q(sb.from('plats').select('*').eq('restaurant_id', id).order('ordre').order('created_at')), q(sb.from('notes_resto').select('*').eq('restaurant_id', id))]);
   let cart = panier.lire(id); Object.keys(cart).forEach(k => { if (!plats.some(p => p.id === k && p.dispo)) delete cart[k]; });
   let mode = r.livraison ? 'livraison' : 'emporter';
@@ -148,12 +141,7 @@ APP.pages.commandes = async () => {
   vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><h1>Mes commandes</h1>
     ${l.length ? l.map(c => `<a class="ligne-l" style="text-decoration:none;color:inherit" href="#/suivi/${c.id}">${c.restaurants?.photo ? `<img class="mini" src="${esc(photo(c.restaurants.photo))}" alt="">` : '<div class="mini" style="display:grid;place-items:center;font-size:30px">🍽️</div>'}
       <div><b>${esc(c.restaurants?.nom || '')}</b> ${tag(ST_CMD[c.statut])}<div class="muted petit">${esc(jourHeure(c.created_at))} · ${eur(c.total)} · ${c.mode === 'livraison' ? '🛵' : '🛍️'}</div></div><span>›</span></a>`).join('')
-      : '<div class="vide-etat"><div class="ico">🧾</div><h3>Aucune commande pour l’instant</h3><a class="btn btn-p" href="#/">Choisir un restaurant</a></div>'}</div>`);
-};
-APP.pages.compte = async () => {
-  if (!exigeCompte()) return;
-  vue(`<div class="wrap"><div class="carte-f"><h1>Mon compte</h1><p>${esc(profil?.prenom)} ${esc(profil?.nom)}<br><span class="muted">${esc(moi.email)}</span></p>
-    <div class="actions"><a class="btn" href="#/commandes">Mes commandes</a><a class="btn" href="#/pro">Espace restaurateur</a><a class="btn" href="https://immo.ilo-tech.com/#/compte/profil">Modifier mon profil</a><a class="btn btn-ko" href="#/deconnexion">Se déconnecter</a></div></div></div>`);
+      : '<div class="vide-etat"><div class="ico">🧾</div><h3>Aucune commande pour l’instant</h3><a class="btn btn-p" href="#/manger">Choisir un restaurant</a></div>'}</div>`);
 };
 
 // ---------------------------------------------------------------- espace restaurateur
@@ -252,20 +240,19 @@ async function pageCommandesPro() {
 }
 
 // ---------------------------------------------------------------- administration
-APP.pages.admin = async () => {
+async function adminResto() {
   if (!exigeCompte()) return;
   if (profil?.role !== 'admin') return vue('<div class="wrap"><p>Réservé à l’administration.</p></div>');
   const l = await q(sb.from('restaurants').select('*').eq('statut', 'en_attente').order('created_at'));
   const ct = l.length ? await q(sb.from('contacts').select('*').in('id', [...new Set(l.map(x => x.owner))])) : [];
-  vue(`<div class="wrap" style="padding-top:22px"><h1>Administration Kivora</h1><h2>Restaurants à valider (${l.length})</h2>
+  vue(`<div class="wrap" style="padding-top:22px">${ongletsAdmin('resto')}<h2>Restaurants à valider (${l.length})</h2>
     ${l.map(x => { const c = ct.find(y => y.id === x.owner); return `<div class="ligne-l">${x.photo ? `<img class="mini" src="${esc(photo(x.photo))}" alt="">` : '<div class="mini"></div>'}<div><b><a href="#/resto/${x.id}">${esc(x.nom)}</a></b> · ${esc(CUISINES[x.cuisine]?.[1])}
       <div class="muted petit">${esc(x.commune)}, ${esc(x.territoire)} · ${esc(c?.email || '')} ${c?.telephone ? '· ' + esc(c.telephone) : ''}</div><div class="petit">${esc(x.description.slice(0, 200))}</div></div>
       <div class="actions"><button class="btn btn-s btn-ok" data-r="${x.id}" data-v="publie">Publier</button><button class="btn btn-s btn-ko" data-r="${x.id}" data-v="refuse">Refuser</button></div></div>`; }).join('') || '<p class="muted">Aucun.</p>'}</div>`);
   $('#app').onclick = async ev => {
     const b = ev.target.closest('[data-r]'); if (!b) return;
     const motif = b.dataset.v === 'refuse' ? prompt('Motif du refus :', '') : null; if (b.dataset.v === 'refuse' && motif === null) return;
-    try { await q(sb.from('restaurants').update({ statut: b.dataset.v, motif_refus: motif }).eq('id', b.dataset.r)); toast('C’est fait.'); APP.pages.admin(); } catch (err) { toast(erreur(err), true); }
+    try { await q(sb.from('restaurants').update({ statut: b.dataset.v, motif_refus: motif }).eq('id', b.dataset.r)); toast('C’est fait.'); adminResto(); } catch (err) { toast(erreur(err), true); }
   };
 };
 
-demarrer();

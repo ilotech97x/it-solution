@@ -47,8 +47,8 @@
   <url><loc>https://ilo-tech.com/fiche-tarifs.html</loc><lastmod>2026-11-01</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://ilo-tech.com/evenements/</loc><lastmod>2026-11-01</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://ilo-tech.com/kivora/</loc><lastmod>2026-11-01</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://ilo-tech.com/woulib/</loc><lastmod>2026-11-01</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://ilo-tech.com/kivora/cgu.html</loc><lastmod>2026-11-01</lastmod><changefreq>yearly</changefreq><priority>0.2</priority></url>
-  <url><loc>https://ilo-tech.com/woulib/cgu.html</loc><lastmod>2026-11-01</lastmod><changefreq>yearly</changefreq><priority>0.2</priority></url>
+  <url><loc>https://ilo-tech.com/nexora/</loc><lastmod>2026-11-01</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://ilo-tech.com/nexora/cgu.html</loc><lastmod>2026-11-01</lastmod><changefreq>yearly</changefreq><priority>0.2</priority></url>
   <url><loc>https://ilo-tech.com/pass/</loc><lastmod>2026-11-01</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
 </urlset>
