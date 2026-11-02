@@ -38,6 +38,9 @@ APP.pages.manger = async () => {
   let l = await q(r);
   if (p.q) { const m = p.q.toLowerCase(); l = l.filter(x => (x.nom + ' ' + x.description + ' ' + x.commune).toLowerCase().includes(m)); }
   const notes = l.length ? Object.fromEntries((await q(sb.from('notes_resto').select('*').in('restaurant_id', l.map(x => x.id)))).map(x => [x.restaurant_id, x])) : {};
+  const favs = moi ? (await q(sb.from('favoris_resto').select('restaurant_id')).catch(() => [])).map(x => x.restaurant_id) : [];
+  const mesFavs = l.filter(x => favs.includes(x.id));
+  if (mesFavs.length && !p.q && !p.cuisine) $('#liste').insertAdjacentHTML('beforebegin', `<h2>⭐ Mes favoris</h2><div class="grille" style="margin-bottom:24px">${mesFavs.map(x => carteResto(x, notes[x.id])).join('')}</div><h2>Tous les restaurants</h2>`);
   $('#liste').className = l.length ? 'grille' : '';
   $('#liste').innerHTML = l.length ? l.map(x => carteResto(x, notes[x.id])).join('') : `<div class="vide-etat"><div class="ico">🍽️</div><h3>${p.q || p.cuisine || p.mode ? 'Aucun restaurant pour cette recherche' : 'Les premiers restaurants arrivent'}</h3>
     <p class="muted">Nous vérifions chaque restaurant avant sa mise en ligne. Vous êtes restaurateur ? Rejoignez Kivora gratuitement.</p><a class="btn btn-p" href="#/pro">Inscrire mon restaurant</a></div>`;
@@ -59,7 +62,7 @@ APP.pages.resto = async id => {
   document.title = `${r.nom} — Kivora`;
   vue(`<div class="wrap"><div class="fiche fiche-d">
     <div><div class="affiche" style="aspect-ratio:16/7;transform:none">${r.photo ? `<img src="${esc(photo(r.photo))}" alt="${esc(r.nom)}">` : `<span style="position:absolute;inset:0;display:grid;place-items:center;font-size:80px">${CUISINES[r.cuisine]?.[0]}</span>`}</div>
-      <h1 style="margin-top:18px">${esc(r.nom)}</h1>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px"><h1 style="margin:0">${esc(r.nom)}</h1><button type="button" class="btn btn-s" id="fav" aria-pressed="false">☆ Favori</button></div>
       <div class="actions" style="margin-bottom:10px">${r.ouvert ? tag(['ok', '🟢 Prend les commandes']) : tag(['gris', '⚪ Fermé pour le moment'])}<span class="tag">${CUISINES[r.cuisine]?.[0]} ${esc(CUISINES[r.cuisine]?.[1])}</span>${n[0] ? `<span class="tag">⭐ ${n[0].moyenne} · ${n[0].nombre} avis</span>` : ''}<span class="tag">⏱️ ${r.delai_min} min</span></div>
       <p class="muted">📍 ${esc(r.commune)}${r.adresse ? ', ' + esc(r.adresse) : ''}${r.horaires ? ` · 🕒 ${esc(r.horaires)}` : ''}</p>
       ${r.description ? `<p style="white-space:pre-line">${esc(r.description)}</p>` : ''}
@@ -73,6 +76,8 @@ APP.pages.resto = async id => {
       <form class="f" id="fCmd"><div id="adresse"></div>
         <label>Téléphone<input name="telephone" type="tel" required pattern="[0-9 +]{6,20}" value="${esc(contact?.telephone || '')}" autocomplete="tel"></label>
         <label>Un mot pour le restaurant <span class="aide">(facultatif)</span><input name="note" maxlength="500" placeholder="Sans piment, code du portail…"></label>
+        <label>Quand ?<select name="quand"><option value="">Dès que possible</option><option value="plus">Programmer pour plus tard</option></select></label><div id="heureCmd"></div>
+        <div style="display:flex;gap:6px;align-items:flex-end"><label style="flex:1">Code promo <span class="aide">(facultatif)</span><input name="code" maxlength="20" autocomplete="off" style="text-transform:uppercase"></label><button type="button" class="btn btn-s" id="appliquer">Appliquer</button></div>
         <div id="totaux"></div><button class="btn btn-p" id="commander" ${r.ouvert ? '' : 'disabled'}>${r.ouvert ? 'Commander' : 'Restaurant fermé'}</button>
         <p class="muted petit" style="margin:0">Paiement au restaurant ou au livreur (espèces ou carte, selon le restaurant).</p></form></div></aside></div></div>`);
   const majAdresse = () => {
@@ -82,11 +87,13 @@ APP.pages.resto = async id => {
       ${r.communes_livrees.length ? `<p class="petit muted" style="margin:0">Livre à : ${esc(r.communes_livrees.join(', '))}</p>` : ''}` : `<p class="petit">🛍️ À récupérer : <b>${esc(r.adresse || r.commune)}</b></p>`;
     document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('btn-p', b.dataset.mode === mode));
   };
+  let remise = 0, codeOk = null;
   const majPanier = () => {
     const l = Object.entries(cart).filter(([, n]) => n > 0).map(([id, n]) => ({ p: plats.find(x => x.id === id), n })).filter(x => x.p);
     const st = l.reduce((s, x) => s + x.p.prix * x.n, 0), frais = mode === 'livraison' ? Number(r.frais_livraison) : 0;
+    if (codeOk && remise > st) remise = st;
     $('#lignes').innerHTML = l.length ? l.map(x => `<div style="display:flex;justify-content:space-between;gap:8px"><span>${x.n} × ${esc(x.p.nom)}</span><b>${eur(x.p.prix * x.n)}</b></div>`).join('') : '<p class="muted">Ajoutez des plats avec le bouton +.</p>';
-    $('#totaux').innerHTML = l.length ? `<div class="muted petit">Sous-total ${eur(st)}${mode === 'livraison' ? ` · livraison ${frais ? eur(frais) : 'offerte'}` : ''}</div><div style="font:700 24px var(--titres)">Total ${eur(st + frais)}</div>
+    $('#totaux').innerHTML = l.length ? `<div class="muted petit">Sous-total ${eur(st)}${remise ? ` · code ${esc(codeOk)} −${eur(remise)}` : ''}${mode === 'livraison' ? ` · livraison ${frais ? eur(frais) : 'offerte'}` : ''}</div><div style="font:700 24px var(--titres)">Total ${eur(st - remise + frais)}</div>
       ${st < r.minimum ? `<p class="petit" style="color:var(--rouge);margin:0">Minimum de commande : ${eur(r.minimum)}</p>` : ''}` : '';
     panier.ecrire(id, cart);
   };
@@ -96,6 +103,24 @@ APP.pages.resto = async id => {
   }));
   document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { mode = b.dataset.mode; majAdresse(); majPanier(); }));
   majAdresse(); majPanier();
+  const fuseauR = fuseauDe(r.territoire);
+  $('#fCmd').quand.addEventListener('change', e => {
+    $('#heureCmd').innerHTML = e.target.value ? `<label>Pour le <span class="aide">(heure de ${esc(r.territoire)})</span><input name="heure" type="datetime-local" required min="${utcVersLocal(new Date(Date.now() + 25 * 6e4).toISOString(), fuseauR)}" max="${utcVersLocal(new Date(Date.now() + 7 * 864e5).toISOString(), fuseauR)}"></label>` : '';
+  });
+  $('#appliquer').addEventListener('click', async () => {
+    const code = $('#fCmd').code.value.trim(); if (!code) { remise = 0; codeOk = null; return majPanier(); }
+    if (!exigeCompte()) return;
+    const st = Object.entries(cart).reduce((s, [k, n]) => s + (plats.find(x => x.id === k)?.prix || 0) * n, 0);
+    try { remise = Number(await q(sb.rpc('remise_code', { resto: id, code_saisi: code, sous_total: st }))); codeOk = code.toUpperCase(); toast(`🏷️ Code appliqué : −${eur(remise)}`); }
+    catch (err) { remise = 0; codeOk = null; toast(erreur(err), true); }
+    majPanier();
+  });
+  if (moi) {
+    let fav = (await q(sb.from('favoris_resto').select('restaurant_id').eq('restaurant_id', id)).catch(() => [])).length > 0;
+    const majFav = () => { $('#fav').textContent = fav ? '⭐ Favori' : '☆ Favori'; $('#fav').setAttribute('aria-pressed', fav); };
+    majFav();
+    $('#fav').onclick = async () => { try { if (fav) await q(sb.from('favoris_resto').delete().eq('restaurant_id', id)); else await q(sb.from('favoris_resto').insert({ restaurant_id: id })); fav = !fav; majFav(); } catch (err) { toast(erreur(err), true); } };
+  } else $('#fav').onclick = () => exigeCompte();
   $('#fCmd').addEventListener('submit', async ev => {
     ev.preventDefault(); if (!exigeCompte()) return;
     const d = Object.fromEntries(new FormData(ev.target)), lignes = Object.entries(cart).filter(([, n]) => n > 0).map(([plat, quantite]) => ({ plat, quantite }));
@@ -105,7 +130,7 @@ APP.pages.resto = async id => {
       // position de l'adresse pour guider le livreur (facultative : la commande part même si la recherche échoue)
       const pos = mode === 'livraison' ? (await geocoder(`${d.adresse}, ${d.commune}`, r.territoire).catch(() => []))[0] : null;
       const c = await q(sb.rpc('passer_commande', { resto: id, mode_cmd: mode, lignes, adresse_cmd: d.adresse || null, commune_cmd: d.commune || null, telephone_cmd: d.telephone.trim(), note_cmd: d.note || null,
-        lat_cmd: pos?.lat ?? null, lng_cmd: pos?.lng ?? null }));
+        lat_cmd: pos?.lat ?? null, lng_cmd: pos?.lng ?? null, heure_cmd: d.heure ? localVersUTC(d.heure, fuseauR) : null, code_cmd: codeOk }));
       cart = {}; panier.ecrire(id, cart); toast('🎉 Commande envoyée !'); aller('#/suivi/' + c.id);
     } catch (err) { toast(erreur(err), true); b.disabled = false; }
   });
@@ -128,7 +153,9 @@ APP.pages.suivi = async id => {
         ${fini ? `<div class="verdict ko"><big>${c.statut === 'refusee' ? '😕' : '❌'}</big>Commande ${c.statut === 'refusee' ? 'refusée par le restaurant' : 'annulée'}</div>`
           : `<div class="quetes" style="margin:14px 0">${etapes.map((e, i) => `<div class="quete ${i < pos || c.statut === e[0] && ['livree', 'retiree'].includes(e[0]) ? 'faite' : i === pos ? 'actuelle' : ''}"><span class="q-coche">${i <= pos ? '✓' : ''}</span><span class="q-ico">${e[1]}</span><span class="q-titre">${e[2]}</span></div>`).join('')}</div>`}
         <div>${c.commande_lignes.map(l => `<div style="display:flex;justify-content:space-between"><span>${l.quantite} × ${esc(l.nom)}</span><b>${eur(l.prix * l.quantite)}</b></div>`).join('')}
-          ${c.frais > 0 ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Livraison</span><span>${eur(c.frais)}</span></div>` : ''}<div style="font:700 22px var(--titres);margin-top:6px">Total ${eur(c.total)}</div>
+          ${Number(c.remise) ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Code ${esc(c.code_promo)}</span><span>−${eur(c.remise)}</span></div>` : ''}
+          ${c.frais > 0 ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Livraison</span><span>${eur(c.frais)}</span></div>` : ''}
+          ${c.pour_heure ? `<p class="petit"><b>⏰ Programmée pour ${esc(jourHeure(c.pour_heure))}</b></p>` : ''}<div style="font:700 22px var(--titres);margin-top:6px">Total ${eur(c.total)}</div>
           <p class="muted petit">${c.mode === 'livraison' ? `🛵 Livraison : ${esc(c.adresse)}, ${esc(c.commune)}` : `🛍️ À retirer : ${esc(c.restaurants?.adresse || c.restaurants?.commune || '')}`} · ${lv ? `paiement au livreur à la livraison (${eur(c.total)})` : 'paiement sur place'}</p></div>
         ${lv && !fini && lv.statut !== 'livree' ? `<div class="panneau" style="margin:12px 0;padding:14px;border-color:var(--ciel)">
           ${lv.livreur ? `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b>🛵 ${esc(lv.livreur.prenom || 'Votre livreur')}</b> · ${esc(lv.livreur.vehicule)}${lv.livreur.couleur ? ' ' + esc(lv.livreur.couleur) : ''}
@@ -161,9 +188,20 @@ APP.pages.commandes = async () => {
   if (!exigeCompte()) return;
   const l = await q(sb.from('commandes').select('*, restaurants(nom, photo)').eq('client_id', moi.id).order('created_at', { ascending: false }).limit(50));
   vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><h1>Mes commandes</h1>
-    ${l.length ? l.map(c => `<a class="ligne-l" style="text-decoration:none;color:inherit" href="#/suivi/${c.id}">${c.restaurants?.photo ? `<img class="mini" src="${esc(photo(c.restaurants.photo))}" alt="">` : '<div class="mini" style="display:grid;place-items:center;font-size:30px">🍽️</div>'}
-      <div><b>${esc(c.restaurants?.nom || '')}</b> ${tag(ST_CMD[c.statut])}<div class="muted petit">${esc(jourHeure(c.created_at))} · ${eur(c.total)} · ${c.mode === 'livraison' ? '🛵' : '🛍️'}</div></div><span>›</span></a>`).join('')
+    ${l.length ? l.map(c => `<div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center"><a class="ligne-l" style="text-decoration:none;color:inherit;margin:0" href="#/suivi/${c.id}">${c.restaurants?.photo ? `<img class="mini" src="${esc(photo(c.restaurants.photo))}" alt="">` : '<div class="mini" style="display:grid;place-items:center;font-size:30px">🍽️</div>'}
+      <div><b>${esc(c.restaurants?.nom || '')}</b> ${tag(ST_CMD[c.statut])}<div class="muted petit">${esc(jourHeure(c.created_at))} · ${eur(c.total)} · ${c.mode === 'livraison' ? '🛵' : '🛍️'}</div></div><span>›</span></a>
+      <button class="btn btn-s" data-encore="${c.id}" data-resto="${c.restaurant_id}" title="Remettre les mêmes plats dans le panier">🔁 Recommander</button></div>`).join('')
       : '<div class="vide-etat"><div class="ico">🧾</div><h3>Aucune commande pour l’instant</h3><a class="btn btn-p" href="#/manger">Choisir un restaurant</a></div>'}</div>`);
+  $('#app').onclick = async ev => {
+    const b = ev.target.closest('[data-encore]'); if (!b) return;
+    try {
+      const [lignes, plats] = await Promise.all([q(sb.from('commande_lignes').select('plat_id, quantite').eq('commande_id', b.dataset.encore)), q(sb.from('plats').select('id, dispo').eq('restaurant_id', b.dataset.resto))]);
+      const cart = {}; let manquants = 0;
+      lignes.forEach(x => { if (plats.some(p => p.id === x.plat_id && p.dispo)) cart[x.plat_id] = (cart[x.plat_id] || 0) + x.quantite; else manquants++; });
+      panier.ecrire(b.dataset.resto, cart);
+      toast(manquants ? `Panier prêt (${manquants} plat(s) plus disponible(s))` : '🔁 Votre panier est prêt'); aller('#/resto/' + b.dataset.resto);
+    } catch (err) { toast(erreur(err), true); }
+  };
 };
 
 // ---------------------------------------------------------------- espace restaurateur
@@ -172,6 +210,7 @@ APP.pages.pro = async (sous, id) => {
   if (sous === 'resto') return formResto(id === 'nouveau' ? null : id);
   if (sous === 'menu') return pageMenu(id);
   if (sous === 'commandes') return pageCommandesPro();
+  if (sous === 'codes') return pageCodes(id);
   const l = await q(sb.from('restaurants').select('*').eq('owner', moi.id).order('created_at'));
   const dus = l.some(x => x.livreurs_kivora) ? await q(sb.rpc('a_recevoir_livreurs')).catch(() => []) : [];
   vue(`<div class="wrap" style="padding-top:22px">${dus.length ? `<div class="panneau" style="margin-bottom:16px;border-color:var(--jaune)"><h2 style="margin:0 0 8px">💶 À recevoir des livreurs</h2>
@@ -180,7 +219,7 @@ APP.pages.pro = async (sous, id) => {
     ${l.length ? l.map(x => `<div class="ligne-l">${x.photo ? `<img class="mini" src="${esc(photo(x.photo))}" alt="">` : `<div class="mini" style="display:grid;place-items:center;font-size:30px">${CUISINES[x.cuisine]?.[0]}</div>`}
       <div><b>${esc(x.nom)}</b> ${tag(ST_RESTO[x.statut])}<div class="muted petit">${esc(x.commune)} · ${x.livraison ? '🛵' : ''}${x.emporter ? '🛍️' : ''}</div>${x.statut === 'refuse' && x.motif_refus ? `<div class="petit" style="color:var(--rouge)">Motif : ${esc(x.motif_refus)}</div>` : ''}
         ${x.statut === 'publie' ? `<label style="display:flex;gap:8px;align-items:center;margin-top:6px;font-weight:800"><input type="checkbox" data-ouvert="${x.id}" ${x.ouvert ? 'checked' : ''} style="width:22px;height:22px"> ${x.ouvert ? '🟢 Je prends les commandes' : '⚪ Fermé (cochez pour ouvrir)'}</label>` : ''}</div>
-      <div class="actions"><a class="btn btn-s" href="#/pro/menu/${x.id}">🍛 Ma carte</a><a class="btn btn-s" href="#/pro/resto/${x.id}">Modifier</a>
+      <div class="actions"><a class="btn btn-s" href="#/pro/menu/${x.id}">🍛 Ma carte</a><a class="btn btn-s" href="#/pro/codes/${x.id}">🏷️ Codes promo</a><a class="btn btn-s" href="#/pro/resto/${x.id}">Modifier</a>
         ${['brouillon', 'refuse'].includes(x.statut) ? `<button class="btn btn-s btn-p" data-envoi="${x.id}">Envoyer en validation</button>` : ''}
         ${x.statut === 'publie' ? `<button class="btn btn-s" data-pause="${x.id}">Pause</button>` : x.statut === 'pause' ? `<button class="btn btn-s btn-ok" data-reprise="${x.id}">Reprendre</button>` : ''}<a class="btn btn-s" href="#/resto/${x.id}">Voir</a></div></div>`).join('')
       : '<div class="vide-etat"><div class="ico">👩‍🍳</div><h3>Inscrivez votre restaurant</h3><p class="muted">Gratuit pour démarrer. Nous le vérifions (SIRET, hygiène) avant sa mise en ligne.</p><a class="btn btn-p" href="#/pro/resto/nouveau">Inscrire mon restaurant</a></div>'}</div>`);
@@ -268,6 +307,7 @@ async function pageCommandesPro() {
     connues = new Set(l.map(c => c.id));
     const col = (titre, filtre) => { const x = l.filter(filtre); return `<div><h2>${titre} (${x.length})</h2>${x.map(c => `<div class="panneau" style="margin-bottom:12px;padding:14px">
       <div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(c.id.slice(0, 6).toUpperCase())} · ${esc(c.client_nom)}</b>${tag(ST_CMD[c.statut])}</div>
+      ${c.pour_heure ? `<div class="tag att" style="margin:4px 0">⏰ Pour ${esc(jourHeure(c.pour_heure))}</div>` : ''}${Number(c.remise) ? `<div class="petit">🏷️ Code ${esc(c.code_promo)} : −${eur(c.remise)}</div>` : ''}
       <div class="muted petit">${esc(heure(c.created_at))} · ${c.mode === 'livraison' ? `🛵 ${esc(c.adresse)}, ${esc(c.commune)}` : '🛍️ À emporter'} · <a href="${wa(c.telephone, 'Bonjour, ici le restaurant pour votre commande ' + c.id.slice(0, 6).toUpperCase() + ' (Kivora).')}" target="_blank" rel="noopener">${esc(c.telephone)}</a></div>
       <ul style="margin:8px 0;padding-left:18px">${c.commande_lignes.map(x => `<li><b>${x.quantite} ×</b> ${esc(x.nom)}${x.note ? ` <i>(${esc(x.note)})</i>` : ''}</li>`).join('')}</ul>${c.note ? `<p class="petit">📝 ${esc(c.note)}</p>` : ''}${infoLv(lvDe(c))}
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>${eur(c.total)}</b><div class="actions">${(lvDe(c) && ['prete', 'en_livraison'].includes(c.statut) ? [] : SUIVANT[c.statut === 'prete' ? 'prete_' + c.mode : c.statut] || []).map(([s, t, cl]) => `<button class="btn btn-s ${cl}" data-cmd="${c.id}" data-st="${s}">${t}</button>`).join('')}</div></div></div>`).join('') || '<p class="muted">—</p>'}</div>`; };
@@ -296,3 +336,23 @@ async function adminResto() {
   };
 };
 
+
+async function pageCodes(rid) {
+  const [r, l] = await Promise.all([q(sb.from('restaurants').select('nom').eq('id', rid).single()), q(sb.from('codes_resto').select('*').eq('restaurant_id', rid).order('created_at', { ascending: false }))]);
+  vue(`<div class="wrap" style="padding:22px 20px;max-width:860px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>Codes promo · ${esc(r.nom)}</h1>
+    <p class="muted">Partagez un code sur vos réseaux : le client le saisit dans son panier. La remise est à votre charge ; chaque client ne peut l’utiliser qu’une fois.</p>
+    ${l.length ? l.map(k => `<div class="ligne-l" style="grid-template-columns:1fr auto;${k.actif ? '' : 'opacity:.55'}"><div><b class="mono" style="font-size:18px">${esc(k.code)}</b> · ${k.type === 'pct' ? `−${Number(k.valeur)} %` : `−${eur(k.valeur)}`}
+      <div class="muted petit">${Number(k.minimum) ? `dès ${eur(k.minimum)} · ` : ''}${k.expire_le ? `jusqu’au ${esc(new Date(k.expire_le + 'T12:00').toLocaleDateString('fr-FR'))} · ` : ''}${k.utilisations} utilisation(s)${k.max_utilisations ? ' / ' + k.max_utilisations : ''}</div></div>
+      <button class="btn btn-s ${k.actif ? 'btn-ko' : 'btn-ok'}" data-code="${k.id}" data-actif="${!k.actif}">${k.actif ? 'Désactiver' : 'Réactiver'}</button></div>`).join('') : '<p class="muted">Aucun code pour l’instant.</p>'}
+    <form class="f panneau" id="fCode" style="margin-top:16px"><h2 style="margin:0">Nouveau code</h2>
+      <div class="ligne3"><label>Code<input name="code" required pattern="[A-Za-z0-9]{3,20}" placeholder="BIENVENUE10" style="text-transform:uppercase"></label><label>Type<select name="type"><option value="pct">Pourcentage (%)</option><option value="eur">Montant (€)</option></select></label>
+        <label>Valeur<input name="valeur" type="number" min="0.5" max="90" step="0.5" required value="10"></label></div>
+      <div class="ligne3"><label>Commande minimum (€)<input name="minimum" type="number" min="0" step="0.5" value="0"></label><label>Valable jusqu’au <span class="aide">(facultatif)</span><input name="expire_le" type="date"></label>
+        <label>Nombre max. d’utilisations <span class="aide">(facultatif)</span><input name="max" type="number" min="1"></label></div><button class="btn btn-p">Créer le code</button></form></div>`);
+  $('#fCode').addEventListener('submit', async e => {
+    e.preventDefault(); const d = Object.fromEntries(new FormData(e.target));
+    try { await q(sb.from('codes_resto').insert({ restaurant_id: rid, code: d.code.trim().toUpperCase(), type: d.type, valeur: +d.valeur, minimum: +d.minimum || 0, expire_le: d.expire_le || null, max_utilisations: d.max ? +d.max : null })); toast('Code créé.'); pageCodes(rid); }
+    catch (err) { toast(/duplicate|unique/i.test(err.message) ? 'Ce code existe déjà.' : erreur(err), true); }
+  });
+  $('#app').onclick = async e => { const b = e.target.closest('[data-code]'); if (!b) return; try { await q(sb.from('codes_resto').update({ actif: b.dataset.actif === 'true' }).eq('id', b.dataset.code)); pageCodes(rid); } catch (err) { toast(erreur(err), true); } };
+}

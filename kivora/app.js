@@ -1,7 +1,7 @@
 /* Kivora — l'appli du quotidien : « Manger » (repas.js) et trajets « Woulib » (woulib.js), un seul compte.
    Ce fichier : APP, accueil, espace pro, compte, onglets d'administration. Base commune : commun/base.js. */
 'use strict';
-const ZONE_WOULIB = /^#\/(woulib|course|courses|chauffeur|livraison|admin\/woulib)\b/;
+const ZONE_WOULIB = /^#\/(woulib|course|courses|chauffeur|livraison|partage|admin\/woulib)\b/;
 
 const APP = {
   nom: 'Kivora', titre: 'Kivora — repas livrés et chauffeurs Woulib', accueilConnecte: '#/', pourTel: 'que le restaurant ou le chauffeur puisse vous joindre',

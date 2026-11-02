@@ -30,7 +30,7 @@ APP.pages.woulib = async () => {
         <label>Territoire<select name="territoire" id="terr">${optsTerritoires(terr).replace(/<option[^>]*>Autre pays<\/option>/, '')}</select></label>
         ${['depart', 'arrivee'].map(k => `<div><label>${k === 'depart' ? '🟢 Départ' : '🏁 Arrivée'}<div style="display:flex;gap:6px"><input id="${k}" placeholder="${k === 'depart' ? 'Adresse, lieu, hôtel…' : 'Où allez-vous ?'}" autocomplete="off" maxlength="200" style="flex:1">
           <button type="button" class="btn btn-s" data-chercher="${k}" aria-label="Chercher">🔎</button></div></label><div id="res-${k}" class="petit"></div>
-          <div class="puces" style="margin:6px 0 0">${k === 'depart' ? '<a href="#" data-mapos="1">📍 Ma position</a>' : ''}<a href="#" data-aero="${k}">✈️ Aéroport</a></div></div>`).join('')}
+          <div class="puces" style="margin:6px 0 0">${k === 'depart' ? '<a href="#" data-mapos="1">📍 Ma position</a>' : ''}<a href="#" data-aero="${k}">✈️ Aéroport</a><span class="favs puces" data-pour="${k}" style="display:contents"></span></div></div>`).join('')}
         <div class="types" id="cats">${Object.entries(CATS).map(([k, [i, t, d]]) => `<button type="button" class="type" data-cat="${k}" style="text-align:left;cursor:pointer"><span><b>${i} ${t}</b><div class="muted petit">${d}</div></span><span class="prix" id="px-${k}">—</span></button>`).join('')}</div>
         <div class="ligne2"><label>Passagers<input name="passagers" type="number" min="1" max="8" value="1"></label><label>Bagages<input name="bagages" type="number" min="0" max="10" value="0"></label></div>
         <label>Quand ?<select name="quand"><option value="">Maintenant</option><option value="plus">Plus tard</option></select></label><div id="heure"></div>
@@ -60,7 +60,11 @@ APP.pages.woulib = async () => {
     else if (m.length) carte.setView(m[0].getLatLng(), 14);
     else { const c = CENTRES[terr] || CENTRES.Martinique; carte.setView([c[0], c[1]], c[2]); }
   };
-  const choisir = (k, p) => { pts[k] = p; $('#' + k).value = p.nom.split(',').slice(0, 3).join(','); $('#res-' + k).innerHTML = ''; dessinerCarte(); estimer(); };
+  // adresses favorites (maison, travail…) gardées sur cet appareil
+  const lireFav = () => { try { return JSON.parse(localStorage.getItem('kvAdresses')) || []; } catch (e) { return []; } };
+  const ecrireFav = l => { try { localStorage.setItem('kvAdresses', JSON.stringify(l.slice(0, 8))); } catch (e) { /* stockage indisponible */ } };
+  const majFav = () => { document.querySelectorAll('.favs').forEach(z => { z.innerHTML = lireFav().filter(f => f.terr === terr).map((f, i) => `<a href="#" data-fav="${i}" data-pour="${z.dataset.pour}">${esc(f.icone)} ${esc(f.titre)}</a>`).join(''); }); };
+  const choisir = (k, p) => { pts[k] = p; $('#' + k).value = p.nom.split(',').slice(0, 3).join(','); $('#res-' + k).innerHTML = `<button type="button" class="lien petit" data-enreg="${k}">☆ Enregistrer ce lieu</button>`; dessinerCarte(); estimer(); };
   const chercher = async k => {
     const t = $('#' + k).value.trim(); if (t.length < 3) return toast('Écrivez au moins 3 lettres.', true);
     $('#res-' + k).textContent = 'Recherche…';
@@ -81,8 +85,17 @@ APP.pages.woulib = async () => {
       navigator.geolocation.getCurrentPosition(p => choisir('depart', { nom: 'Ma position', lat: p.coords.latitude, lng: p.coords.longitude }), () => toast('Autorisez la localisation ou écrivez l’adresse.', true), { enableHighAccuracy: true, timeout: 12000 });
     }
     if (ct) { cat = ct.dataset.cat; majTotal(); }
+    const fv = ev.target.closest('[data-fav]'), en = ev.target.closest('[data-enreg]');
+    if (fv) { ev.preventDefault(); const f = lireFav().filter(x => x.terr === terr)[fv.dataset.fav]; if (f) choisir(fv.dataset.pour, { nom: f.nom, lat: f.lat, lng: f.lng }); }
+    if (en) {
+      const p = pts[en.dataset.enreg]; if (!p) return;
+      const titre = prompt('Nom de ce lieu (ex. Maison, Travail, Maman) :', ''); if (!titre) return;
+      const icone = /maison|chez/i.test(titre) ? '🏠' : /travail|bureau|boulot/i.test(titre) ? '💼' : '⭐';
+      ecrireFav([{ titre: titre.slice(0, 20), icone, nom: p.nom, lat: p.lat, lng: p.lng, terr }, ...lireFav().filter(x => x.titre !== titre.slice(0, 20))]); majFav(); toast('Lieu enregistré sur cet appareil.');
+    }
   });
-  $('#terr').addEventListener('change', e => { terr = e.target.value; terrPrefere(terr); pts.depart = pts.arrivee = null; $('#depart').value = $('#arrivee').value = ''; dessinerCarte(); estimer(); });
+  majFav();
+  $('#terr').addEventListener('change', e => { terr = e.target.value; terrPrefere(terr); pts.depart = pts.arrivee = null; $('#depart').value = $('#arrivee').value = ''; dessinerCarte(); estimer(); majFav(); });
   $('#fRes').quand.addEventListener('change', e => {
     $('#heure').innerHTML = e.target.value ? `<label>Date et heure <span class="aide">(heure de ${esc(terr)})</span><input name="heure" type="datetime-local" required min="${utcVersLocal(new Date().toISOString(), fuseauDe(terr))}"></label>` : '';
   });
@@ -103,7 +116,7 @@ APP.pages.woulib = async () => {
 // ---------------------------------------------------------------- suivi d'une course (client et chauffeur)
 APP.pages.course = async id => {
   if (!exigeCompte()) return;
-  let L = null, carte = null, calques = null, cadre = false, avisFait = null;
+  let L = null, carte = null, calques = null, cadre = false, avisFait = null, sos = false;   // sos : panneau d'urgence ouvert (gardé au rafraîchissement)
   const dessiner = async () => {
     const [r] = await q(sb.rpc('detail_course', { cid: id }));
     const c = r.course, ch = r.chauffeur, client = c.client_id === moi.id;
@@ -125,7 +138,9 @@ APP.pages.course = async id => {
       <div class="actions">${!client && c.telephone ? `<a class="btn btn-s btn-wa" href="${wa(c.telephone, 'Bonjour, votre chauffeur Woulib ici.')}" target="_blank" rel="noopener">WhatsApp au client</a><a class="btn btn-s" href="tel:${esc(c.telephone)}">📞 Appeler</a>` : ''}
         ${client && ch?.telephone && ACTIVES.includes(c.statut) ? `<a class="btn btn-s btn-wa" href="${wa(ch.telephone, 'Bonjour, votre client Woulib ici.')}" target="_blank" rel="noopener">WhatsApp au chauffeur</a><a class="btn btn-s" href="tel:${esc(ch.telephone)}">📞 Appeler</a>` : ''}
         ${!client ? boutonsChauffeur(c) : ''}
-        ${client && ['demande', 'acceptee', 'en_route'].includes(c.statut) ? '<button class="btn btn-s btn-ko" data-av="annulee">Annuler</button>' : ''}</div></div>
+        ${client && ['demande', 'acceptee', 'en_route'].includes(c.statut) ? '<button class="btn btn-s btn-ko" data-av="annulee">Annuler</button>' : ''}</div>
+      ${client && !fini && c.statut !== 'terminee' ? `<div class="actions" style="margin-top:10px"><button class="btn btn-s btn-j" id="partager">📤 Partager mon trajet</button><button class="btn btn-s btn-ko" id="sos">🆘 Urgence</button></div>
+        <div id="sosZone">${sos ? panneauSos() : ''}</div>` : ''}</div>
       ${client && c.statut === 'terminee' && !avisFait ? `<form class="f panneau" id="fAvis" style="margin-top:16px"><h2 style="margin:0">Comment s’est passé le trajet ?</h2><label>Note<select name="note">${[5, 4, 3, 2, 1].map(n => `<option value="${n}">${'⭐'.repeat(n)}</option>`).join('')}</select></label>
         <label>Votre avis<textarea name="texte" maxlength="1000" style="min-height:70px"></textarea></label><button class="btn btn-p">Envoyer</button></form>` : ''}`;
     $('#fAvis')?.addEventListener('submit', async e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); try { await q(sb.from('avis_course').insert({ course_id: id, note: +d.note, texte: d.texte.trim() })); avisFait = true; toast('Merci !'); dessiner(); } catch (err) { toast(erreur(err), true); } });
@@ -140,7 +155,16 @@ APP.pages.course = async id => {
     if (fini || c.statut === 'terminee') { clearInterval(minuterie); minuterie = null; }
   };
   await dessiner();
+  const lienPartage = async () => { const j = await q(sb.rpc('partager_course', { cid: id })); return `${location.origin}${location.pathname}#/partage/${j}`; };
   $('#app').onclick = async ev => {
+    if (ev.target.id === 'partager') {
+      try { const u = await lienPartage(), txt = 'Suis mon trajet Woulib en direct : ' + u;
+        if (navigator.share) await navigator.share({ title: 'Mon trajet Woulib', text: txt }).catch(() => {}); else { await navigator.clipboard?.writeText(u).catch(() => {}); window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener'); }
+      } catch (err) { toast(erreur(err), true); } return;
+    }
+    if (ev.target.id === 'sos') {
+      sos = true; $('#sosZone').innerHTML = panneauSos(); return;
+    }
     const b = ev.target.closest('[data-av]'); if (!b) return;
     if (['annulee', 'demande'].includes(b.dataset.av) && !confirm(b.dataset.av === 'demande' ? 'Vous désister de cette course ?' : 'Annuler la course ?')) return;
     b.disabled = true;
@@ -148,6 +172,9 @@ APP.pages.course = async id => {
   };
   clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/course/') && !document.hidden) dessiner().catch(() => {}); }, 8000);
 };
+const panneauSos = () => `<div class="panneau" style="margin-top:10px;border-color:var(--rouge)"><b>🆘 En cas de danger, appelez les secours :</b><div class="actions" style="margin-top:8px">
+  <a class="btn btn-ko" href="tel:17">📞 Police 17</a><a class="btn btn-ko" href="tel:112">📞 Urgence 112</a><a class="btn btn-ko" href="tel:15">📞 SAMU 15</a></div>
+  <p class="petit" style="margin:8px 0 0">Envoyez aussi votre trajet en direct à un proche :</p><button class="btn btn-s btn-j" id="partager">📤 Partager mon trajet</button></div>`;
 const boutonsChauffeur = c => ({ acceptee: [['en_route', '🚗 Je pars', 'btn-p'], ['demande', 'Me désister', 'btn-ko']], en_route: [['arrivee', '📍 Je suis arrivé', 'btn-p'], ['demande', 'Me désister', 'btn-ko']],
   arrivee: [['a_bord', '🛣️ Client à bord', 'btn-ok'], ['annulee', 'Client absent', 'btn-ko']], a_bord: [['terminee', '🏁 Terminer la course', 'btn-ok']] }[c.statut] || [])
   .map(([s, t, cl]) => `<button class="btn btn-s ${cl}" data-av="${s}">${t}</button>`).join('');
@@ -340,3 +367,27 @@ async function adminWoulib() {
   });
 };
 
+
+// ---------------------------------------------------------------- suivi partagé (sans compte) : un proche suit le trajet en direct
+APP.pages.partage = async jeton => {
+  let L = null;
+  const dessiner = async () => {
+    const c = await q(sb.rpc('course_partagee', { jeton }));
+    const ch = c.chauffeur, fini = ['terminee', 'annulee', 'expiree'].includes(c.statut);
+    vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><div class="panneau"><span class="px">Trajet partagé par ${esc(c.passager || 'un passager')}</span>
+      <h1 style="margin:6px 0;font-size:24px">${esc(c.depart)} → ${esc(c.arrivee)}</h1><p><b>${{ demande: '🔎 Recherche d’un chauffeur', acceptee: '👍 Chauffeur trouvé', en_route: '🚗 Le chauffeur arrive', arrivee: '📍 Chauffeur sur place', a_bord: '🛣️ En route vers la destination', terminee: '🏁 Arrivé à destination', annulee: '❌ Course annulée', expiree: '⌛ Course expirée' }[c.statut]}</b>
+        <span class="muted petit"> · mis à jour ${esc(heure(c.maj_at))}</span></p>
+      ${ch ? `<p>🧑‍✈️ ${esc(ch.prenom || 'Chauffeur')} · ${esc(ch.vehicule)}${ch.couleur ? ' ' + esc(ch.couleur) : ''} · <b>${esc(ch.immatriculation || '')}</b></p>` : ''}
+      <div id="carteP" style="height:360px;border-radius:20px;background:var(--rose-doux)"></div>
+      <p class="muted petit">Lien valable pendant le trajet et 1 heure après. Woulib ne montre ni téléphone ni adresse exacte du passager.</p></div></div>`);
+    try {
+      L = L || await chargerCarte();
+      const pts = [[c.depart_pos, '🟢', 'Départ'], [c.arrivee_pos, '🏁', 'Arrivée'], [ch?.lat != null ? [ch.lat, ch.lng] : null, '🚗', 'Chauffeur']].filter(([p]) => p && p[0] != null)
+        .map(([p, e, t]) => L.marker(p, { icon: L.divIcon({ html: `<span style="font-size:28px">${e}</span>`, className: '', iconSize: [32, 32], iconAnchor: [16, 16] }) }).bindTooltip(t));
+      const carte = fondCarte(L, $('#carteP'), pts[0].getLatLng(), 12); pts.forEach(m => m.addTo(carte)); carte.fitBounds(L.featureGroup(pts).getBounds().pad(0.25));
+    } catch (e) { /* carte facultative */ }
+    if (fini) { clearInterval(minuterie); minuterie = null; }
+  };
+  try { await dessiner(); } catch (err) { return vue(`<div class="wrap vide-etat" style="margin-top:30px"><h3>${esc(erreur(err))}</h3><a class="btn" href="#/">Découvrir Kivora</a></div>`); }
+  clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/partage/') && !document.hidden) dessiner().catch(() => {}); }, 10000);
+};
