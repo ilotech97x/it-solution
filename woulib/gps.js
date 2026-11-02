@@ -57,7 +57,7 @@ function arreterGuidage() {
 }
 
 APP.pages.gps = async () => {
-  arreterGuidage();
+  arreterGuidage(); await chargerRegistre();
   const p = param(), dest = p.lat && p.lng ? { lat: Number(p.lat), lng: Number(p.lng), nom: p.nom || 'Destination' } : null;
   vue(`<div class="gps"><div id="gpsCarte"></div>
     <div class="gps-haut" id="gpsHaut">${dest ? '<div class="gps-consigne"><span class="gps-fl">🧭</span><div><b>Recherche de votre position…</b><span class="petit">Autorisez la localisation</span></div></div>' : ''}</div>
@@ -111,7 +111,7 @@ async function voter(id, oui) {
   catch (err) { toast(erreur(err), true); }
 }
 async function chargerAlertes() {
-  const g = guidage; if (!g?.pos) return;
+  const g = guidage; if (!g?.pos || !BASE_V2) return;
   g.alertes = await q(sb.rpc('signalements_proches', { plat: g.pos[0], plng: g.pos[1], rayon_km: 40 })).catch(() => g.alertes);
   if (guidage !== g) return;
   g.calques.clearLayers();
@@ -202,5 +202,5 @@ function majBas(reste, duree) {
   $('#gpsBas').innerHTML = `<div class="gps-infos">${reste != null ? `<div><b>${arr ? esc(heure(arr.toISOString())) : '—'}</b><span>arrivée</span></div><div><b>${Math.max(1, Math.round((duree || 0) / 60))} min</b><span>${enDistance(reste)}</span></div>` : `<div><b>${esc(g.dest.nom)}</b><span>calcul de l’itinéraire…</span></div>`}
     ${g.vitesse != null ? `<div class="gps-vitesse"><b>${g.vitesse}</b><span>km/h</span></div>` : ''}</div>${outils(g)}`;
 }
-const outils = g => `<div class="gps-outils"><button class="btn btn-s btn-j" data-gps="signaler">⚠️ Signaler</button><button class="btn btn-s" data-gps="voix" aria-pressed="${g.voix}">${g.voix ? '🔊 Voix' : '🔇 Muet'}</button>
+const outils = g => `<div class="gps-outils">${BASE_V2 ? '<button class="btn btn-s btn-j" data-gps="signaler">⚠️ Signaler</button>' : ''}<button class="btn btn-s" data-gps="voix" aria-pressed="${g.voix}">${g.voix ? '🔊 Voix' : '🔇 Muet'}</button>
   ${g.suivre ? '' : '<button class="btn btn-s" data-gps="centrer">🎯 Recentrer</button>'}<button class="btn btn-s btn-ko" data-gps="stop">✕ ${g.dest ? 'Arrêter' : 'Fermer'}</button></div>`;

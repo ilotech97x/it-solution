@@ -7,15 +7,18 @@
 // univers déclarés par leur fichier .js : code → { routes, zone, accueil, pro }
 const MODULES = {};
 function declarerUnivers(code, m) { MODULES[code] = m; }
-// registre lu dans la base (statut, ouverture par territoire) ; repli si la base ne répond pas
-let REGISTRE = null;
-const REPLI = [['food', '🍛', 'Woulib Food', 'actif'], ['move', '🚗', 'Woulib Move', 'actif'], ['events', '🎟️', 'Woulib Events', 'externe', '../pass/'], ['living', '🏡', 'Woulib Living', 'externe', 'https://immo.ilo-tech.com/']]
+// registre lu dans la base (statut, ouverture par territoire) ; repli si la base ne répond pas.
+// BASE_V2 : la base a reçu univers.sql, move.sql et food.sql à jour (sinon les fonctions qui en dépendent restent masquées)
+let REGISTRE = null, BASE_V2 = false;
+const REPLI = [['food', '🍛', 'Woulib Food', 'actif'], ['move', '🚗', 'Woulib Move', 'actif'], ['express', '📦', 'Woulib Express', 'bientot'], ['market', '🛍️', 'Woulib Market', 'bientot'],
+  ['daily', '🧺', 'Woulib Daily', 'bientot'], ['services', '🔧', 'Woulib Services', 'bientot'], ['experiences', '🌴', 'Woulib Experiences', 'bientot'], ['events', '🎟️', 'Woulib Events', 'externe', '../pass/'],
+  ['rental', '🚙', 'Woulib Rental', 'bientot'], ['living', '🏡', 'Woulib Living', 'externe', 'https://immo.ilo-tech.com/'], ['ai', '🤖', 'Woulib AI', 'bientot']]
   .map(([code, icone, nom, statut, lien], i) => ({ code, icone, nom, statut, lien, description: '', ordre: i, fermes: [] }));
 async function chargerRegistre() {
   if (REGISTRE) return REGISTRE;
   try {
     const [u, t] = await Promise.all([q(sb.from('univers').select('*').order('ordre')), q(sb.from('univers_territoires').select('univers, territoire, actif'))]);
-    REGISTRE = u.map(x => ({ ...x, fermes: t.filter(y => y.univers === x.code && !y.actif).map(y => y.territoire) }));
+    REGISTRE = u.map(x => ({ ...x, fermes: t.filter(y => y.univers === x.code && !y.actif).map(y => y.territoire) })); BASE_V2 = true;
   } catch (e) { REGISTRE = REPLI; }
   return REGISTRE;
 }
@@ -98,11 +101,12 @@ APP.pages.compte = async () => {
 };
 
 // ---------------------------------------------------------------- administration : chaque univers a son onglet ; les modérateurs ne voient que le leur
-const ongletsAdmin = actif => `<h1>Administration</h1><div class="puces">${[['resto', '#/admin', '🍛 Food : restaurants', 'food'], ['woulib', '#/admin/woulib', '🚗 Move : chauffeurs et tarifs', 'move'], ['univers', '#/admin/univers', '🧩 Univers et territoires', null]]
+const ongletsAdmin = actif => `<h1>Administration</h1><div class="puces">${[['resto', '#/admin', '🍛 Food : restaurants', 'food'], ['woulib', '#/admin/woulib', '🚗 Move : chauffeurs et tarifs', 'move'], ...(BASE_V2 ? [['univers', '#/admin/univers', '🧩 Univers et territoires', null]] : [])]
   .filter(([, , , u]) => profil?.role === 'admin' || (u && mesModerations.includes(u))).map(([k, h, t]) => `<a href="${h}" class="${actif === k ? 'on' : ''}">${t}</a>`).join('')}</div>`;
 let mesModerations = [];
 APP.pages.admin = async sous => {
   if (!exigeCompte()) return;
+  await chargerRegistre();
   mesModerations = (await q(sb.from('moderateurs_univers').select('univers').eq('user_id', moi.id)).catch(() => [])).map(x => x.univers);
   if (sous === 'univers') return adminUnivers();
   if (sous === 'woulib' || (profil?.role !== 'admin' && !mesModerations.includes('food') && mesModerations.includes('move'))) return adminWoulib();

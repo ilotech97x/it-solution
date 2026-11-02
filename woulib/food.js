@@ -80,7 +80,7 @@ const carteResto = (x, n) => { const e = etatOuverture(x); return `<a class="ev"
 
 // ---------------------------------------------------------------- restaurant : carte et panier
 APP.pages.resto = async id => {
-  attente();
+  attente(); await chargerRegistre();
   const r = await q(sb.from('restaurants').select('*').eq('id', id).maybeSingle());
   if (!r) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Restaurant introuvable</h3><a href="#/manger">Tous les restaurants</a></div>');
   const [plats, n] = await Promise.all([q(sb.from('plats').select('*').eq('restaurant_id', id).order('ordre').order('created_at')), q(sb.from('notes_resto').select('*').eq('restaurant_id', id))]);
@@ -136,7 +136,7 @@ APP.pages.resto = async id => {
     if (codeOk && remise > st) remise = st;
     $('#lignes').innerHTML = l.length ? l.map(x => `<div class="ligne-panier"><span>${x.n} × ${esc(x.p.nom)}${x.lib ? `<small>${esc(x.lib)}</small>` : ''}</span>
       <span class="ln-d"><b>${eur(x.pu * x.n)}</b><button type="button" data-l="${esc(x.k)}" data-d="-1" aria-label="Retirer un ${esc(x.p.nom)}">−</button><button type="button" data-l="${esc(x.k)}" data-d="1" aria-label="Ajouter un ${esc(x.p.nom)}">+</button></span></div>`).join('') : '<p class="muted">Ajoutez des plats avec le bouton +.</p>';
-    $('#pourboire').innerHTML = l.length && mode === 'livraison' ? `<div class="pourboire"><span class="petit"><b>Pourboire pour le livreur</b> <span class="aide">(facultatif, 100 % pour lui)</span></span>
+    $('#pourboire').innerHTML = BASE_V2 && l.length && mode === 'livraison' ? `<div class="pourboire"><span class="petit"><b>Pourboire pour le livreur</b> <span class="aide">(facultatif, 100 % pour lui)</span></span>
       <div class="actions">${[0, 1, 2, 3, 5].map(v => `<button type="button" class="btn btn-s ${tip === v ? 'btn-p' : ''}" data-tip="${v}">${v ? eur(v) : 'Non merci'}</button>`).join('')}</div></div>` : '';
     $('#totaux').innerHTML = l.length ? `<div class="muted petit">Sous-total ${eur(st)}${remise ? ` · code ${esc(codeOk)} −${eur(remise)}` : ''}${mode === 'livraison' ? ` · livraison ${frais ? eur(frais) : 'offerte'}` : ''}${pb ? ` · pourboire ${eur(pb)}` : ''}</div><div style="font:700 24px var(--titres)">Total ${eur(st - remise + frais + pb)}</div>
       ${st < r.minimum ? `<p class="petit" style="color:var(--rouge);margin:0">Minimum de commande : ${eur(r.minimum)}</p>` : ''}` : '';
@@ -217,7 +217,7 @@ APP.pages.resto = async id => {
       // position de l'adresse pour guider le livreur (facultative : la commande part même si la recherche échoue)
       const pos = mode === 'livraison' ? (await geocoder(`${d.adresse}, ${d.commune}`, r.territoire).catch(() => []))[0] : null;
       const c = await q(sb.rpc('passer_commande', { resto: id, mode_cmd: mode, lignes, adresse_cmd: d.adresse || null, commune_cmd: d.commune || null, telephone_cmd: d.telephone.trim(), note_cmd: d.note || null,
-        lat_cmd: pos?.lat ?? null, lng_cmd: pos?.lng ?? null, heure_cmd: d.heure ? localVersUTC(d.heure, fuseauR) : null, code_cmd: codeOk, pourboire_cmd: mode === 'livraison' && tip ? tip : null }));
+        lat_cmd: pos?.lat ?? null, lng_cmd: pos?.lng ?? null, heure_cmd: d.heure ? localVersUTC(d.heure, fuseauR) : null, code_cmd: codeOk, ...(BASE_V2 ? { pourboire_cmd: mode === 'livraison' && tip ? tip : null } : {}) }));
       cart = {}; panier.ecrire(id, cart); toast('🎉 Commande envoyée !'); aller('#/suivi/' + c.id);
     } catch (err) { toast(erreur(err), true); b.disabled = false; }
   });
@@ -226,9 +226,10 @@ APP.pages.resto = async id => {
 // ---------------------------------------------------------------- suivi et historique (client)
 APP.pages.suivi = async id => {
   if (!exigeCompte()) return;
+  await chargerRegistre();
   let L = null;
   const dessiner = async () => {
-    const c = await q(sb.from('commandes').select('*, restaurants(nom, telephone, adresse, commune), commande_lignes(nom, prix, quantite, options)').eq('id', id).maybeSingle());
+    const c = await q(sb.from('commandes').select('*, restaurants(nom, telephone, adresse, commune), commande_lignes(*)').eq('id', id).maybeSingle());
     if (!c) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Commande introuvable</h3></div>');
     const lv = c.mode === 'livraison' ? await q(sb.rpc('suivi_livraison', { cmd: id })).catch(() => null) : null;
     const lvActive = lv && ['acceptee', 'au_restaurant', 'recuperee'].includes(lv.statut);
@@ -283,7 +284,7 @@ APP.pages.commandes = async () => {
   $('#app').onclick = async ev => {
     const b = ev.target.closest('[data-encore]'); if (!b) return;
     try {
-      const [lignes, plats] = await Promise.all([q(sb.from('commande_lignes').select('plat_id, quantite').eq('commande_id', b.dataset.encore)), q(sb.from('plats').select('id, dispo, options').eq('restaurant_id', b.dataset.resto))]);
+      const [lignes, plats] = await Promise.all([q(sb.from('commande_lignes').select('plat_id, quantite').eq('commande_id', b.dataset.encore)), q(sb.from('plats').select('*').eq('restaurant_id', b.dataset.resto))]);
       const cart = {}; let manquants = 0, aChoisir = 0;
       lignes.forEach(x => {
         const p = plats.find(y => y.id === x.plat_id && y.dispo);
@@ -299,6 +300,7 @@ APP.pages.commandes = async () => {
 // ---------------------------------------------------------------- espace restaurateur
 APP.pages.pro = async (sous, id) => {
   if (!exigeCompte()) return;
+  await chargerRegistre();
   if (sous === 'resto') return formResto(id === 'nouveau' ? null : id);
   if (sous === 'menu') return pageMenu(id);
   if (sous === 'commandes') return pageCommandesPro();
@@ -312,7 +314,7 @@ APP.pages.pro = async (sous, id) => {
     ${l.length ? l.map(x => `<div class="ligne-l">${x.photo ? `<img class="mini" src="${esc(photo(x.photo))}" alt="">` : `<div class="mini" style="display:grid;place-items:center;font-size:30px">${CUISINES[x.cuisine]?.[0]}</div>`}
       <div><b>${esc(x.nom)}</b> ${tag(ST_RESTO[x.statut])}<div class="muted petit">${esc(x.commune)} · ${x.livraison ? '🛵' : ''}${x.emporter ? '🛍️' : ''}</div>${x.statut === 'refuse' && x.motif_refus ? `<div class="petit" style="color:var(--rouge)">Motif : ${esc(x.motif_refus)}</div>` : ''}
         ${x.statut === 'publie' ? `<label style="display:flex;gap:8px;align-items:center;margin-top:6px;font-weight:800"><input type="checkbox" data-ouvert="${x.id}" ${x.ouvert ? 'checked' : ''} style="width:22px;height:22px"> ${x.ouvert ? (x.horaires_sem && Object.keys(x.horaires_sem).length ? '🟢 Commandes activées (selon mes horaires)' : '🟢 Je prends les commandes') : '⚪ Fermé (cochez pour ouvrir)'}</label>` : ''}</div>
-      <div class="actions"><a class="btn btn-s" href="#/pro/menu/${x.id}">🍛 Ma carte</a><a class="btn btn-s" href="#/pro/codes/${x.id}">🏷️ Codes promo</a><a class="btn btn-s" href="#/pro/stats/${x.id}">📊 Chiffres</a><a class="btn btn-s" href="#/pro/resto/${x.id}">Modifier</a>
+      <div class="actions"><a class="btn btn-s" href="#/pro/menu/${x.id}">🍛 Ma carte</a><a class="btn btn-s" href="#/pro/codes/${x.id}">🏷️ Codes promo</a>${BASE_V2 ? `<a class="btn btn-s" href="#/pro/stats/${x.id}">📊 Chiffres</a>` : ''}<a class="btn btn-s" href="#/pro/resto/${x.id}">Modifier</a>
         ${['brouillon', 'refuse'].includes(x.statut) ? `<button class="btn btn-s btn-p" data-envoi="${x.id}">Envoyer en validation</button>` : ''}
         ${x.statut === 'publie' ? `<button class="btn btn-s" data-pause="${x.id}">Pause</button>` : x.statut === 'pause' ? `<button class="btn btn-s btn-ok" data-reprise="${x.id}">Reprendre</button>` : ''}<a class="btn btn-s" href="#/resto/${x.id}">Voir</a></div></div>`).join('')
       : '<div class="vide-etat"><div class="ico">👩‍🍳</div><h3>Inscrivez votre restaurant</h3><p class="muted">Gratuit pour démarrer. Nous le vérifions (SIRET, hygiène) avant sa mise en ligne.</p><a class="btn btn-p" href="#/pro/resto/nouveau">Inscrire mon restaurant</a></div>'}</div>`);
@@ -333,10 +335,10 @@ async function formResto(id) {
       <label>Présentation<textarea name="description" maxlength="1500" placeholder="Votre histoire, vos spécialités, vos produits…">${esc(r.description)}</textarea></label>
       <div class="ligne3"><label>Territoire<select name="territoire" data-villes="villesR">${optsTerritoires(r.territoire)}</select></label><label>Ville<input name="commune" required maxlength="60" list="villesR" value="${esc(r.commune)}">${listeVilles('villesR', r.territoire)}</label><label>Adresse<input name="adresse" maxlength="200" value="${esc(r.adresse || '')}"></label></div>
       <label>Téléphone du restaurant<input name="telephone" type="tel" pattern="[0-9 +]{6,20}" value="${esc(r.telephone || '')}"></label>
-      <div class="panneau" style="padding:14px"><b>🕒 Horaires d’ouverture</b><p class="aide" style="margin:4px 0 10px">Exemple : « 11:00-14:00, 18:00-22:00 ». Vide = fermé ce jour-là. Woulib ouvre et ferme vos commandes tout seul ;
+      ${BASE_V2 ? `      <div class="panneau" style="padding:14px"><b>🕒 Horaires d’ouverture</b><p class="aide" style="margin:4px 0 10px">Exemple : « 11:00-14:00, 18:00-22:00 ». Vide = fermé ce jour-là. Woulib ouvre et ferme vos commandes tout seul ;
         en dehors des horaires, vos clients peuvent programmer leur commande. Laissez tout vide pour ouvrir et fermer vous-même.</p>
         <div class="horaires-g">${SEMAINE.map(j => `<label>${JOURS[j]}<input name="h${j}" value="${esc(texteCreneaux(r.horaires_sem?.[j]))}" placeholder="Fermé" autocomplete="off"></label>`).join('')}</div>
-        <button type="button" class="btn btn-s" id="copierH" style="margin-top:10px">Copier le lundi sur toute la semaine</button></div>
+        <button type="button" class="btn btn-s" id="copierH" style="margin-top:10px">Copier le lundi sur toute la semaine</button></div>` : `<label>Horaires<input name="horaires" maxlength="200" value="${esc(r.horaires || '')}" placeholder="Lun–Sam 11 h–14 h, 18 h–22 h"></label>`}
       <div class="ligne3"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="livraison" ${r.livraison ? 'checked' : ''} style="width:auto"> 🛵 Je livre</label><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="emporter" ${r.emporter ? 'checked' : ''} style="width:auto"> 🛍️ À emporter</label><label>Délai moyen (min)<input name="delai_min" type="number" min="5" max="240" value="${r.delai_min}"></label></div>
       <div class="ligne3"><label>Frais de livraison (€)<input name="frais_livraison" type="number" min="0" max="100" step="0.5" value="${r.frais_livraison}"></label><label>Commande minimum (€)<input name="minimum" type="number" min="0" max="500" value="${r.minimum}"></label>
         <label>Villes livrées <span class="aide">(virgules ; vide = toutes)</span><input name="villes" maxlength="400" value="${esc(r.communes_livrees.join(', '))}"></label></div>
@@ -348,21 +350,21 @@ async function formResto(id) {
       <div class="actions"><button class="btn btn-p" value="en_attente">${id && r.statut === 'publie' ? 'Enregistrer' : 'Enregistrer et envoyer en validation'}</button>${!id || r.statut !== 'publie' ? '<button class="btn" value="brouillon">Brouillon</button>' : ''}</div></form></div>`);
   const ap = () => { $('#apercu').innerHTML = ph ? `<img src="${esc(photo(ph))}" alt="" style="border-radius:16px">` : ''; }; ap();
   brancherVilles(document.querySelector('#fR [name=territoire]'), 'villesR');
-  $('#copierH').addEventListener('click', () => { const v = $('#fR').h1.value; SEMAINE.forEach(j => { $('#fR')['h' + j].value = v; }); });
+  $('#copierH')?.addEventListener('click', () => { const v = $('#fR').h1.value; SEMAINE.forEach(j => { $('#fR')['h' + j].value = v; }); });
   $('#ph').addEventListener('change', async e => { const f = e.target.files[0]; if (!f) return; toast('Envoi de la photo…'); try { ph = await envoyerPhoto(f); ap(); } catch (err) { toast(erreur(err), true); } });
   $('#fR').addEventListener('submit', async ev => {
     ev.preventDefault(); const f = ev.target, d = Object.fromEntries(new FormData(f)), envoi = ev.submitter?.value || 'en_attente';
     if (!d.livraison && !d.emporter) return toast('Choisissez livraison, à emporter ou les deux.', true);
     if (d.livreurs_kivora && d.livraison && (+d.frais_livraison || 0) < 2) return toast('Avec les livreurs Woulib, les frais de livraison doivent être d’au moins 2 € (ils paient le livreur).', true);
     const sem = {};
-    for (const j of SEMAINE) {
+    for (const j of BASE_V2 ? SEMAINE : []) {
       const t = d['h' + j].trim(); if (!t) continue;
       const l = lireCreneaux(t);
       if (!l) return toast(`${JOURS[j]} : horaires non compris. Écrivez par exemple « 11:00-14:00, 18:00-22:00 ».`, true);
       sem[j] = l;
     }
     const l = { nom: d.nom.trim(), cuisine: d.cuisine, description: d.description.trim(), territoire: d.territoire, commune: d.commune.trim(), adresse: d.adresse.trim() || null, telephone: d.telephone.trim() || null,
-      horaires: Object.keys(sem).length ? null : r.horaires || null, horaires_sem: Object.keys(sem).length ? sem : null, livraison: !!d.livraison, emporter: !!d.emporter, delai_min: +d.delai_min, frais_livraison: +d.frais_livraison || 0, minimum: +d.minimum || 0,
+      ...(BASE_V2 ? { horaires: Object.keys(sem).length ? null : r.horaires || null, horaires_sem: Object.keys(sem).length ? sem : null } : { horaires: d.horaires?.trim() || null }), livraison: !!d.livraison, emporter: !!d.emporter, delai_min: +d.delai_min, frais_livraison: +d.frais_livraison || 0, minimum: +d.minimum || 0,
       communes_livrees: d.villes.split(',').map(x => x.trim()).filter(Boolean).slice(0, 40), photo: ph, livreurs_kivora: !!(d.livreurs_kivora && d.livraison) };
     // position du restaurant (pour envoyer les livreurs les plus proches), recalculée si l'adresse change
     if (r.lat == null || l.adresse !== r.adresse || l.commune !== r.commune) {
@@ -398,7 +400,7 @@ async function pageMenu(rid, edite) {
     <form class="f panneau" id="fP" style="margin-top:16px"><h2 style="margin:0">${edite ? 'Modifier · ' + esc(p0.nom) : 'Ajouter un plat'}</h2>
       <div class="ligne3"><label>Nom<input name="nom" required minlength="2" maxlength="80" placeholder="Colombo de poulet" value="${esc(p0.nom)}"></label><label>Prix (€)<input name="prix" type="number" min="0.5" max="500" step="0.5" required value="${esc(p0.prix)}"></label><label>Catégorie<select name="categorie">${Object.entries(CATS_PLAT).map(([k, t]) => `<option value="${k}" ${k === p0.categorie ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
       <label>Description <span class="aide">(facultatif)</span><input name="description" maxlength="400" placeholder="Riz, légumes pays, sauce chien" value="${esc(p0.description || '')}"></label>
-      <div><b>Choix et suppléments</b> <span class="aide">(facultatif : accompagnement au choix, cuisson, sauce, suppléments payants…)</span><div id="groupes">${p0.options.map(blocGroupe).join('')}</div>
+      <div ${BASE_V2 ? '' : 'hidden'}><b>Choix et suppléments</b> <span class="aide">(facultatif : accompagnement au choix, cuisson, sauce, suppléments payants…)</span><div id="groupes">${(p0.options || []).map(blocGroupe).join('')}</div>
         <button type="button" class="btn btn-s" id="ajG">+ Ajouter un choix</button></div>
       <label>Photo <span class="aide">(facultatif${edite && p0.photo ? ' : laissez vide pour garder la photo actuelle' : ''})</span><input type="file" name="fichier" accept="image/*"></label>
       <div class="actions"><button class="btn btn-p">${edite ? 'Enregistrer' : '+ Ajouter à la carte'}</button>${edite ? '<button type="button" class="btn" id="annulerP">Annuler</button>' : ''}</div></form></div>`);
@@ -417,7 +419,7 @@ async function pageMenu(rid, edite) {
     }
     const b = f.querySelector('.btn-p'); b.disabled = true;
     try {
-      const l = { nom: d.nom.trim(), prix: +d.prix, categorie: d.categorie, description: d.description.trim() || null, options };
+      const l = { nom: d.nom.trim(), prix: +d.prix, categorie: d.categorie, description: d.description.trim() || null, ...(BASE_V2 ? { options } : {}) };
       if (f.fichier.files[0]) l.photo = await envoyerPhoto(f.fichier.files[0]);
       if (edite) await q(sb.from('plats').update(l).eq('id', edite)); else await q(sb.from('plats').insert({ ...l, restaurant_id: rid, ordre: plats.length }));
       toast(edite ? 'Plat modifié.' : 'Plat ajouté.'); pageMenu(rid);
@@ -459,7 +461,7 @@ async function pageCommandesPro() {
   let connues = null;
   const dessiner = async () => {
     const mes = await q(sb.from('restaurants').select('id, nom').eq('owner', moi.id));
-    const [l, lvs] = mes.length ? await Promise.all([q(sb.from('commandes').select('*, commande_lignes(nom, quantite, note, options)').in('restaurant_id', mes.map(x => x.id)).gte('created_at', new Date(Date.now() - 36 * 36e5).toISOString()).order('created_at', { ascending: false })),
+    const [l, lvs] = mes.length ? await Promise.all([q(sb.from('commandes').select('*, commande_lignes(*)').in('restaurant_id', mes.map(x => x.id)).gte('created_at', new Date(Date.now() - 36 * 36e5).toISOString()).order('created_at', { ascending: false })),
       q(sb.rpc('livraisons_resto')).catch(() => [])]) : [[], []];
     const lvDe = c => lvs.find(x => x.commande_id === c.id && !['annulee', 'echec'].includes(x.statut));
     const infoLv = v => !v ? '' : v.livreur ? `<div class="petit" style="margin:6px 0">🛵 <b>${esc(v.livreur)}</b> (${esc(v.vehicule)}) · ${{ acceptee: 'en route vers vous', au_restaurant: 'est au restaurant', recuperee: 'en livraison', livree: 'livrée' }[v.statut] || ''}${v.telephone ? ` · <a href="tel:${esc(v.telephone)}">${esc(v.telephone)}</a>` : ''}</div>`

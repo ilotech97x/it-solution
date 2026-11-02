@@ -50,11 +50,12 @@ const icone = n => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><pat
 
 // ---------------------------------------------------------------- session, entreprises, droits
 let moi = null, profil = null, ORGS = [], ORG = null, ROLE = null;
+let ERP = false;   // erp.sql installé dans la base (sinon les modules de gestion restent masqués)
 const ROLES = { proprietaire: 'Propriétaire', admin: 'Administrateur', commercial: 'Commercial', comptable: 'Comptable', lecteur: 'Lecteur' };
 const DROITS = { crm: ['proprietaire', 'admin', 'commercial'], ventes: ['proprietaire', 'admin', 'commercial'], facturation: ['proprietaire', 'admin', 'comptable'],
   catalogue: ['proprietaire', 'admin', 'commercial', 'comptable'], equipe: ['proprietaire', 'admin'], parametres: ['proprietaire', 'admin'],
   achats: ['proprietaire', 'admin', 'comptable'], stock: ['proprietaire', 'admin', 'commercial', 'comptable'], tresorerie: ['proprietaire', 'admin', 'comptable'], rh: ['proprietaire', 'admin'] };
-const peut = d => !!ROLE && (d === 'lire' || (DROITS[d] || []).includes(ROLE));   // affichage seulement : la base vérifie aussi
+const peut = d => !!ROLE && (d === 'lire' || ((['achats', 'stock', 'tresorerie', 'rh'].includes(d) ? ERP : true) && (DROITS[d] || []).includes(ROLE)));   // affichage seulement : la base vérifie aussi
 
 async function chargerSession() {
   moi = null; profil = null; ORGS = []; ORG = null; ROLE = null; if (!PRET) return;
@@ -92,8 +93,8 @@ const confirmer = async (titre, texte, valider = 'Confirmer') => (await modale(t
 const COMMANDES = () => [['#/', 'Tableau de bord', 'accueil'], ['#/clients', 'Clients et prospects', 'clients'], ['#/pipeline', 'Pipeline commercial', 'pipeline'], ['#/activites', 'Activités et rappels', 'activites'],
   ['#/devis', 'Devis', 'devis'], ['#/factures', 'Factures et avoirs', 'factures'], ['#/catalogue', 'Catalogue', 'catalogue'], ['#/reglages', 'Réglages de l’entreprise', 'reglages'],
   ['#/equipe', 'Équipe et rôles', 'equipe'], ['#/journal', 'Journal d’activité', 'journal'], ['#/clients?nouveau=1', 'Nouveau client', 'clients'], ['#/devis/nouveau', 'Nouveau devis', 'devis'], ['#/factures/nouvelle', 'Nouvelle facture', 'factures'],
-  ['#/abonnements', 'Abonnements (factures récurrentes)', 'abonnements'], ['#/relances', 'Relances des impayés', 'relances'], ['#/depenses', 'Dépenses et achats', 'depenses'], ['#/fournisseurs', 'Fournisseurs', 'fournisseurs'],
-  ['#/stock', 'Stock et inventaire', 'stock'], ['#/tresorerie', 'Trésorerie', 'tresorerie'], ['#/rapports', 'Rapports et TVA', 'rapports'], ['#/employes', 'Employés et absences', 'employes']];
+  ...(ERP ? [['#/abonnements', 'Abonnements (factures récurrentes)', 'abonnements'], ['#/relances', 'Relances des impayés', 'relances'], ['#/depenses', 'Dépenses et achats', 'depenses'], ['#/fournisseurs', 'Fournisseurs', 'fournisseurs'],
+  ['#/stock', 'Stock et inventaire', 'stock'], ['#/tresorerie', 'Trésorerie', 'tresorerie'], ['#/rapports', 'Rapports et TVA', 'rapports'], ['#/employes', 'Employés et absences', 'employes']] : [])];
 async function palette() {
   if (!ORG || $('.palette')) return;
   const p = document.createElement('div'); p.className = 'palette';
@@ -137,8 +138,8 @@ const sombre = () => (document.documentElement.dataset.theme || (matchMedia('(pr
 // ---------------------------------------------------------------- mise en page
 const MENU = () => [['', 'Accueil', 'accueil', [['#/', 'Tableau de bord', 'accueil']]],
   ['crm', 'Clients', null, [['#/clients', 'Clients', 'clients'], ['#/pipeline', 'Pipeline', 'pipeline'], ['#/activites', 'Activités', 'activites']]],
-  ['ventes', 'Ventes', null, [['#/devis', 'Devis', 'devis'], ['#/factures', 'Factures', 'factures'], ['#/abonnements', 'Abonnements', 'abonnements'], ['#/relances', 'Relances', 'relances'], ['#/catalogue', 'Catalogue', 'catalogue']]],
-  ['achats', 'Achats et stock', null, [['#/depenses', 'Dépenses', 'depenses'], ['#/fournisseurs', 'Fournisseurs', 'fournisseurs'], ['#/stock', 'Stock', 'stock']]],
+  ['ventes', 'Ventes', null, [['#/devis', 'Devis', 'devis'], ['#/factures', 'Factures', 'factures'], ...(ERP ? [['#/abonnements', 'Abonnements', 'abonnements'], ['#/relances', 'Relances', 'relances']] : []), ['#/catalogue', 'Catalogue', 'catalogue']]],
+  ...(ERP ? [['achats', 'Achats et stock', null, [['#/depenses', 'Dépenses', 'depenses'], ['#/fournisseurs', 'Fournisseurs', 'fournisseurs'], ['#/stock', 'Stock', 'stock']]]] : []),
   ...(peut('tresorerie') ? [['finances', 'Finances', null, [['#/tresorerie', 'Trésorerie', 'tresorerie'], ['#/rapports', 'Rapports et TVA', 'rapports']]]] : []),
   ['org', 'Entreprise', null, [...(peut('rh') ? [['#/employes', 'Employés', 'employes']] : []), ['#/equipe', 'Équipe', 'equipe'], ['#/reglages', 'Réglages', 'reglages'], ...(peut('equipe') ? [['#/journal', 'Journal', 'journal']] : [])]]];
 function coquille() {
@@ -185,7 +186,10 @@ async function rendre() {
 function demarrer() {
   window.addEventListener('hashchange', rendre);
   (async () => {
-    if (PRET) { sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { moi = null; ORG = null; } }); await chargerSession().catch(e => console.error(e)); }
+    if (PRET) {
+      ERP = !(await sb.from('nx_fournisseurs').select('id').limit(1)).error;
+      sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { moi = null; ORG = null; } }); await chargerSession().catch(e => console.error(e));
+    }
     rendre();
   })();
 }

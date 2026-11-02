@@ -5,12 +5,12 @@ const hautPublic = () => `<header class="pub-haut"><a class="marque" href="#/"><
   <div class="actions"><a class="btn" href="#/connexion">Se connecter</a><a class="btn btn-p" href="#/inscription">Commencer</a></div></header>`;
 const MODULES = [['👥', 'CRM', 'Clients, prospects, contacts, pipeline commercial, activités et rappels, fiche client à 360°.', 'Disponible'],
   ['🧾', 'Devis et factures', 'Devis, factures, avoirs, paiements partiels, PDF, numérotation sans trou, TVA des DOM (8,5 %, 2,1 %).', 'Disponible'],
-  ['🔁', 'Abonnements et relances', 'Factures récurrentes préparées à chaque échéance, relances graduées par email ou WhatsApp.', 'Disponible'],
-  ['🛒', 'Achats et dépenses', 'Fournisseurs, factures d’achat, TVA déductible, octroi de mer, ce qui reste à payer.', 'Disponible'],
-  ['📦', 'Stock et inventaire', 'Entrées, sorties, inventaire, ventes décomptées automatiquement, alertes avant la rupture.', 'Disponible'],
-  ['🏦', 'Trésorerie', 'Banque et caisse, soldes en direct, prévision sur 12 semaines avec les salaires.', 'Disponible'],
-  ['📈', 'Rapports et TVA', 'Résultat, TVA à reverser, dépenses par catégorie, journaux des ventes et des achats pour le comptable.', 'Disponible'],
-  ['👥', 'Employés et absences', 'Équipe, contrats, coût mensuel, congés et arrêts, qui est absent aujourd’hui.', 'Disponible'],
+  ['🔁', 'Abonnements et relances', 'Factures récurrentes préparées à chaque échéance, relances graduées par email ou WhatsApp.', 'Disponible', true],
+  ['🛒', 'Achats et dépenses', 'Fournisseurs, factures d’achat, TVA déductible, octroi de mer, ce qui reste à payer.', 'Disponible', true],
+  ['📦', 'Stock et inventaire', 'Entrées, sorties, inventaire, ventes décomptées automatiquement, alertes avant la rupture.', 'Disponible', true],
+  ['🏦', 'Trésorerie', 'Banque et caisse, soldes en direct, prévision sur 12 semaines avec les salaires.', 'Disponible', true],
+  ['📈', 'Rapports et TVA', 'Résultat, TVA à reverser, dépenses par catégorie, journaux des ventes et des achats pour le comptable.', 'Disponible', true],
+  ['👥', 'Employés et absences', 'Équipe, contrats, coût mensuel, congés et arrêts, qui est absent aujourd’hui.', 'Disponible', true],
   ['🏢', 'Multi-entreprises', 'Plusieurs sociétés par compte, équipe, rôles et droits, journal d’activité, export complet.', 'Disponible'],
   ['📅', 'Interventions et projets', 'Planning des chantiers et interventions, temps passé, rentabilité par projet.', 'Prochaine étape'],
   ['📄', 'Facture électronique', 'Factur-X et raccordement à une plateforme agréée pour la réforme 2026-2027.', 'Prévu'],
@@ -25,7 +25,7 @@ NX.publiques[''] = async () => {
     <div class="apercu" aria-hidden="true"><div class="l"><span>Chiffre d’affaires du mois</span><b>exemple</b></div><div class="l"><span>Devis envoyés</span><span class="tag info">en attente</span></div>
       <div class="l"><span>Facture F-2026-0042</span><span class="tag ok">payée</span></div><div class="l"><span>Facture F-2026-0041</span><span class="tag att">partielle</span></div><div class="l"><span>Relancer l’Hôtel…</span><span class="tag ko">en retard</span></div></div></div></section>
     <section class="sect"><span class="sur">Modules</span><h2 style="font-size:28px">Tout ce qu’il faut pour gérer, au même endroit</h2><p class="muted" style="max-width:720px">Chaque module n’est annoncé « disponible » que lorsqu’il fonctionne vraiment et qu’il est testé.</p>
-      <div class="modules">${MODULES.map(([i, t, d, s]) => `<div class="module"><b>${i} ${t} ${tag([s === 'Disponible' ? 'ok' : s === 'Prochaine étape' ? 'info' : '', s])}</b><span class="muted">${d}</span></div>`).join('')}</div></section>
+      <div class="modules">${MODULES.map(([i, t, d, s0, erp]) => { const s = erp && !ERP ? 'Prochaine étape' : s0; return `<div class="module"><b>${i} ${t} ${tag([s === 'Disponible' ? 'ok' : s === 'Prochaine étape' ? 'info' : '', s])}</b><span class="muted">${d}</span></div>`; }).join('')}</div></section>
     <section class="sect" style="padding-top:0"><div class="carte" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px">
       <div><h3>🔒 Vos données isolées</h3><p class="muted">Chaque entreprise a ses propres données, protégées dans la base elle-même. Même IloTech n’y a pas accès.</p></div>
       <div><h3>🧾 Factures conformes à la loi</h3><p class="muted">Numérotation continue et chronologique, facture validée non modifiable, corrections par avoir, mentions obligatoires.</p></div>
