@@ -40,6 +40,7 @@ h3{font-size:19px}
 .nav a{padding:9px 13px;border-radius:14px;text-decoration:none;color:var(--doux);font-weight:800;font-size:15px}
 .nav a:hover{background:var(--doux-fond);color:var(--titre)}
 .nav a.on{background:var(--rose-doux);color:var(--rose-presse)}
+.nav a.btn-p,.nav a.btn-p:hover{color:#fff;background:var(--rose)}
 .hud{display:flex;align-items:center;gap:8px;text-decoration:none;background:var(--surface);border:2px solid var(--ligne);border-radius:16px;padding:5px 10px 5px 5px;box-shadow:0 3px 0 var(--ligne)}
 .hud .niv{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:var(--grad);color:#fff;font:700 15px var(--titres);text-shadow:0 1px 0 rgba(0,0,0,.2);transform:rotate(-6deg)}
 .hud .px{color:var(--titre)}
