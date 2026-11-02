@@ -102,7 +102,10 @@ APP.pages.resto = async id => {
     if (!lignes.length) return toast('Votre panier est vide.', true);
     const b = $('#commander'); b.disabled = true;
     try {
-      const c = await q(sb.rpc('passer_commande', { resto: id, mode_cmd: mode, lignes, adresse_cmd: d.adresse || null, commune_cmd: d.commune || null, telephone_cmd: d.telephone.trim(), note_cmd: d.note || null }));
+      // position de l'adresse pour guider le livreur (facultative : la commande part même si la recherche échoue)
+      const pos = mode === 'livraison' ? (await geocoder(`${d.adresse}, ${d.commune}`, r.territoire).catch(() => []))[0] : null;
+      const c = await q(sb.rpc('passer_commande', { resto: id, mode_cmd: mode, lignes, adresse_cmd: d.adresse || null, commune_cmd: d.commune || null, telephone_cmd: d.telephone.trim(), note_cmd: d.note || null,
+        lat_cmd: pos?.lat ?? null, lng_cmd: pos?.lng ?? null }));
       cart = {}; panier.ecrire(id, cart); toast('🎉 Commande envoyée !'); aller('#/suivi/' + c.id);
     } catch (err) { toast(erreur(err), true); b.disabled = false; }
   });
@@ -111,9 +114,12 @@ APP.pages.resto = async id => {
 // ---------------------------------------------------------------- suivi et historique (client)
 APP.pages.suivi = async id => {
   if (!exigeCompte()) return;
+  let L = null;
   const dessiner = async () => {
     const c = await q(sb.from('commandes').select('*, restaurants(nom, telephone, adresse, commune), commande_lignes(nom, prix, quantite)').eq('id', id).maybeSingle());
     if (!c) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Commande introuvable</h3></div>');
+    const lv = c.mode === 'livraison' ? await q(sb.rpc('suivi_livraison', { cmd: id })).catch(() => null) : null;
+    const lvActive = lv && ['acceptee', 'au_restaurant', 'recuperee'].includes(lv.statut);
     const etapes = ETAPES.filter(e => c.mode === 'livraison' || !['en_livraison'].includes(e[0])).map(e => e[0] === 'livree' && c.mode === 'emporter' ? ['retiree', '🎉', 'Retirée'] : e);
     const pos = etapes.findIndex(e => e[0] === c.statut), fini = ['refusee', 'annulee'].includes(c.statut);
     const avis = ['livree', 'retiree'].includes(c.statut) ? await q(sb.from('avis_resto').select('id').eq('commande_id', id)) : [];
@@ -123,13 +129,29 @@ APP.pages.suivi = async id => {
           : `<div class="quetes" style="margin:14px 0">${etapes.map((e, i) => `<div class="quete ${i < pos || c.statut === e[0] && ['livree', 'retiree'].includes(e[0]) ? 'faite' : i === pos ? 'actuelle' : ''}"><span class="q-coche">${i <= pos ? '✓' : ''}</span><span class="q-ico">${e[1]}</span><span class="q-titre">${e[2]}</span></div>`).join('')}</div>`}
         <div>${c.commande_lignes.map(l => `<div style="display:flex;justify-content:space-between"><span>${l.quantite} × ${esc(l.nom)}</span><b>${eur(l.prix * l.quantite)}</b></div>`).join('')}
           ${c.frais > 0 ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Livraison</span><span>${eur(c.frais)}</span></div>` : ''}<div style="font:700 22px var(--titres);margin-top:6px">Total ${eur(c.total)}</div>
-          <p class="muted petit">${c.mode === 'livraison' ? `🛵 Livraison : ${esc(c.adresse)}, ${esc(c.commune)}` : `🛍️ À retirer : ${esc(c.restaurants?.adresse || c.restaurants?.commune || '')}`} · paiement sur place</p></div>
+          <p class="muted petit">${c.mode === 'livraison' ? `🛵 Livraison : ${esc(c.adresse)}, ${esc(c.commune)}` : `🛍️ À retirer : ${esc(c.restaurants?.adresse || c.restaurants?.commune || '')}`} · ${lv ? `paiement au livreur à la livraison (${eur(c.total)})` : 'paiement sur place'}</p></div>
+        ${lv && !fini && lv.statut !== 'livree' ? `<div class="panneau" style="margin:12px 0;padding:14px;border-color:var(--ciel)">
+          ${lv.livreur ? `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b>🛵 ${esc(lv.livreur.prenom || 'Votre livreur')}</b> · ${esc(lv.livreur.vehicule)}${lv.livreur.couleur ? ' ' + esc(lv.livreur.couleur) : ''}
+              <div class="muted petit">${{ acceptee: 'part chercher votre commande', au_restaurant: 'est au restaurant', recuperee: 'est en route vers vous' }[lv.statut] || ''}${lvActive && lv.livreur.lat == null ? ' · position pas encore partagée' : ''}</div></div>
+              ${lv.livreur.telephone ? `<a class="btn btn-s" href="tel:${esc(lv.livreur.telephone)}">📞 Appeler</a>` : ''}</div>`
+            : '<b>🔎 Nous cherchons un livreur près du restaurant…</b>'}
+          ${lv.code ? `<div style="margin-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="petit">Code à donner au livreur à la remise :</span><b class="code-remise">${esc(lv.code)}</b></div>` : ''}
+          <div id="carteLv" style="height:260px;border-radius:18px;margin-top:12px;background:var(--rose-doux)"></div></div>` : ''}
         <div class="actions">${c.restaurants?.telephone ? `<a class="btn btn-s btn-wa" href="${wa(c.restaurants.telephone, 'Bonjour, à propos de ma commande ' + c.id.slice(0, 6).toUpperCase() + ' sur Kivora.')}" target="_blank" rel="noopener">WhatsApp au restaurant</a>` : ''}
           ${c.statut === 'envoyee' ? '<button class="btn btn-s btn-ko" id="annuler">Annuler</button>' : ''}</div></div>
       ${['livree', 'retiree'].includes(c.statut) && !avis.length ? `<form class="f panneau" id="fAvis" style="margin-top:18px"><h2 style="margin:0">C’était bon ? 😋</h2><label>Note<select name="note">${[5, 4, 3, 2, 1].map(n => `<option value="${n}">${'⭐'.repeat(n)}</option>`).join('')}</select></label>
         <label>Votre avis<textarea name="texte" maxlength="1000" style="min-height:80px"></textarea></label><button class="btn btn-p">Publier mon avis</button></form>` : ''}</div>`);
     $('#annuler')?.addEventListener('click', async () => { if (!confirm('Annuler la commande ?')) return; try { await q(sb.rpc('changer_commande', { cmd: id, nouveau: 'annulee' })); dessiner(); } catch (err) { toast(erreur(err), true); } });
     $('#fAvis')?.addEventListener('submit', async e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); try { await q(sb.from('avis_resto').insert({ commande_id: id, note: +d.note, texte: d.texte.trim() })); toast('Merci pour votre avis !'); dessiner(); } catch (err) { toast(erreur(err), true); } });
+    if ($('#carteLv')) {   // carte : restaurant, domicile, livreur
+      try {
+        L = L || await chargerCarte();
+        const pts = [[lv.retrait, '🍽️', 'Restaurant'], [lv.depot, '🏠', 'Chez vous'], [lvActive && lv.livreur?.lat != null ? [lv.livreur.lat, lv.livreur.lng] : null, '🛵', 'Livreur']]
+          .filter(([p]) => p && p[0] != null).map(([p, e, t]) => L.marker(p, { icon: L.divIcon({ html: `<span style="font-size:28px">${e}</span>`, className: '', iconSize: [32, 32], iconAnchor: [16, 16] }) }).bindTooltip(t));
+        if (pts.length) { const carte = fondCarte(L, $('#carteLv'), pts[0].getLatLng(), 13); pts.forEach(m => m.addTo(carte)); if (pts.length > 1) carte.fitBounds(L.featureGroup(pts).getBounds().pad(0.3)); }
+        else $('#carteLv').remove();
+      } catch (e) { $('#carteLv')?.remove(); }
+    }
     if (fini || ['livree', 'retiree'].includes(c.statut)) { clearInterval(suivi); suivi = null; }
   };
   await dessiner();
@@ -151,7 +173,10 @@ APP.pages.pro = async (sous, id) => {
   if (sous === 'menu') return pageMenu(id);
   if (sous === 'commandes') return pageCommandesPro();
   const l = await q(sb.from('restaurants').select('*').eq('owner', moi.id).order('created_at'));
-  vue(`<div class="wrap" style="padding-top:22px"><div class="titre-s"><h1>Espace restaurateur</h1><div class="actions">${l.some(x => x.statut === 'publie') ? '<a class="btn btn-j" href="#/pro/commandes">🧾 Commandes en direct</a>' : ''}${l.length < 3 ? '<a class="btn btn-p" href="#/pro/resto/nouveau">+ Ajouter un restaurant</a>' : ''}</div></div>
+  const dus = l.some(x => x.livreurs_kivora) ? await q(sb.rpc('a_recevoir_livreurs')).catch(() => []) : [];
+  vue(`<div class="wrap" style="padding-top:22px">${dus.length ? `<div class="panneau" style="margin-bottom:16px;border-color:var(--jaune)"><h2 style="margin:0 0 8px">💶 À recevoir des livreurs</h2>
+      ${dus.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0"><span><b>${esc(x.livreur)}</b> · ${x.nb} livraison${x.nb > 1 ? 's' : ''}${x.telephone ? ` · <a href="tel:${esc(x.telephone)}">${esc(x.telephone)}</a>` : ''}</span>
+        <span class="actions"><b>${eur(x.montant)}</b><button class="btn btn-s btn-ok" data-recu="${x.livreur_id}" data-montant="${x.montant}">J’ai reçu ${eur(x.montant)}</button></span></div>`).join('')}</div>` : ''}<div class="titre-s"><h1>Espace restaurateur</h1><div class="actions">${l.some(x => x.statut === 'publie') ? '<a class="btn btn-j" href="#/pro/commandes">🧾 Commandes en direct</a>' : ''}${l.length < 3 ? '<a class="btn btn-p" href="#/pro/resto/nouveau">+ Ajouter un restaurant</a>' : ''}</div></div>
     ${l.length ? l.map(x => `<div class="ligne-l">${x.photo ? `<img class="mini" src="${esc(photo(x.photo))}" alt="">` : `<div class="mini" style="display:grid;place-items:center;font-size:30px">${CUISINES[x.cuisine]?.[0]}</div>`}
       <div><b>${esc(x.nom)}</b> ${tag(ST_RESTO[x.statut])}<div class="muted petit">${esc(x.commune)} · ${x.livraison ? '🛵' : ''}${x.emporter ? '🛍️' : ''}</div>${x.statut === 'refuse' && x.motif_refus ? `<div class="petit" style="color:var(--rouge)">Motif : ${esc(x.motif_refus)}</div>` : ''}
         ${x.statut === 'publie' ? `<label style="display:flex;gap:8px;align-items:center;margin-top:6px;font-weight:800"><input type="checkbox" data-ouvert="${x.id}" ${x.ouvert ? 'checked' : ''} style="width:22px;height:22px"> ${x.ouvert ? '🟢 Je prends les commandes' : '⚪ Fermé (cochez pour ouvrir)'}</label>` : ''}</div>
@@ -161,6 +186,8 @@ APP.pages.pro = async (sous, id) => {
       : '<div class="vide-etat"><div class="ico">👩‍🍳</div><h3>Inscrivez votre restaurant</h3><p class="muted">Gratuit pour démarrer. Nous le vérifions (SIRET, hygiène) avant sa mise en ligne.</p><a class="btn btn-p" href="#/pro/resto/nouveau">Inscrire mon restaurant</a></div>'}</div>`);
   $('#app').onchange = async ev => { const o = ev.target.closest('[data-ouvert]'); if (!o) return; try { await q(sb.from('restaurants').update({ ouvert: o.checked }).eq('id', o.dataset.ouvert)); toast(o.checked ? '🟢 Vous prenez les commandes' : 'Fermé aux commandes'); APP.pages.pro(); } catch (err) { toast(erreur(err), true); } };
   $('#app').onclick = async ev => {
+    const rc = ev.target.closest('[data-recu]');
+    if (rc) { if (!confirm(`Confirmer avoir reçu ${eur(rc.dataset.montant)} de ce livreur ?`)) return; try { await q(sb.rpc('confirmer_reversement', { livreur: rc.dataset.recu })); toast('Merci, c’est noté.'); APP.pages.pro(); } catch (err) { toast(erreur(err), true); } return; }
     const b = ev.target.closest('[data-envoi],[data-pause],[data-reprise]'); if (!b) return;
     const [rid, st] = b.dataset.envoi ? [b.dataset.envoi, 'en_attente'] : b.dataset.pause ? [b.dataset.pause, 'pause'] : [b.dataset.reprise, 'publie'];
     try { await q(sb.from('restaurants').update({ statut: st }).eq('id', rid)); toast('C’est fait.'); APP.pages.pro(); } catch (err) { toast(erreur(err), true); }
@@ -177,6 +204,9 @@ async function formResto(id) {
       <div class="ligne3"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="livraison" ${r.livraison ? 'checked' : ''} style="width:auto"> 🛵 Je livre</label><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="emporter" ${r.emporter ? 'checked' : ''} style="width:auto"> 🛍️ À emporter</label><label>Délai moyen (min)<input name="delai_min" type="number" min="5" max="240" value="${r.delai_min}"></label></div>
       <div class="ligne3"><label>Frais de livraison (€)<input name="frais_livraison" type="number" min="0" max="100" step="0.5" value="${r.frais_livraison}"></label><label>Commande minimum (€)<input name="minimum" type="number" min="0" max="500" value="${r.minimum}"></label>
         <label>Villes livrées <span class="aide">(virgules ; vide = toutes)</span><input name="villes" maxlength="400" value="${esc(r.communes_livrees.join(', '))}"></label></div>
+      <div class="panneau" style="padding:14px"><label style="display:flex;gap:8px;align-items:flex-start;font-weight:800"><input type="checkbox" name="livreurs_kivora" ${r.livreurs_kivora ? 'checked' : ''} style="width:auto;margin-top:4px">
+        <span>🛵 Mes livraisons sont faites par les livreurs Kivora<br><span class="aide" style="font-weight:600">Pas de livreur à embaucher : dès que vous acceptez une commande, les livreurs vérifiés les plus proches sont prévenus. Le client paie le livreur à la livraison ;
+        les frais de livraison (2 € minimum) reviennent au livreur, qui vous remet le prix du repas. Kivora tient le compte de ce qu’il vous doit, et vous confirmez la réception.</span></span></label></div>
       <div><b>Photo</b><div id="apercu" style="max-width:240px;margin:8px 0"></div><input type="file" id="ph" accept="image/*"></div>
       <label style="display:flex;gap:8px;font-weight:600"><input type="checkbox" required style="width:auto"> Mon activité est déclarée (SIRET) et respecte les règles d’hygiène ; les prix affichés sont les vrais prix.</label>
       <div class="actions"><button class="btn btn-p" value="en_attente">${id && r.statut === 'publie' ? 'Enregistrer' : 'Enregistrer et envoyer en validation'}</button>${!id || r.statut !== 'publie' ? '<button class="btn" value="brouillon">Brouillon</button>' : ''}</div></form></div>`);
@@ -186,9 +216,15 @@ async function formResto(id) {
   $('#fR').addEventListener('submit', async ev => {
     ev.preventDefault(); const f = ev.target, d = Object.fromEntries(new FormData(f)), envoi = ev.submitter?.value || 'en_attente';
     if (!d.livraison && !d.emporter) return toast('Choisissez livraison, à emporter ou les deux.', true);
+    if (d.livreurs_kivora && d.livraison && (+d.frais_livraison || 0) < 2) return toast('Avec les livreurs Kivora, les frais de livraison doivent être d’au moins 2 € (ils paient le livreur).', true);
     const l = { nom: d.nom.trim(), cuisine: d.cuisine, description: d.description.trim(), territoire: d.territoire, commune: d.commune.trim(), adresse: d.adresse.trim() || null, telephone: d.telephone.trim() || null,
       horaires: d.horaires.trim() || null, livraison: !!d.livraison, emporter: !!d.emporter, delai_min: +d.delai_min, frais_livraison: +d.frais_livraison || 0, minimum: +d.minimum || 0,
-      communes_livrees: d.villes.split(',').map(x => x.trim()).filter(Boolean).slice(0, 40), photo: ph };
+      communes_livrees: d.villes.split(',').map(x => x.trim()).filter(Boolean).slice(0, 40), photo: ph, livreurs_kivora: !!(d.livreurs_kivora && d.livraison) };
+    // position du restaurant (pour envoyer les livreurs les plus proches), recalculée si l'adresse change
+    if (r.lat == null || l.adresse !== r.adresse || l.commune !== r.commune) {
+      const pos = (await geocoder([l.adresse, l.commune].filter(Boolean).join(', '), l.territoire).catch(() => []))[0];
+      if (pos) { l.lat = pos.lat; l.lng = pos.lng; }
+    }
     if (!(id && r.statut === 'publie')) l.statut = envoi;
     try { if (id) await q(sb.from('restaurants').update(l).eq('id', id)); else { const n = await q(sb.from('restaurants').insert(l).select('id').single()); toast('Restaurant créé : ajoutez votre carte !'); return aller('#/pro/menu/' + n.id); } toast('Enregistré.'); aller('#/pro'); }
     catch (err) { toast(erreur(err), true); }
@@ -223,14 +259,18 @@ async function pageCommandesPro() {
   let connues = null;
   const dessiner = async () => {
     const mes = await q(sb.from('restaurants').select('id, nom').eq('owner', moi.id));
-    const l = mes.length ? await q(sb.from('commandes').select('*, commande_lignes(nom, quantite, note)').in('restaurant_id', mes.map(x => x.id)).gte('created_at', new Date(Date.now() - 36 * 36e5).toISOString()).order('created_at', { ascending: false })) : [];
+    const [l, lvs] = mes.length ? await Promise.all([q(sb.from('commandes').select('*, commande_lignes(nom, quantite, note)').in('restaurant_id', mes.map(x => x.id)).gte('created_at', new Date(Date.now() - 36 * 36e5).toISOString()).order('created_at', { ascending: false })),
+      q(sb.rpc('livraisons_resto')).catch(() => [])]) : [[], []];
+    const lvDe = c => lvs.find(x => x.commande_id === c.id && !['annulee', 'echec'].includes(x.statut));
+    const infoLv = v => !v ? '' : v.livreur ? `<div class="petit" style="margin:6px 0">🛵 <b>${esc(v.livreur)}</b> (${esc(v.vehicule)}) · ${{ acceptee: 'en route vers vous', au_restaurant: 'est au restaurant', recuperee: 'en livraison', livree: 'livrée' }[v.statut] || ''}${v.telephone ? ` · <a href="tel:${esc(v.telephone)}">${esc(v.telephone)}</a>` : ''}</div>`
+      : '<div class="petit" style="margin:6px 0">🔎 Recherche d’un livreur Kivora…</div>';
     if (connues && l.some(c => !connues.has(c.id))) { toast('🔔 Nouvelle commande !'); try { navigator.vibrate?.([120, 80, 120]); } catch (e) { /* facultatif */ } }
     connues = new Set(l.map(c => c.id));
     const col = (titre, filtre) => { const x = l.filter(filtre); return `<div><h2>${titre} (${x.length})</h2>${x.map(c => `<div class="panneau" style="margin-bottom:12px;padding:14px">
       <div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(c.id.slice(0, 6).toUpperCase())} · ${esc(c.client_nom)}</b>${tag(ST_CMD[c.statut])}</div>
       <div class="muted petit">${esc(heure(c.created_at))} · ${c.mode === 'livraison' ? `🛵 ${esc(c.adresse)}, ${esc(c.commune)}` : '🛍️ À emporter'} · <a href="${wa(c.telephone, 'Bonjour, ici le restaurant pour votre commande ' + c.id.slice(0, 6).toUpperCase() + ' (Kivora).')}" target="_blank" rel="noopener">${esc(c.telephone)}</a></div>
-      <ul style="margin:8px 0;padding-left:18px">${c.commande_lignes.map(x => `<li><b>${x.quantite} ×</b> ${esc(x.nom)}${x.note ? ` <i>(${esc(x.note)})</i>` : ''}</li>`).join('')}</ul>${c.note ? `<p class="petit">📝 ${esc(c.note)}</p>` : ''}
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>${eur(c.total)}</b><div class="actions">${(SUIVANT[c.statut === 'prete' ? 'prete_' + c.mode : c.statut] || []).map(([s, t, cl]) => `<button class="btn btn-s ${cl}" data-cmd="${c.id}" data-st="${s}">${t}</button>`).join('')}</div></div></div>`).join('') || '<p class="muted">—</p>'}</div>`; };
+      <ul style="margin:8px 0;padding-left:18px">${c.commande_lignes.map(x => `<li><b>${x.quantite} ×</b> ${esc(x.nom)}${x.note ? ` <i>(${esc(x.note)})</i>` : ''}</li>`).join('')}</ul>${c.note ? `<p class="petit">📝 ${esc(c.note)}</p>` : ''}${infoLv(lvDe(c))}
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>${eur(c.total)}</b><div class="actions">${(lvDe(c) && ['prete', 'en_livraison'].includes(c.statut) ? [] : SUIVANT[c.statut === 'prete' ? 'prete_' + c.mode : c.statut] || []).map(([s, t, cl]) => `<button class="btn btn-s ${cl}" data-cmd="${c.id}" data-st="${s}">${t}</button>`).join('')}</div></div></div>`).join('') || '<p class="muted">—</p>'}</div>`; };
     vue(`<div class="wrap" style="padding-top:22px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>Commandes en direct</h1><p class="muted">Mise à jour automatique toutes les 10 secondes. Gardez cette page ouverte pendant le service.</p>
       <div class="grille" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));align-items:start">${col('🆕 Nouvelles', c => c.statut === 'envoyee')}${col('👩‍🍳 En cours', c => ['acceptee', 'en_preparation', 'prete', 'en_livraison'].includes(c.statut))}${col('✅ Terminées', c => ['livree', 'retiree', 'refusee', 'annulee'].includes(c.statut))}</div></div>`);
   };

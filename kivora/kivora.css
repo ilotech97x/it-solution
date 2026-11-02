@@ -281,3 +281,10 @@ body[data-zone=woulib] .hero::before{background:#C7DBFF}
 .univ .u-ico{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;font-size:34px;background:var(--rose-doux)}
 .univ b{font:700 26px var(--titres);color:var(--titre)}
 .univ em{font-style:normal;justify-self:start;margin-top:6px}
+/* univers à venir */
+.univers-mini{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.umini{display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:var(--r);background:var(--surface);border:2px solid var(--ligne)}
+.umini .u-ico{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:26px;background:var(--doux-fond)}
+.umini b{font:700 17px var(--titres);color:var(--titre)}
+/* code de remise (livraison) */
+.code-remise{font:700 34px var(--titres);letter-spacing:.25em;padding:6px 16px;border-radius:14px;background:var(--jaune-doux);color:var(--titre);border:2px dashed var(--jaune)}
