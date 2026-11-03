@@ -456,3 +456,6 @@ body.sans-defil .bas{display:none}
 @media (prefers-reduced-motion:reduce){#app>*,.barre-panier,.voile-panier{animation:none!important}.page-resto #panneauCmd{transition:none}}
 /* page Manger sur téléphone : droit à la recherche et aux restaurants */
 @media (max-width:760px){body[data-page=manger] .hero{padding:14px 0 6px}body[data-page=manger] .hero .press,body[data-page=manger] .hero p{display:none}body[data-page=manger] .hero h1{font-size:26px;margin-bottom:12px}body[data-page=manger] .recherche select{font-size:14px}}
+/* tuiles : place réservée à l icône, le texte ne passe jamais dessous */
+.grande{padding-top:64px}
+@media (max-width:760px){.grande{padding-top:56px;min-height:0}.grande small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
