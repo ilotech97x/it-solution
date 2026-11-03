@@ -454,3 +454,5 @@ body.sans-defil{overflow:hidden}
 #app>*{animation:apparait .28s ease backwards}
 body.sans-defil .bas{display:none}
 @media (prefers-reduced-motion:reduce){#app>*,.barre-panier,.voile-panier{animation:none!important}.page-resto #panneauCmd{transition:none}}
+/* page Manger sur téléphone : droit à la recherche et aux restaurants */
+@media (max-width:760px){body[data-page=manger] .hero{padding:14px 0 6px}body[data-page=manger] .hero .press,body[data-page=manger] .hero p{display:none}body[data-page=manger] .hero h1{font-size:26px;margin-bottom:12px}body[data-page=manger] .recherche select{font-size:14px}}
