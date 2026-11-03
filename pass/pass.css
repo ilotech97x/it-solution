@@ -261,3 +261,9 @@ table.t th{background:var(--doux-fond);font:900 12px var(--corps);text-transform
 .btn{max-width:100%}.vide-etat .btn{white-space:normal}
 .appel-pro{text-align:left;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
 @media (max-width:900px){.appel-pro{grid-template-columns:minmax(0,1fr)}}
+/* EventPass : onglets Événements / Expériences, autres dates d une expérience */
+.seg-genre{display:inline-flex;gap:4px;padding:4px;margin-bottom:16px;border-radius:99px;background:var(--surface);border:2px solid var(--ligne)}
+.seg-genre a{padding:8px 16px;border-radius:99px;text-decoration:none;font:800 15px var(--corps);color:var(--doux)}
+.seg-genre a.on{background:var(--rose);color:#fff}
+.bloc-dates{margin:6px 0 14px;padding:12px 14px;border-radius:var(--r);background:var(--surface);border:2px solid var(--ligne)}.bloc-dates .puces a{font-size:13.5px;padding:6px 12px}
+.fiche>*{min-width:0}

@@ -217,6 +217,7 @@ APP.pages.chauffeur = async sous => {
       livreur ? [] : q(sb.from('courses').select('*').eq('chauffeur_id', moi.id).in('statut', ACTIVES).order('created_at')), livreur ? [] : q(sb.rpc('courses_disponibles')),
       ch.livraisons ? q(sb.rpc('livraisons_disponibles')) : [], ch.livraisons ? q(sb.rpc('mes_livraisons')) : [], q(sb.rpc('mes_gains')).catch(() => null)]);
     const cm = await blocCommission();
+    const colisHtml = await blocColisLivreur(ch);
     const lvActives = mesLv.filter(x => ['acceptee', 'au_restaurant', 'recuperee'].includes(x.statut));
     partagerPosition(moiCh.disponible || enCours.length > 0 || lvActives.length > 0);
     vue(`<div class="wrap" style="padding-top:22px;max-width:900px"><div class="titre-s"><h1>Espace ${livreur ? 'livreur' : 'chauffeur'}</h1><a class="btn btn-s" href="#/chauffeur/profil">${livreur ? 'Mes infos' : 'Mon véhicule'}</a></div>
@@ -237,6 +238,7 @@ APP.pages.chauffeur = async sous => {
           <div class="muted petit">${x.jusqu_au_resto != null ? `à ${x.jusqu_au_resto} km de vous · ` : ''}${x.distance_km != null ? `trajet ${x.distance_km} km · ` : ''}${x.articles || '?'} article(s) · ${eur(x.a_encaisser)} à encaisser</div></div>
           <div style="text-align:right"><div class="prix">${eur(x.gain)}</div><button class="btn btn-s btn-ok" data-livrer="${x.id}">Accepter</button></div></div>`).join('')
           : `<div class="vide-etat"><div class="ico">🛵</div><h3>Pas de livraison pour l’instant</h3><p class="muted">${moiCh.disponible ? 'Vous serez notifié dès qu’un restaurant en a une près de vous.' : 'Passez disponible pour recevoir les livraisons.'}</p></div>`}` : ''}
+      ${colisHtml}
       ${livreur ? '' : `<h2>🔔 Courses près de vous (${dispo.length})</h2><p class="muted petit">Mise à jour toutes les 10 secondes. Le premier chauffeur qui accepte obtient la course.</p>
       ${dispo.length ? dispo.map(c => `<div class="ligne-l" style="grid-template-columns:48px 1fr auto"><span style="font-size:32px">${CATS[c.categorie][0]}</span><div><b>${esc(c.depart_txt)} → ${esc(c.arrivee_txt)}</b>
         <div class="muted petit">${c.heure ? '🗓️ ' + esc(jourHeure(c.heure)) : '⚡ Maintenant'} · ${c.distance_km} km · ${c.passagers} pers.${c.bagages ? ` · ${c.bagages} bagage(s)` : ''}</div></div>
@@ -246,8 +248,9 @@ APP.pages.chauffeur = async sous => {
   };
   await dessiner();
   $('#app').onclick = async ev => {
-    const b = ev.target.closest('[data-accepter],[data-livrer]'); if (!b) return; b.disabled = true;
+    const b = ev.target.closest('[data-accepter],[data-livrer],[data-colis-ok]'); if (!b) return; b.disabled = true;
     try {
+      if (b.dataset.colisOk) { await q(sb.rpc('accepter_colis', { cid: b.dataset.colisOk })); toast('📦 Colis accepté : direction le point de retrait !'); return aller('#/colis/' + b.dataset.colisOk); }
       if (b.dataset.livrer) { const lid = await q(sb.rpc('accepter_livraison', { lid: b.dataset.livrer })); toast('🛵 Livraison acceptée : direction le restaurant !'); return aller('#/livraison/' + lid); }
       const c = await q(sb.rpc('accepter_course', { cid: b.dataset.accepter })); toast('👍 Course acceptée !'); aller('#/course/' + c.id);
     } catch (err) { toast(erreur(err), true); dessiner(); }

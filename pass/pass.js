@@ -9,7 +9,13 @@ const sb = PRET ? window.supabase.createClient(CFG.url, CFG.cle, { auth: { flowT
 const WA = '596696482678';   // territoires, fuseaux et indicatifs : commun/territoires.js
 
 const CATS = { concert: ['🎤', 'Concerts'], soiree: ['🪩', 'Soirées'], festival: ['🎪', 'Festivals'], sport: ['🏃', 'Sport'], culture: ['🎭', 'Culture'],
-  famille: ['👨‍👩‍👧', 'En famille'], atelier: ['🎨', 'Ateliers'], sortie: ['⛵', 'Sorties et excursions'], pro: ['💼', 'Pro et conférences'] };
+  famille: ['👨‍👩‍👧', 'En famille'], atelier: ['🎨', 'Ateliers'], sortie: ['⛵', 'Sorties'], pro: ['💼', 'Pro et conférences'],
+  excursion: ['🏝️', 'Excursions'], nautique: ['🤿', 'Activités nautiques'], visite: ['🗺️', 'Visites guidées'], randonnee: ['🥾', 'Randonnées'],
+  gastronomie: ['🍹', 'Gastronomie et rhum'], bien_etre: ['🧘', 'Bien-être'], loisir: ['🎯', 'Loisirs'] };
+// expériences (excursions, activités, visites…) : réservables à plusieurs dates ; les autres catégories sont des événements
+const CATS_XP = ['excursion', 'nautique', 'visite', 'randonnee', 'gastronomie', 'bien_etre', 'loisir'];
+const catsDe = genre => Object.entries(CATS).filter(([k]) => (genre === 'experience') === CATS_XP.includes(k));
+const duree = m => m >= 1440 ? `${Math.round(m / 1440)} jour${m >= 2880 ? 's' : ''}` : m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ' ' + String(m % 60).padStart(2, '0') : ''}` : `${m} min`;
 const ST_BILLET = { reserve: ['att', 'À payer à l’entrée'], paye: ['ok', 'Valide'], utilise: ['gris', 'Utilisé'], annule: ['ko', 'Annulé'] };
 const ST_EV = { brouillon: ['gris', 'Brouillon'], en_attente: ['att', 'En validation'], publie: ['ok', 'En ligne'], refuse: ['ko', 'Refusé'], annule: ['ko', 'Annulé'] };
 
@@ -25,7 +31,7 @@ const tag = ([c, t]) => `<span class="tag ${c}">${esc(t)}</span>`;
 const photo = p => !p ? '' : /^https:\/\//.test(p) ? p : PRET ? sb.storage.from('photos').getPublicUrl(p).data.publicUrl : '';
 const wa = (tel, txt) => `https://wa.me/${telInternational(tel || WA) || WA}?text=${encodeURIComponent(txt)}`;
 const lieuEv = e => `${esc(e.lieu)}, ${esc(e.commune)}${e.territoire && e.territoire !== 'Autre pays' ? ' · ' + esc(e.territoire) : ''}`;
-const optsCats = v => Object.entries(CATS).map(([k, [i, t]]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${i} ${esc(t)}</option>`).join('');
+const optsCats = (v, genre = CATS_XP.includes(v) ? 'experience' : 'evenement') => catsDe(genre).map(([k, [i, t]]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${i} ${esc(t)}</option>`).join('');
 const param = () => Object.fromEntries(new URLSearchParams(location.hash.split('?')[1] || ''));
 const aller = h => { if (location.hash === h) rendre(); else location.hash = h; };
 const vue = h => { $('#app').innerHTML = h; };
@@ -118,12 +124,12 @@ document.addEventListener('click', async ev => {
 
 // ---------------------------------------------------------------- accueil
 const coeurEv = e => moi ? `<button class="coeur ${favEv.has(e.id) ? 'on' : ''}" data-favev="${e.id}" aria-label="Favori">${favEv.has(e.id) ? '♥' : '♡'}</button>` : '';
-const carteEv = (e, prix) => {
+const carteEv = (e, prix, nbDates = 1) => {
   const d = jourMois(e.debut, e.fuseau);
   return `<a class="ev" href="#/evenement/${e.id}"><div class="aff">${e.affiche ? `<img src="${esc(photo(e.affiche))}" alt="Affiche : ${esc(e.titre)}" loading="lazy">` : `<span class="vide">${CATS[e.categorie]?.[0] || '🎉'}</span>`}
     <span class="date"><b>${esc(d.j)}</b><small>${esc(d.m)}</small></span>${coeurEv(e)}</div>
     <div class="corps"><span class="tag">${CATS[e.categorie]?.[0] || ''} ${esc(CATS[e.categorie]?.[1] || '')}</span>${e.statut === 'annule' ? ' ' + tag(ST_EV.annule) : ''}
-      <h3>${esc(e.titre)}</h3><div class="muted petit">${esc(fmt(e.debut, { weekday: 'short', hour: '2-digit', minute: '2-digit' }, e.fuseau))} · ${lieuEv(e)}</div>
+      <h3>${esc(e.titre)}</h3><div class="muted petit">${esc(fmt(e.debut, { weekday: 'short', hour: '2-digit', minute: '2-digit' }, e.fuseau))}${nbDates > 1 ? ` · <b>+${nbDates - 1} date${nbDates > 2 ? 's' : ''}</b>` : ''}${e.duree_min ? ' · ⏱️ ' + duree(e.duree_min) : ''} · ${lieuEv(e)}</div>
       ${prix ? `<div class="prix">${prix.max === 0 ? 'Gratuit' : 'Dès ' + eur(prix.minPayant) + (prix.min === 0 ? ' · gratuit possible' : '')}</div>` : ''}</div></a>`;
 };
 async function prixMini(ids) {
@@ -138,24 +144,26 @@ const videEv = () => `<div class="vide-etat"><div class="ico">🎟️</div><h3>L
   <a class="btn btn-p" href="#/orga">Publier mon événement</a></div>`;
 
 async function pageAccueil() {
-  const p = param();
+  const p = param(), xp = p.genre === 'experience';
   vue(`<section class="hero"><div class="wrap">
-    <div class="press"><span class="clignote">🎉</span> Ce soir, on sort ?</div>
-    <h1>Sortir près de chez vous, <em>billets en poche</em>.</h1>
-    <p>Concerts, soirées, festivals, sorties en catamaran, en Martinique, en Guadeloupe, en Guyane, à La Réunion, dans l’Hexagone et ailleurs : réservez en 2 clics, recevez votre billet avec QR code sur votre téléphone.</p>
-    <form class="recherche" id="fRech"><input name="q" placeholder="Artiste, soirée, lieu…" value="${esc(p.q || '')}" aria-label="Recherche">
+    <div class="seg-genre"><a href="#/" class="${xp ? '' : 'on'}">🎉 Événements</a><a href="#/?genre=experience" class="${xp ? 'on' : ''}">🌴 Expériences</a></div>
+    ${xp ? `<h1>Vivez l’île, <em>réservez l’expérience</em>.</h1>
+    <p>Excursions en catamaran, plongée, kayak, visites de distilleries, randonnées, cours de cuisine créole : des guides et prestataires d’ici, vérifiés, avec votre billet QR code sur le téléphone.</p>`
+    : `<h1>Sortir près de chez vous, <em>billets en poche</em>.</h1>
+    <p>Concerts, soirées, festivals, en Martinique, en Guadeloupe, en Guyane, à La Réunion, dans l’Hexagone et ailleurs : réservez en 2 clics, recevez votre billet avec QR code sur votre téléphone.</p>`}
+    <form class="recherche" id="fRech">${xp ? '<input type="hidden" name="genre" value="experience">' : ''}<input name="q" placeholder="${xp ? 'Catamaran, plongée, distillerie…' : 'Artiste, soirée, lieu…'}" value="${esc(p.q || '')}" aria-label="Recherche">
       <select name="territoire" aria-label="Territoire">${optsTerritoires(p.territoire ?? terrPrefere(), 'Tous les territoires')}</select>
       <select name="quand" aria-label="Quand">${[['', 'Toutes les dates'], ['soir', 'Ce soir'], ['we', 'Ce week-end'], ['7', 'Les 7 prochains jours'], ['30', 'Ce mois-ci']].map(([k, t]) => `<option value="${k}" ${k === (p.quand || '') ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <button class="btn btn-p">Rechercher</button></form></div></section>
-    <div class="wrap"><div class="puces">${[['', '✨', 'Tout'], ...Object.entries(CATS).map(([k, [i, t]]) => [k, i, t])].map(([k, i, t]) => `<a href="#/?${new URLSearchParams({ ...p, cat: k })}" class="${(p.cat || '') === k ? 'on' : ''}">${i} ${esc(t)}</a>`).join('')}</div>
+    <div class="wrap"><div class="puces">${[['', '✨', 'Tout'], ...catsDe(xp ? 'experience' : 'evenement').map(([k, [i, t]]) => [k, i, t])].map(([k, i, t]) => `<a href="#/?${new URLSearchParams({ ...p, cat: k })}" class="${(p.cat || '') === k ? 'on' : ''}">${i} ${esc(t)}</a>`).join('')}</div>
       <section class="section"><div id="liste" class="chargement">Chargement…</div></section>
       <section class="section"><div class="vide-etat appel-pro">
-        <div><h2>Vous organisez des événements ?</h2><p class="muted" style="margin:0">Billetterie gratuite pour démarrer : billets QR code, paiement à l’entrée, contrôle avec votre téléphone, liste des participants.</p></div>
+        <div><h2>${xp ? 'Vous proposez des excursions ou des activités ?' : 'Vous organisez des événements ?'}</h2><p class="muted" style="margin:0">Inscription gratuite : réservations avec billet QR code, plusieurs dates en un clic, paiement sur place, contrôle avec votre téléphone. Commission de 5 % seulement sur les billets payants.</p></div>
         <a class="btn btn-p" href="#/orga">Devenir organisateur</a></div></section></div>`);
   $('#fRech').addEventListener('submit', e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); terrPrefere(d.territoire); const u = new URLSearchParams(); Object.entries({ ...d, cat: p.cat || '' }).forEach(([k, v]) => (v || k === 'territoire') && u.set(k, v)); aller('#/?' + u); });
   if (!PRET) return ($('#liste').innerHTML = videEv());
   try {
-    let r = sb.from('evenements').select('*').in('statut', ['publie', 'annule']).gte('debut', new Date(Date.now() - 6 * 36e5).toISOString()).order('debut').limit(60);
+    let r = sb.from('evenements').select('*').in('statut', ['publie', 'annule']).eq('genre', xp ? 'experience' : 'evenement').gte('debut', new Date(Date.now() - 6 * 36e5).toISOString()).order('debut').limit(xp ? 200 : 60);
     if (p.cat) r = r.eq('categorie', p.cat);
     const terr = p.territoire ?? terrPrefere();
     if (terr) r = r.eq('territoire', terr);
@@ -170,9 +178,12 @@ async function pageAccueil() {
     if (fin) r = r.lte('debut', fin);
     let ev = await q(r);
     if (p.q) { const m = p.q.toLowerCase(); ev = ev.filter(e => (e.titre + ' ' + e.lieu + ' ' + e.commune + ' ' + e.description).toLowerCase().includes(m)); }
+    // expériences : une carte par expérience (sa prochaine date), avec le nombre de dates proposées
+    const nbDates = {};
+    if (xp) { ev.forEach(e => { const k = e.serie || e.id; nbDates[k] = (nbDates[k] || 0) + 1; }); const vu = new Set(); ev = ev.filter(e => { const k = e.serie || e.id; if (vu.has(k)) return false; vu.add(k); return true; }); }
     const pm = await prixMini(ev.map(e => e.id));
     $('#liste').className = ev.length ? 'grille' : '';
-    $('#liste').innerHTML = ev.length ? ev.map(e => carteEv(e, pm[e.id])).join('') : (p.q || p.cat || p.quand || (p.territoire ?? terrPrefere()) ? '<div class="vide-etat"><div class="ico">🔎</div><h3>Aucun événement pour cette recherche</h3><a href="#/">Tout voir</a></div>' : videEv());
+    $('#liste').innerHTML = ev.length ? ev.map(e => carteEv(e, pm[e.id], nbDates[e.serie || e.id] || 1)).join('') : (p.q || p.cat || p.quand || (p.territoire ?? terrPrefere()) ? '<div class="vide-etat"><div class="ico">🔎</div><h3>Aucun événement pour cette recherche</h3><a href="#/">Tout voir</a></div>' : videEv());
   } catch (e) { $('#liste').innerHTML = `<p>${esc(erreur(e))}</p>`; }
 }
 
@@ -197,7 +208,10 @@ async function pageEvenement(id) {
       <div class="infos"><div><span>📅</span><span>${esc(quand(e.debut, e.fuseau))}${e.fin ? ` → ${esc(fmt(e.fin, { hour: '2-digit', minute: '2-digit' }, e.fuseau))}` : ''}</span></div>
         <div><span>📍</span><span>${lieuEv(e)}${e.adresse ? `<br><span class="muted petit">${esc(e.adresse)}</span>` : ''}<br><a class="petit" href="${carte}" target="_blank" rel="noopener">Itinéraire ↗</a></span></div>
         <div><span>📣</span><span>Organisé par <b>${esc(orga?.orga_nom || orga?.prenom || 'un organisateur')}</b> <span class="tag ok">✓ Vérifié</span></span></div>
-        ${e.age_min ? `<div><span>🔞</span><span>À partir de ${e.age_min} ans</span></div>` : ''}</div>
+        ${e.age_min ? `<div><span>🔞</span><span>À partir de ${e.age_min} ans</span></div>` : ''}
+        ${e.genre === 'experience' ? `${e.duree_min ? `<div><span>⏱️</span><span>Durée : ${duree(e.duree_min)}</span></div>` : ''}${e.rdv ? `<div><span>🚩</span><span>Rendez-vous : ${esc(e.rdv)}</span></div>` : ''}
+          ${e.inclus ? `<div><span>✅</span><span>Inclus : ${esc(e.inclus)}</span></div>` : ''}${e.langues?.length ? `<div><span>🗣️</span><span>Langues : ${esc(e.langues.join(', '))}</span></div>` : ''}` : ''}</div>
+        <div id="autresDates"></div>
       <div class="actions" style="margin-bottom:18px">${moi ? `<button class="btn btn-s ${favEv.has(e.id) ? 'btn-p' : ''}" data-favev="${e.id}" data-texte="1">${favEv.has(e.id) ? '♥ En favori' : '♡ Favori'}</button>` : ''}<button class="btn btn-s" id="partager">↗ Partager</button><button class="btn btn-s" id="ics">📅 Ajouter à mon agenda</button></div>
       <h2 style="font-size:22px">Billets</h2>
       ${e.statut === 'annule' ? '<div class="vide-etat">Cet événement est annulé.</div>' : fini ? '<div class="vide-etat">Cet événement est terminé.</div>' : ''}
@@ -250,6 +264,10 @@ async function pageEvenement(id) {
     try { if (navigator.share) await navigator.share({ title: e.titre, text: `${e.titre} · ${quand(e.debut, e.fuseau)}`, url: u }); else { await navigator.clipboard.writeText(u); toast('Lien copié !'); } } catch (x) { /* partage annulé */ }
   });
   $('#ics').addEventListener('click', () => telechargerIcs(e));
+  if (e.serie) {
+    const autres = await q(sb.from('evenements').select('id, debut, fuseau').eq('serie', e.serie).eq('statut', 'publie').gte('debut', new Date().toISOString()).order('debut').limit(40)).catch(() => []);
+    if (autres.length > 1 && $('#autresDates')) $('#autresDates').innerHTML = `<div class="bloc-dates"><b>📅 Autres dates</b><div class="puces" style="padding:8px 0 0">${autres.map(x => `<a href="#/evenement/${x.id}" class="${x.id === e.id ? 'on' : ''}">${esc(fmt(x.debut, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }, x.fuseau))}</a>`).join('')}</div></div>`;
+  }
 }
 function telechargerIcs(e) {
   const f = d => new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
@@ -343,13 +361,14 @@ async function pageOrga(sous, id) {
   if (sous === 'promo') return pagePromo(id);
   vue('<div class="chargement">Chargement…</div>');
   const ev = await q(sb.from('evenements').select('*').eq('orga_id', moi.id).order('debut', { ascending: false }));
+  const evs = ev;   // la liste, accessible dans le gestionnaire de clic (où « ev » désigne le clic)
   const cm = await sb.rpc('mes_commissions').then(r => r.error || !r.data?.lignes?.length ? null : r.data);   // commission de la billetterie (billets payants)
   const stats = {};
   if (ev.length) {
     const [types, bil] = await Promise.all([q(sb.from('billets_types').select('evenement_id, quantite').in('evenement_id', ev.map(e => e.id))), q(sb.from('billets').select('evenement_id, statut, prix').in('evenement_id', ev.map(e => e.id)))]);
     ev.forEach(e => { const b = bil.filter(x => x.evenement_id === e.id && x.statut !== 'annule'); stats[e.id] = { places: types.filter(t => t.evenement_id === e.id).reduce((s, t) => s + t.quantite, 0), vendus: b.length, entres: b.filter(x => x.statut === 'utilise').length, aEncaisser: b.filter(x => x.statut === 'reserve').reduce((s, x) => s + Number(x.prix), 0) }; });
   }
-  vue(`<div class="wrap" style="padding-top:22px"><div class="titre-s"><h1>Espace organisateur</h1><a class="btn btn-p" href="#/orga/evenement/nouveau">+ Nouvel événement</a></div>
+  vue(`<div class="wrap" style="padding-top:22px"><div class="titre-s"><h1>Espace organisateur</h1><a class="btn btn-p" href="#/orga/evenement/nouveau">+ Événement ou expérience</a></div>
     ${cm ? `<details class="panneau" style="margin-bottom:16px;padding:14px 16px"><summary><b>💶 Commission EventPass</b> · à régler : <b>${eur(cm.due)}</b> <span class="muted petit">· billets payants réglés ce mois : ${eur(cm.ventes_mois)}</span></summary>
       <p class="petit muted">5 % du prix des billets payants (0 % sur les gratuits). Les participants vous paient directement ; la commission est réglée chaque mois.</p>
       ${cm.lignes.map(x => `<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0"><span>🎟️ Billet de ${eur(x.base)} · ${new Date(x.created_at).toLocaleDateString('fr-FR')}</span><b style="${x.statut === 'annulee' ? 'text-decoration:line-through;opacity:.5' : ''}">${eur(x.montant)}${x.statut === 'payee' ? ' ✓' : ''}</b></div>`).join('')}</details>` : ''}
@@ -357,9 +376,26 @@ async function pageOrga(sous, id) {
       <div><b>${esc(e.titre)}</b> ${tag(ST_EV[e.statut])}<div class="muted petit">${esc(quand(e.debut, e.fuseau))} · ${lieuEv(e)}</div>
         <div class="petit">🎟️ ${s.vendus} / ${s.places} réservés · ✅ ${s.entres} entrés${s.aEncaisser ? ` · 💶 ${eur(s.aEncaisser)} à encaisser` : ''}</div>
         ${e.statut === 'refuse' && e.motif_refus ? `<div class="petit" style="color:#fca5a5">Motif : ${esc(e.motif_refus)}</div>` : ''}</div>
-      <div class="actions"><a class="btn btn-s" href="#/orga/evenement/${e.id}">Modifier</a><a class="btn btn-s" href="#/orga/participants/${e.id}">Participants</a><a class="btn btn-s btn-p" href="#/controle/${e.id}">Contrôle entrée</a><a class="btn btn-s" href="#/orga/agents/${e.id}">Agents</a><a class="btn btn-s" href="#/orga/promo/${e.id}">Promo & invitations</a><button class="btn btn-s" data-dupliquer="${e.id}">Dupliquer</button><a class="btn btn-s" href="#/evenement/${e.id}">Voir</a></div></div>`; }).join('')
+      <div class="actions"><a class="btn btn-s" href="#/orga/evenement/${e.id}">Modifier</a>${e.genre === 'experience' ? `<button class="btn btn-s btn-j" data-dates="${e.id}">📅 Ajouter des dates</button>` : ''}<a class="btn btn-s" href="#/orga/participants/${e.id}">Participants</a><a class="btn btn-s btn-p" href="#/controle/${e.id}">Contrôle entrée</a><a class="btn btn-s" href="#/orga/agents/${e.id}">Agents</a><a class="btn btn-s" href="#/orga/promo/${e.id}">Promo & invitations</a><button class="btn btn-s" data-dupliquer="${e.id}">Dupliquer</button><a class="btn btn-s" href="#/evenement/${e.id}">Voir</a></div></div>`; }).join('')
       : '<div class="vide-etat"><div class="ico">📣</div><h3>Créez votre premier événement</h3><p class="muted">Affiche, date, lieu, types de billets : 5 minutes. Nous le vérifions puis il est en ligne.</p><a class="btn btn-p" href="#/orga/evenement/nouveau">Créer un événement</a></div>'}</div>`);
-  $('#app').onclick = async ev => { const d = ev.target.closest('[data-dupliquer]'); if (!d) return; d.disabled = true; try { await dupliquer(d.dataset.dupliquer); } catch (err) { toast(erreur(err), true); d.disabled = false; } };
+  $('#app').onclick = async ev => {
+    const dt = ev.target.closest('[data-dates]');
+    if (dt) {   // plusieurs dates d'un coup : à partir d'un jour, à une heure, chaque jour ou chaque semaine
+      const e = evs.find(x => x.id === dt.dataset.dates), ligne = dt.closest('.ligne-l');
+      if (ligne.nextElementSibling?.classList.contains('dates-f')) return ligne.nextElementSibling.remove();
+      ligne.insertAdjacentHTML('afterend', `<form class="f panneau dates-f" style="margin:-4px 0 14px;padding:14px"><b>📅 Nouvelles dates pour « ${esc(e.titre)} »</b>
+        <div class="ligne3"><label>À partir du<input type="date" name="jour" required value="${utcVersLocal(new Date(Date.now() + 864e5).toISOString(), e.fuseau).slice(0, 10)}"></label><label>Heure<input type="time" name="heure" required value="${utcVersLocal(e.debut, e.fuseau).slice(11, 16)}"></label>
+          <label>Rythme<select name="rythme"><option value="7">Chaque semaine</option><option value="1">Chaque jour</option></select></label></div>
+        <label>Nombre de dates<input type="number" name="nb" min="1" max="60" value="8"></label><button class="btn btn-p">Créer les dates</button>
+        <p class="muted petit" style="margin:0">Mêmes billets et même description. ${e.statut === 'publie' ? 'Les dates sont publiées tout de suite.' : 'Les dates seront publiées avec l’expérience, après validation.'}</p></form>`);
+      ligne.nextElementSibling.addEventListener('submit', async f => {
+        f.preventDefault(); const d = Object.fromEntries(new FormData(f.target)), dates = [];
+        for (let i = 0; i < Math.min(60, Number(d.nb) || 1); i++) { const j = new Date(d.jour + 'T12:00:00Z'); j.setUTCDate(j.getUTCDate() + i * Number(d.rythme)); dates.push(localVersUTC(j.toISOString().slice(0, 10) + 'T' + d.heure, e.fuseau)); }
+        try { const n = await q(sb.rpc('ajouter_dates', { ev: e.id, dates })); toast(`${n} date${n > 1 ? 's' : ''} ajoutée${n > 1 ? 's' : ''}.`); pageOrga(); } catch (err) { toast(erreur(err), true); }
+      });
+      return;
+    }
+    const d = ev.target.closest('[data-dupliquer]'); if (!d) return; d.disabled = true; try { await dupliquer(d.dataset.dupliquer); } catch (err) { toast(erreur(err), true); d.disabled = false; } };
 }
 function pageDevenirOrga() {
   const enCours = profil?.orga === 'demande';
@@ -389,7 +425,12 @@ async function formEvenement(id) {
   vue(`<div class="wrap" style="padding:22px 20px;max-width:820px"><a href="#/orga" class="petit">← Espace organisateur</a><h1>${id ? 'Modifier l’événement' : 'Nouvel événement'}</h1>
     <form class="f" id="fEv">
       <label>Titre<input name="titre" required minlength="3" maxlength="120" value="${esc(e.titre)}" placeholder="ex. Soirée zouk au bord de l’eau"></label>
-      <div class="ligne2"><label>Catégorie<select name="categorie">${optsCats(e.categorie)}</select></label><label>Âge minimum<input type="number" name="age_min" min="0" max="21" value="${e.age_min}"></label></div>
+      <label>Type<select name="genre" id="genreEv"><option value="evenement" ${e.genre !== 'experience' ? 'selected' : ''}>🎉 Événement (concert, soirée, festival…)</option><option value="experience" ${e.genre === 'experience' ? 'selected' : ''}>🌴 Expérience (excursion, activité, visite… à plusieurs dates)</option></select></label>
+      <div class="ligne2"><label>Catégorie<select name="categorie" id="catEv">${optsCats(e.categorie, e.genre || 'evenement')}</select></label><label>Âge minimum<input type="number" name="age_min" min="0" max="21" value="${e.age_min}"></label></div>
+      <div id="champsXp" class="ligne2" ${e.genre === 'experience' ? '' : 'hidden'}><label>Durée (heures)<input name="duree_h" type="number" min="0.25" max="168" step="0.25" value="${e.duree_min ? e.duree_min / 60 : ''}"></label>
+        <label>Point de rendez-vous<input name="rdv" maxlength="200" value="${esc(e.rdv || '')}" placeholder="Ponton de la marina, devant l’office du tourisme…"></label>
+        <label>Inclus<input name="inclus" maxlength="1000" value="${esc(e.inclus || '')}" placeholder="Masque et tuba, déjeuner créole, rhum arrangé…"></label>
+        <label>Langues<input name="langues" maxlength="120" value="${esc((e.langues || ['français']).join(', '))}" placeholder="français, anglais, créole"></label></div>
       <div class="ligne2"><label>Début <span class="aide">(heure locale du lieu)</span><input type="datetime-local" name="debut" required value="${utcVersLocal(e.debut, e.fuseau || fuseauDe(e.territoire))}"></label><label>Fin <span class="aide">(facultatif)</span><input type="datetime-local" name="fin" value="${utcVersLocal(e.fin, e.fuseau || fuseauDe(e.territoire))}"></label></div>
       <div class="ligne3"><label>Lieu<input name="lieu" required maxlength="120" value="${esc(e.lieu)}" placeholder="ex. Plage de l’Anse Mitan"></label></div>
       <div class="ligne3"><label>Territoire<select name="territoire" required data-villes="villesE">${optsTerritoires(e.territoire)}</select></label><label>Ville<input name="commune" required maxlength="60" list="villesE" value="${esc(e.commune)}">${listeVilles('villesE', e.territoire)}</label><label>Adresse <span class="aide">(facultatif)</span><input name="adresse" maxlength="200" value="${esc(e.adresse || '')}"></label></div>
@@ -419,12 +460,16 @@ async function formEvenement(id) {
   $('#types').addEventListener('click', ev => { const b = ev.target.closest('[data-suppr]'); if (!b) return; types = lireTypes(); const t = types.splice(Number(b.dataset.suppr), 1)[0]; if (t.id) supprimes.push(t.id); dessinerTypes(); });
   $('#affFichier').addEventListener('change', async ev => { const f = ev.target.files[0]; if (!f) return; toast('Envoi de l’affiche…'); try { affiche = await envoyerPhoto(f); dessinerAff(); } catch (err) { toast(erreur(err), true); } });
   $('#annulerEv')?.addEventListener('click', async () => { if (!confirm('Annuler l’événement ? Les participants le verront dans leurs billets.')) return; try { await q(sb.from('evenements').update({ statut: 'annule' }).eq('id', id)); toast('Événement annulé.'); aller('#/orga'); } catch (err) { toast(erreur(err), true); } });
+  $('#genreEv').addEventListener('change', ev => { const x = ev.target.value === 'experience'; $('#champsXp').hidden = !x; $('#catEv').innerHTML = optsCats(x ? 'excursion' : 'soiree', x ? 'experience' : 'evenement'); });
   $('#fEv').addEventListener('submit', async ev => {
     ev.preventDefault(); const f = ev.target, d = Object.fromEntries(new FormData(f)), envoi = ev.submitter?.value || 'en_attente';
     const lt = lireTypes(), fz = fuseauDe(d.territoire);
     if (!lt.length) return toast('Ajoutez au moins un type de billet.', true);
     if (d.fin && d.fin <= d.debut) return toast('La fin doit être après le début.', true);
-    const ligne = { titre: d.titre.trim(), categorie: d.categorie, age_min: Number(d.age_min) || 0, debut: localVersUTC(d.debut, fz), fin: localVersUTC(d.fin, fz), fuseau: fz, territoire: d.territoire, lat: d.lat === '' ? null : Number(d.lat), lng: d.lng === '' ? null : Number(d.lng), lieu: d.lieu.trim(), commune: d.commune.trim(), adresse: d.adresse.trim() || null, description: d.description.trim(), affiche };
+    const xpF = d.genre === 'experience';
+    const ligne = { genre: xpF ? 'experience' : 'evenement', duree_min: xpF && d.duree_h ? Math.round(Number(d.duree_h) * 60) : null, rdv: xpF ? d.rdv.trim() || null : null, inclus: xpF ? d.inclus.trim() || null : null,
+      langues: xpF ? d.langues.split(',').map(x => x.trim()).filter(Boolean).slice(0, 6) : ['français'],
+      titre: d.titre.trim(), categorie: d.categorie, age_min: Number(d.age_min) || 0, debut: localVersUTC(d.debut, fz), fin: localVersUTC(d.fin, fz), fuseau: fz, territoire: d.territoire, lat: d.lat === '' ? null : Number(d.lat), lng: d.lng === '' ? null : Number(d.lng), lieu: d.lieu.trim(), commune: d.commune.trim(), adresse: d.adresse.trim() || null, description: d.description.trim(), affiche };
     if (!(id && e.statut === 'publie')) ligne.statut = envoi;
     try {
       const evId = id ? (await q(sb.from('evenements').update(ligne).eq('id', id).select('id').single())).id : (await q(sb.from('evenements').insert(ligne).select('id').single())).id;

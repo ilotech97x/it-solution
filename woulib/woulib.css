@@ -261,6 +261,12 @@ table.t th{background:var(--doux-fond);font:900 12px var(--corps);text-transform
 .btn{max-width:100%}.vide-etat .btn{white-space:normal}
 .appel-pro{text-align:left;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
 @media (max-width:900px){.appel-pro{grid-template-columns:minmax(0,1fr)}}
+/* EventPass : onglets Événements / Expériences, autres dates d une expérience */
+.seg-genre{display:inline-flex;gap:4px;padding:4px;margin-bottom:16px;border-radius:99px;background:var(--surface);border:2px solid var(--ligne)}
+.seg-genre a{padding:8px 16px;border-radius:99px;text-decoration:none;font:800 15px var(--corps);color:var(--doux)}
+.seg-genre a.on{background:var(--rose);color:#fff}
+.bloc-dates{margin:6px 0 14px;padding:12px 14px;border-radius:var(--r);background:var(--surface);border:2px solid var(--ligne)}.bloc-dates .puces a{font-size:13.5px;padding:6px 12px}
+.fiche>*{min-width:0}
 
 /* ajouts communs des applis Woulib (après pass.css) */
 .fiche-d{grid-template-columns:1fr 390px}
@@ -459,3 +465,22 @@ body.sans-defil .bas{display:none}
 /* tuiles : place réservée à l icône, le texte ne passe jamais dessous */
 .grande{padding-top:64px}
 @media (max-width:760px){.grande{padding-top:56px;min-height:0}.grande small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
+
+/* six grandes actions : 3 colonnes sur ordinateur, 2 sur téléphone */
+.grandes{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g-express{background:linear-gradient(135deg,#FFB020,#FF5A36);box-shadow:0 10px 24px rgba(255,138,61,.3)}
+.g-projet{background:linear-gradient(135deg,#8B5CF6,#EC4899);box-shadow:0 10px 24px rgba(139,92,246,.28)}
+@media (max-width:760px){.grandes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* colis : tailles */
+.tailles .type.on{border-color:var(--rose);box-shadow:0 4px 0 var(--rose-doux)}
+/* projet : étapes cochables avec montant */
+.etapes-pj{display:grid;gap:8px}
+.etape-pj{display:grid;grid-template-columns:auto minmax(0,1fr) 84px auto auto;gap:10px;align-items:center;padding:10px 12px;border-radius:16px;background:var(--surface);border:2px solid var(--ligne)}
+.etape-pj.faite{opacity:.6}.etape-pj.faite b{text-decoration:line-through}
+.coche-pj{display:flex;align-items:center;gap:6px;cursor:pointer}.coche-pj input{width:22px;height:22px;accent-color:var(--ciel)}.coche-pj span{font-size:24px}
+.note-pj{width:100%;border:0;background:transparent;font:600 13px var(--corps);color:var(--doux);padding:2px 0;outline:0}
+.montant-pj input{width:100%;border:2px solid var(--ligne);border-radius:10px;padding:6px 8px;font:700 14px var(--corps)}
+@media (max-width:600px){.etape-pj{grid-template-columns:auto minmax(0,1fr) 70px;row-gap:6px}.etape-pj>.btn,.etape-pj>.tag{grid-column:2}.etape-pj>[data-retirer]{grid-column:3;justify-self:end}}
+/* ajouter une étape : liste déroulante compacte, champ sur sa propre ligne sur téléphone */
+#fEtape select{min-width:0;max-width:45%;border:0;background:transparent;font:700 13px var(--corps);color:var(--titre)}
+@media (max-width:600px){#fEtape{flex-wrap:wrap;padding:8px}#fEtape input{flex:1 1 100%}#fEtape select{flex:1;max-width:none}}

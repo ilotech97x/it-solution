@@ -10,8 +10,8 @@ function declarerUnivers(code, m) { MODULES[code] = m; }
 // registre lu dans la base (statut, ouverture par territoire) ; repli si la base ne répond pas.
 // BASE_V2 : la base a reçu univers.sql, move.sql et food.sql à jour (sinon les fonctions qui en dépendent restent masquées)
 let REGISTRE = null, BASE_V2 = false;
-const REPLI = [['food', '🍛', 'Woulib Food', 'actif'], ['move', '🚗', 'Woulib Move', 'actif'], ['express', '📦', 'Woulib Express', 'bientot'], ['market', '🛍️', 'Woulib Market', 'bientot'],
-  ['daily', '🧺', 'Woulib Daily', 'bientot'], ['services', '🔧', 'Woulib Services', 'bientot'], ['experiences', '🌴', 'Woulib Experiences', 'bientot'], ['events', '🎟️', 'Woulib Events', 'externe', '../pass/'],
+const REPLI = [['food', '🍛', 'Woulib Food', 'actif'], ['move', '🚗', 'Woulib Move', 'actif'], ['express', '📦', 'Woulib Express', 'actif'], ['market', '🛍️', 'Woulib Market', 'bientot'],
+  ['daily', '🧺', 'Woulib Daily', 'bientot'], ['services', '🔧', 'Woulib Services', 'externe', 'https://immo.ilo-tech.com/#/services'], ['experiences', '🌴', 'Woulib Experiences', 'externe', '../pass/#/?genre=experience'], ['events', '🎟️', 'Woulib Events', 'externe', '../pass/'],
   ['rental', '🚙', 'Woulib Rental', 'bientot'], ['living', '🏡', 'Woulib Living', 'externe', 'https://immo.ilo-tech.com/'], ['ai', '🤖', 'Woulib AI', 'bientot']]
   .map(([code, icone, nom, statut, lien], i) => ({ code, icone, nom, statut, lien, description: '', ordre: i, fermes: [] }));
 async function chargerRegistre() {
@@ -40,6 +40,7 @@ const APP = {
   quitter: h => {
     clearInterval(suivi); suivi = null; clearInterval(minuterie); minuterie = null;
     document.body.classList.remove('sans-defil');
+    const a = document.getElementById('app'); if (a) a.oninput = a.onsubmit = null;   // réactions propres à une page (projet…)
     if (h !== '#/chauffeur' && !h.startsWith('#/livraison/') && suiviGps !== null) { navigator.geolocation.clearWatch(suiviGps); suiviGps = null; }
     if (!h.startsWith('#/gps') && typeof arreterGuidage === 'function') arreterGuidage();
     const m = Object.values(MODULES).find(x => x.routes.test(h));
@@ -52,6 +53,7 @@ const APP = {
 // commission de la plateforme vue par le pro : ce qu'il doit, ses ventes du mois, le détail (commun/commissions.sql)
 const SOURCES_CM = { commande: '🍛 Repas', course: '🚗 Course', livraison: '🛵 Livraison', reservation: '🏡 Séjour', prestation: '🔧 Prestation', billet: '🎟️ Billet' };
 async function blocCommission() {
+  await chargerRegistre();
   if (!BASE_V2) return '';
   const c = await q(sb.rpc('mes_commissions')).catch(() => null);
   if (!c || !c.lignes.length) return '';
@@ -80,13 +82,15 @@ APP.pages[''] = async () => {
     <div class="grandes">
       ${ouvert('food') ? '<a class="grande g-food" href="#/manger"><span>🍛</span><b>Manger</b><small>Livré ou à emporter</small></a>' : ''}
       ${ouvert('move') ? '<a class="grande g-move" href="#/move"><span>🚗</span><b>Se déplacer</b><small>VTC et taxis</small></a>' : ''}
+      ${ouvert('express') ? '<a class="grande g-express" href="#/express"><span>📦</span><b>Envoyer un colis</b><small>Livré par un livreur vérifié</small></a>' : ''}
+      <a class="grande g-projet" href="#/projets"><span>🗂️</span><b>Organiser</b><small>Anniversaire, mariage, séjour…</small></a>
       <a class="grande g-gps" href="#/gps"><span>🧭</span><b>GPS</b><small>Alertes route</small></a>
       <a class="grande g-pro" href="#/pros"><span>💼</span><b>Gagner avec Woulib</b><small>Resto, chauffeur, livreur…</small></a></div>
     <div id="enCours"></div>
     ${ouvert('food') ? `<section class="section"><h2>Envie de…</h2><div class="defile cuisines">${Object.entries(CUISINES).filter(([k]) => k !== 'autre').map(([k, [i, t]]) => `<a class="cuisine" href="#/manger?cuisine=${k}"><span>${i}</span>${esc(t)}</a>`).join('')}</div></section>` : ''}
     <section class="section" id="restosAccueil" hidden><div class="titre-s"><h2>Ouverts maintenant</h2><a href="#/manger">Tout voir →</a></div><div class="defile" id="restosListe"></div></section>
     <section class="section"><h2>Pourquoi Woulib ?</h2><div class="pourquoi">${POURQUOI.map(([i, t, d]) => `<div><span>${i}</span><b>${t}</b><small>${d}</small></div>`).join('')}</div></section>
-    <section class="section"><h2>Bientôt sur Woulib</h2><div class="defile" id="univers">${bientot.map(u => u.statut === 'externe'
+    <section class="section"><h2>Tout l’écosystème</h2><div class="defile" id="univers">${bientot.map(u => u.statut === 'externe'
         ? `<a class="pastille-u" href="${esc(u.lien)}"><span>${u.icone}</span><b>${esc(u.nom.replace('Woulib ', ''))}</b><small>Ouvert</small></a>`
         : `<button class="pastille-u" data-alerte="${u.code}" title="${esc(u.description)}"><span>${u.icone}</span><b>${esc(u.nom.replace('Woulib ', ''))}</b><small>🔔 Me prévenir</small></button>`).join('')}</div></section></div></section>`);
   let seg = 'manger';
@@ -144,7 +148,7 @@ APP.pages.pros = async () => {
 APP.pages.compte = async () => {
   if (!exigeCompte()) return;
   vue(`<div class="wrap"><div class="carte-f"><h1>Mon compte</h1><p>${esc(profil?.prenom)} ${esc(profil?.nom)}<br><span class="muted">${esc(moi.email)}</span></p>
-    <div class="actions"><a class="btn" href="#/commandes">🧾 Mes commandes</a><a class="btn" href="#/courses">🚗 Mes courses</a><a class="btn" href="#/pro">👩‍🍳 Espace restaurateur</a><a class="btn" href="#/chauffeur">🧑‍✈️ Espace chauffeur et livreur</a>
+    <div class="actions"><a class="btn" href="#/commandes">🧾 Mes commandes</a><a class="btn" href="#/courses">🚗 Mes courses</a><a class="btn" href="#/colis">📦 Mes colis</a><a class="btn" href="#/projets">🗂️ Mes projets</a><a class="btn" href="#/pro">👩‍🍳 Espace restaurateur</a><a class="btn" href="#/chauffeur">🧑‍✈️ Espace chauffeur et livreur</a>
       <a class="btn" href="https://immo.ilo-tech.com/#/compte/profil">Modifier mon profil</a><a class="btn btn-ko" href="#/deconnexion">Se déconnecter</a></div></div></div>`);
 };
 
