@@ -110,6 +110,8 @@ APP.pages.move = async () => {
       toast('🚗 Demande envoyée aux chauffeurs !'); aller('#/course/' + c.id);
     } catch (err) { toast(erreur(err), true); b.disabled = false; }
   });
+  let dest = null; try { dest = sessionStorage.getItem('wlDest'); sessionStorage.removeItem('wlDest'); } catch (e) { /* facultatif */ }
+  if (dest) { $('#arrivee').value = dest; chercher('arrivee'); }   // destination tapée sur l'accueil
   try { L = await chargerCarte(); const c = CENTRES[terr] || CENTRES.Martinique; carte = fondCarte(L, $('#carte'), [c[0], c[1]], c[2]); calques = L.layerGroup().addTo(carte); }
   catch (e) { $('#carte').innerHTML = '<p class="muted" style="padding:20px">Carte indisponible.</p>'; }
 };
@@ -199,8 +201,8 @@ function partagerPosition(actif) {
     () => toast('Autorisez la localisation pour que vos clients vous voient arriver.', true), { enableHighAccuracy: true, maximumAge: 10000 });
 }
 APP.pages.chauffeur = async sous => {
-  if (!moi) return vue(`<section class="hero"><div class="wrap"><div class="press">🧑‍✈️ Chauffeurs et livreurs</div><h1>Des courses et des livraisons, <em>sans commission pour démarrer</em>.</h1>
-    <p>VTC ou taxi avec carte professionnelle, ou livreur à scooter, à vélo ou en voiture : recevez des missions près de vous, acceptez celles qui vous arrangent. Les frais de livraison et le prix des courses sont pour vous.</p>
+  if (!moi) return vue(`<section class="hero"><div class="wrap"><div class="press">🧑‍✈️ Chauffeurs et livreurs</div><h1>Des courses et des livraisons, <em>vous gardez l’essentiel</em>.</h1>
+    <p>VTC ou taxi avec carte professionnelle, ou livreur à scooter, à vélo ou en voiture : recevez des missions près de vous, acceptez celles qui vous arrangent. Le client vous paie directement ; Woulib prend seulement 10 % (les pourboires restent à 100 % pour vous).</p>
     <div class="actions"><a class="btn btn-p" href="#/inscription?retour=%23%2Fchauffeur">Devenir chauffeur ou livreur</a><a class="btn" href="#/connexion?retour=%23%2Fchauffeur">J’ai déjà un compte</a></div></div></section>`);
   const ch = await q(sb.from('chauffeurs').select('*').eq('id', moi.id).maybeSingle());
   if (!ch || sous === 'profil') return formChauffeur(ch);
@@ -214,6 +216,7 @@ APP.pages.chauffeur = async sous => {
     const [moiCh, enCours, dispo, lvDispo, mesLv, gains] = await Promise.all([q(sb.from('chauffeurs').select('disponible, livraisons').eq('id', moi.id).single()),
       livreur ? [] : q(sb.from('courses').select('*').eq('chauffeur_id', moi.id).in('statut', ACTIVES).order('created_at')), livreur ? [] : q(sb.rpc('courses_disponibles')),
       ch.livraisons ? q(sb.rpc('livraisons_disponibles')) : [], ch.livraisons ? q(sb.rpc('mes_livraisons')) : [], q(sb.rpc('mes_gains')).catch(() => null)]);
+    const cm = await blocCommission();
     const lvActives = mesLv.filter(x => ['acceptee', 'au_restaurant', 'recuperee'].includes(x.statut));
     partagerPosition(moiCh.disponible || enCours.length > 0 || lvActives.length > 0);
     vue(`<div class="wrap" style="padding-top:22px;max-width:900px"><div class="titre-s"><h1>Espace ${livreur ? 'livreur' : 'chauffeur'}</h1><a class="btn btn-s" href="#/chauffeur/profil">${livreur ? 'Mes infos' : 'Mon véhicule'}</a></div>
@@ -222,6 +225,7 @@ APP.pages.chauffeur = async sous => {
         <button class="btn ${moiCh.disponible ? 'btn-ko' : 'btn-ok'}" id="dispo">${moiCh.disponible ? 'Passer hors service' : 'Je suis disponible'}</button></div>
       ${gains ? `<div class="grille" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:14px 0">${[['Aujourd’hui', gains.jour], ['7 jours', gains.semaine], ['30 jours', gains.mois]].map(([t, v]) => `<div class="panneau" style="padding:12px;text-align:center"><div class="muted petit">${t}</div><b style="font:700 24px var(--titres)">${eur(v)}</b></div>`).join('')}</div>
         <p class="muted petit" style="margin-top:-6px">${gains.nb_livraisons} livraison(s) et ${gains.nb_courses} course(s) sur 30 jours. Montants indicatifs : frais de livraison et prix estimés des courses.</p>
+      ${cm}
         ${gains.a_reverser.length ? `<div class="panneau" style="padding:12px;border-color:var(--jaune)"><b>💶 À remettre aux restaurants</b>${gains.a_reverser.map(x => `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px"><span>${esc(x.nom)}${x.telephone ? ` · <a href="tel:${esc(x.telephone)}">${esc(x.telephone)}</a>` : ''}</span><b>${eur(x.montant)}</b></div>`).join('')}
           <p class="muted petit" style="margin:6px 0 0">Le prix des repas encaissé chez les clients appartient aux restaurants. Le restaurant confirme la réception dans son espace.</p></div>` : ''}` : ''}
       ${lvActives.length ? `<h2>🛵 Ma livraison en cours</h2>${lvActives.map(x => `<a class="ligne-l" style="grid-template-columns:minmax(0,1fr) auto;text-decoration:none;color:inherit" href="#/livraison/${x.id}"><div><b>${esc(x.restaurant)} → ${esc(x.depot_commune || '')}</b> ${tag(ST_LV[x.statut])}

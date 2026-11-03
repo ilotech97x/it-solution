@@ -95,13 +95,14 @@ APP.pages.resto = async id => {
   const horairesSem = r.horaires_sem && Object.keys(r.horaires_sem).length;
   document.title = `${r.nom} — Woulib`;
   vue(`<div class="wrap page-resto"><div class="fiche fiche-d">
-    <div><div class="affiche" style="aspect-ratio:16/7;transform:none">${r.photo ? `<img src="${esc(photo(r.photo))}" alt="${esc(r.nom)}">` : `<span style="position:absolute;inset:0;display:grid;place-items:center;font-size:80px">${CUISINES[r.cuisine]?.[0]}</span>`}</div>
+    <div><div class="affiche resto-hero" style="aspect-ratio:16/7;transform:none"><button type="button" class="retour-flottant" id="retourResto" aria-label="Retour">←</button>${r.photo ? `<img src="${esc(photo(r.photo))}" alt="${esc(r.nom)}">` : `<span style="position:absolute;inset:0;display:grid;place-items:center;font-size:80px">${CUISINES[r.cuisine]?.[0]}</span>`}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px"><h1 style="margin:0">${esc(r.nom)}</h1><button type="button" class="btn btn-s" id="fav" aria-pressed="false">☆ Favori</button></div>
       <div class="actions" style="margin-bottom:10px">${etat.ouvert ? tag(['ok', '🟢 Ouvert' + (etat.texte ? ' · ' + etat.texte : '')]) : tag(['gris', '⚪ Fermé' + (etat.texte ? ' · ' + etat.texte : ' pour le moment')])}<span class="tag">${CUISINES[r.cuisine]?.[0]} ${esc(CUISINES[r.cuisine]?.[1])}</span>${n[0] ? `<span class="tag">⭐ ${n[0].moyenne} · ${n[0].nombre} avis</span>` : ''}<span class="tag">⏱️ ${r.delai_min} min</span></div>
       <p class="muted">📍 ${esc(r.commune)}${r.adresse ? ', ' + esc(r.adresse) : ''}${!horairesSem && r.horaires ? ` · 🕒 ${esc(r.horaires)}` : ''}</p>
       ${horairesSem ? `<details class="horaires-d"><summary>🕒 Horaires d’ouverture</summary><div>${SEMAINE.map(j => `<span>${JOURS[j]}</span><b>${r.horaires_sem[j]?.length ? esc(r.horaires_sem[j].map(([a, b]) => `${a}–${b}`).join(', ')) : 'Fermé'}</b>`).join('')}</div></details>` : ''}
       ${r.description ? `<p style="white-space:pre-line">${esc(r.description)}</p>` : ''}
-      ${parCat.length ? parCat.map(([c, l]) => `<h2 style="margin-top:22px">${CATS_PLAT[c]}</h2><div class="types">${l.map(p => `<div class="type" style="${p.dispo ? '' : 'opacity:.5'}">
+      ${parCat.length > 1 ? `<nav class="onglets-cat" aria-label="Catégories de la carte">${parCat.map(([c]) => `<button type="button" data-saut="${c}">${CATS_PLAT[c]}</button>`).join('')}</nav>` : ''}
+      ${parCat.length ? parCat.map(([c, l]) => `<h2 style="margin-top:22px" id="cat-${c}">${CATS_PLAT[c]}</h2><div class="types">${l.map(p => `<div class="type" style="${p.dispo ? '' : 'opacity:.5'}">
         <div style="display:flex;gap:12px;align-items:center">${p.photo ? `<img src="${esc(photo(p.photo))}" alt="" loading="lazy" style="width:64px;height:64px;border-radius:14px;object-fit:cover;flex:none">` : ''}<div><b>${esc(p.nom)}</b>${p.description ? `<div class="muted petit">${esc(p.description)}</div>` : ''}<span class="prix">${eur(p.prix)}</span>${aOptions(p) ? ' <span class="petit muted">· au choix</span>' : ''}${p.dispo ? '' : ' <span class="tag gris">Épuisé</span>'}</div></div>
         ${!p.dispo || !commandable ? '' : aOptions(p) ? `<div class="qte" data-opt="${p.id}"><output>${nbPlat(p.id) || ''}</output><button type="button" data-choisir="${p.id}" aria-label="Choisir ${esc(p.nom)}">+</button></div>`
           : `<div class="qte" data-plat="${p.id}"><button type="button" data-d="-1" aria-label="Moins">−</button><output>${nbPlat(p.id)}</output><button type="button" data-d="1" aria-label="Plus">+</button></div>`}</div>`).join('')}</div>`).join('')
@@ -119,7 +120,7 @@ APP.pages.resto = async id => {
           <label>Un mot pour le restaurant<input name="note" maxlength="500" placeholder="Sans piment, code du portail…"></label></details>
         <div id="pourboire"></div><div id="totaux"></div><button class="btn btn-p" id="commander" ${commandable ? '' : 'disabled'}>${commandable ? (programmable ? 'Programmer ma commande' : 'Commander') : 'Restaurant fermé'}</button>
         <p class="muted petit" style="margin:0">Paiement au restaurant ou au livreur (espèces ou carte, selon le restaurant).</p></form></div></aside></div>
-    <button type="button" class="barre-panier" id="barrePanier" hidden></button></div>`);
+    <button type="button" class="barre-panier" id="barrePanier" hidden></button><div class="voile-panier" id="voilePanier"></div></div>`);
   const majAdresse = () => {
     $('#adresse').innerHTML = mode === 'livraison' ? `<label>Adresse de livraison<input name="adresse" required maxlength="300" autocomplete="street-address"></label>
       <label>Ville<input name="commune" required maxlength="60" list="villesK" value="${esc(r.communes_livrees.length === 1 ? r.communes_livrees[0] : r.commune)}"></label>
@@ -148,6 +149,12 @@ APP.pages.resto = async id => {
   const panneau = ouvrir => { $('#panneauCmd').classList.toggle('ouvert', ouvrir); document.body.classList.toggle('sans-defil', ouvrir); majPanier(); if (ouvrir) $('#panneauCmd').scrollTop = 0; };
   $('#barrePanier').addEventListener('click', () => panneau(true));
   $('#panneauCmd').addEventListener('click', e => { if (e.target.closest('[data-fermer-panier]')) panneau(false); });
+  $('#voilePanier').addEventListener('click', () => panneau(false));
+  $('#retourResto').addEventListener('click', () => history.length > 1 ? history.back() : aller('#/manger'));
+  document.querySelectorAll('[data-saut]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-saut]').forEach(x => x.classList.toggle('on', x === b));
+    const h = $('#cat-' + b.dataset.saut); window.scrollTo({ top: h.getBoundingClientRect().top + scrollY - 120, behavior: 'smooth' });
+  }));
   // plat avec choix (accompagnement, sauce, suppléments) : petite fenêtre
   const choisir = p => {
     const d = document.createElement('dialog'); d.className = 'dlg-options';
@@ -308,7 +315,8 @@ APP.pages.pro = async (sous, id) => {
   if (sous === 'stats') return pageStats(id);
   const l = await q(sb.from('restaurants').select('*').eq('owner', moi.id).order('created_at'));
   const dus = l.some(x => x.livreurs_kivora) ? await q(sb.rpc('a_recevoir_livreurs')).catch(() => []) : [];
-  vue(`<div class="wrap" style="padding-top:22px">${dus.length ? `<div class="panneau" style="margin-bottom:16px;border-color:var(--jaune)"><h2 style="margin:0 0 8px">💶 À recevoir des livreurs</h2>
+  const cm = await blocCommission();
+  vue(`<div class="wrap" style="padding-top:22px">${cm}${dus.length ? `<div class="panneau" style="margin-bottom:16px;border-color:var(--jaune)"><h2 style="margin:0 0 8px">💶 À recevoir des livreurs</h2>
       ${dus.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0"><span><b>${esc(x.livreur)}</b> · ${x.nb} livraison${x.nb > 1 ? 's' : ''}${x.telephone ? ` · <a href="tel:${esc(x.telephone)}">${esc(x.telephone)}</a>` : ''}</span>
         <span class="actions"><b>${eur(x.montant)}</b><button class="btn btn-s btn-ok" data-recu="${x.livreur_id}" data-montant="${x.montant}">J’ai reçu ${eur(x.montant)}</button></span></div>`).join('')}</div>` : ''}<div class="titre-s"><h1>Espace restaurateur</h1><div class="actions">${l.some(x => x.statut === 'publie') ? '<a class="btn btn-j" href="#/pro/commandes">🧾 Commandes en direct</a>' : ''}${l.length < 3 ? '<a class="btn btn-p" href="#/pro/resto/nouveau">+ Ajouter un restaurant</a>' : ''}</div></div>
     ${l.length ? l.map(x => `<div class="ligne-l">${x.photo ? `<img class="mini" src="${esc(photo(x.photo))}" alt="">` : `<div class="mini" style="display:grid;place-items:center;font-size:30px">${CUISINES[x.cuisine]?.[0]}</div>`}

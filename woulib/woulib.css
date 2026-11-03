@@ -339,36 +339,118 @@ body[data-zone=move] .hero::before{background:#C7DBFF}
 .gps-moi{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#2563EB;color:#fff;font-size:22px;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4)}
 body:has(.gps) .pied,body:has(.gps) .eco{display:none}
 @media (max-width:760px){.gps{inset:70px 0 66px 0}}
-/* accueil simple : trois grandes actions, ce qui est en cours, listes qui défilent */
-.accueil{padding:26px 0 10px}.accueil h1{margin:0;font-size:clamp(28px,6vw,44px)}.accueil h1 em{font-style:normal;color:var(--rose)}
-.grandes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
-.grande{display:grid;justify-items:start;gap:2px;padding:18px;border-radius:var(--r2);text-decoration:none;color:#fff;background:var(--grad);box-shadow:0 6px 0 var(--rose-presse);transition:transform .15s var(--ressort)}
-.grande:hover{transform:translateY(-3px)}.grande span{font-size:40px;line-height:1}.grande b{font:700 22px var(--titres);margin-top:6px}.grande small{opacity:.92;font-weight:700}
-.g-move,.g-gps{background:linear-gradient(135deg,#2563EB,#0EA5E9);box-shadow:0 6px 0 #1D4ED8}.g-gps{background:linear-gradient(135deg,#0B2545,#2563EB);box-shadow:0 6px 0 #071a33}
-.en-cours{display:flex;align-items:center;gap:12px;padding:12px 16px;margin-bottom:10px;border-radius:var(--r);background:var(--surface);border:2px solid var(--rose);text-decoration:none;color:var(--texte)}
-.en-cours>span{font-size:30px}.en-cours div{flex:1;display:grid}.en-cours small{color:var(--doux);font-weight:700}.en-cours em{font-style:normal;font-weight:800;color:var(--rose)}
-.en-cours.g-move{border-color:#2563EB;background:var(--surface);box-shadow:none}.en-cours.g-move em{color:#2563EB}
-.titre-s{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.defile{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x mandatory;scrollbar-width:thin}
-.defile>*{scroll-snap-align:start;flex:0 0 auto}.defile .ev{width:250px}
-.pastille-u{display:grid;justify-items:center;gap:2px;width:118px;padding:12px 8px;border-radius:var(--r);background:var(--surface);border:2px solid var(--ligne);text-decoration:none;color:var(--texte);font:inherit;cursor:pointer;text-align:center}
+/* =====================================================================
+   WOULIB, MISE EN PAGE D'APPLI : accueil, restaurant, trajet, profils, commission
+   Téléphone d'abord : barre du bas flottante, gros boutons, listes au doigt, panneaux qui montent du bas
+   ===================================================================== */
+.titre-s{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.titre-s a{font-weight:800;text-decoration:none}
+.defile{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.defile::-webkit-scrollbar{display:none}.defile>*{scroll-snap-align:start;flex:0 0 auto}.defile .ev{width:min(78vw,280px)}
+/* accueil */
+.accueil{padding:22px 0 10px}.accueil h1{margin:0;font-size:clamp(26px,6.4vw,44px)}.accueil h1 em{font-style:normal;color:var(--rose)}
+.acc-tete{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.acc-tete p{margin:4px 0 0}
+.chip-terr{flex:none;padding:8px 12px;border-radius:99px;background:var(--surface);border:2px solid var(--ligne);text-decoration:none;color:var(--titre);font:800 13px var(--corps)}
+.recherche-unique{margin:18px 0 6px;background:var(--surface);border:2px solid var(--ligne);border-radius:24px;padding:8px;box-shadow:0 10px 30px rgba(58,20,8,.08)}
+.seg{display:flex;gap:4px;padding:2px 2px 8px}
+.seg button{flex:1;border:0;border-radius:14px;padding:9px;font:800 14px var(--corps);background:transparent;color:var(--doux);cursor:pointer;transition:background .15s,color .15s}
+.seg button.on{background:var(--rose-doux);color:var(--rose-presse)}
+.rch{display:flex;align-items:center;gap:8px;background:var(--doux-fond);border-radius:18px;padding:4px 4px 4px 14px}
+.rch input{flex:1;min-width:0;border:0;background:transparent;font:700 16px var(--corps);padding:10px 0;color:var(--titre);outline:0}
+.rch .btn{border-radius:14px;padding:10px 16px}
+.grandes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.grande{position:relative;overflow:hidden;display:grid;align-content:end;justify-items:start;gap:2px;min-height:132px;padding:16px;border-radius:24px;text-decoration:none;color:#fff;background:var(--grad);
+  box-shadow:0 10px 24px rgba(255,90,54,.28);transition:transform .15s var(--ressort)}
+.grande span{position:absolute;top:12px;left:14px;font-size:40px;line-height:1;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))}
+.grande b{font:700 21px/1.1 var(--titres)}.grande small{opacity:.94;font-weight:700;font-size:13px}
+.grande:hover{transform:translateY(-3px)}
+.g-move{background:linear-gradient(135deg,#2563EB,#0EA5E9);box-shadow:0 10px 24px rgba(37,99,235,.28)}
+.g-gps{background:linear-gradient(135deg,#0B2545,#2563EB);box-shadow:0 10px 24px rgba(11,37,69,.3)}
+.g-pro{background:linear-gradient(135deg,#2BB673,#0EA5E9);box-shadow:0 10px 24px rgba(43,182,115,.28)}
+.en-cours{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:10px;border-radius:20px;background:var(--surface);border:2px solid var(--rose);text-decoration:none;color:var(--texte);box-shadow:0 8px 20px rgba(0,0,0,.06)}
+.en-cours>span{font-size:30px}.en-cours div{flex:1;display:grid;gap:2px}.en-cours small{color:var(--doux);font-weight:700}.en-cours em{font-style:normal;font-weight:800;color:var(--rose)}
+.en-cours.g-move{border-color:#2563EB;background:var(--surface);box-shadow:0 8px 20px rgba(0,0,0,.06)}.en-cours.g-move em{color:#2563EB}
+.prog{display:block;height:6px;border-radius:9px;background:var(--doux-fond);overflow:hidden;margin-top:4px}.prog i{display:block;height:100%;border-radius:9px;background:var(--grad);transition:width .4s}
+.cuisines{gap:14px}
+.cuisine{display:grid;justify-items:center;gap:6px;width:78px;text-decoration:none;color:var(--titre);font:800 12.5px var(--corps);text-align:center}
+.cuisine span{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:32px;background:var(--surface);border:2px solid var(--ligne);box-shadow:0 6px 14px rgba(0,0,0,.06)}
+.pourquoi{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
+.pourquoi>div{display:grid;gap:4px;padding:16px;border-radius:20px;background:var(--surface);border:2px solid var(--ligne)}
+.pourquoi span{font-size:28px}.pourquoi b{font:700 18px var(--titres);color:var(--titre)}.pourquoi small{color:var(--doux);font-size:14px;line-height:1.45}
+.pastille-u{display:grid;justify-items:center;gap:2px;width:112px;padding:12px 8px;border-radius:20px;background:var(--surface);border:2px solid var(--ligne);text-decoration:none;color:var(--texte);font:inherit;cursor:pointer;text-align:center}
 .pastille-u span{font-size:28px}.pastille-u b{font-size:14px}.pastille-u small{font-size:12px;color:var(--doux);font-weight:700}.pastille-u:disabled{opacity:.7;cursor:default}
-.pros-ligne{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:16px;border-radius:var(--r);background:var(--doux-fond)}
-@media (max-width:600px){.grandes{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.grande{padding:12px 10px}.grande span{font-size:30px}.grande b{font-size:17px}.grande small{font-size:11.5px}}
-/* restaurant : options repliées, panier en panneau sur téléphone avec une barre en bas */
+/* bienvenue et professionnels : un profil par carte */
+.bienvenue{padding-top:22px;max-width:760px}
+.profils{display:grid;gap:10px;margin:16px 0}
+.profil-c{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:20px;background:var(--surface);border:2px solid var(--ligne);text-decoration:none;color:var(--texte);transition:border-color .15s,transform .15s var(--ressort)}
+.profil-c:hover{border-color:var(--rose);transform:translateY(-2px)}
+.profil-c>span{flex:none;width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:28px;background:var(--rose-doux)}
+.profil-c div{flex:1;display:grid;gap:2px}.profil-c b{font:700 17px var(--titres);color:var(--titre)}.profil-c small{color:var(--doux);font-size:14px}
+.profil-c em{font-style:normal;font-size:12.5px;font-weight:800;color:var(--ciel-presse)}.profil-c i{font-style:normal;font-size:26px;color:var(--doux)}
+/* commission vue par le pro */
+.commission{margin-bottom:16px;padding:14px 16px;border-color:var(--ciel)}.commission summary{cursor:pointer}
+/* restaurant : onglets de catégories, options repliées, panier */
+.onglets-cat{position:sticky;top:68px;z-index:20;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:16px -4px 0;padding:8px 4px;background:color-mix(in srgb,var(--fond) 92%,transparent);backdrop-filter:blur(10px)}
+.onglets-cat::-webkit-scrollbar{display:none}
+.onglets-cat button{flex:none;border:2px solid var(--ligne);background:var(--surface);border-radius:99px;padding:8px 14px;font:800 14px var(--corps);color:var(--titre);cursor:pointer}
+.onglets-cat button.on{background:var(--titre);border-color:var(--titre);color:#fff}
+.retour-flottant{display:none}
 .plus-options{border:2px solid var(--ligne);border-radius:14px;padding:10px 12px}.plus-options>summary{cursor:pointer;font-weight:800;color:var(--doux)}
 .plus-options[open]{display:grid;gap:12px}
-.fermer-panier,.barre-panier{display:none}
-@media (max-width:900px){
-  .page-resto #panneauCmd{position:fixed;inset:0;z-index:70;background:var(--fond);overflow-y:auto;padding:14px;transform:translateY(105%);transition:transform .25s ease;visibility:hidden}
-  .page-resto #panneauCmd.ouvert{transform:none;visibility:visible}
-  .page-resto #panneauCmd .panier{position:static;margin:0 auto;max-width:560px}
-  .fermer-panier{display:inline-flex}
-  .barre-panier:not([hidden]){display:flex;position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:60;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;border:0;border-radius:18px;background:var(--rose);color:#fff;font:700 16px var(--corps);box-shadow:0 6px 0 var(--rose-presse),0 12px 30px rgba(0,0,0,.2);cursor:pointer}
-  .page-resto{padding-bottom:90px}
-}
+.fermer-panier,.barre-panier,.voile-panier{display:none}
 body.sans-defil{overflow:hidden}
-/* réservation d'un trajet : carte d'abord, formulaire court */
+/* trajet : carte d'abord, formulaire court */
 .titre-move{margin:20px 0 12px}
 .carte-move{height:min(55vh,480px);border-radius:24px;border:2px solid var(--ligne);background:var(--rose-doux)}
-@media (max-width:900px){.carte-move{height:34vh;min-height:220px}}
+
+/* ---------------------------------------------------------------- tablette et téléphone */
+@media (max-width:900px){
+  .page-resto #panneauCmd{position:fixed;left:0;right:0;bottom:0;top:auto;max-height:92dvh;z-index:70;background:var(--fond);overflow-y:auto;padding:8px 14px calc(14px + env(safe-area-inset-bottom));
+    border-radius:28px 28px 0 0;box-shadow:0 -18px 50px rgba(0,0,0,.25);transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.9,.3,1);visibility:hidden}
+  .page-resto #panneauCmd::before{content:"";display:block;width:46px;height:5px;border-radius:9px;background:var(--ligne);margin:4px auto 10px}
+  .page-resto #panneauCmd.ouvert{transform:none;visibility:visible}
+  .page-resto #panneauCmd .panier{position:static;margin:0 auto;max-width:560px;border:0;box-shadow:none;padding:4px}
+  body.sans-defil .voile-panier{display:block;position:fixed;inset:0;z-index:65;background:rgba(20,8,4,.45);animation:fondu .2s}
+  .fermer-panier{display:inline-flex}
+  .barre-panier:not([hidden]){display:flex;position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;justify-content:space-between;align-items:center;gap:10px;padding:15px 18px;border:0;border-radius:20px;
+    background:var(--titre);color:#fff;font:700 16px var(--corps);box-shadow:0 14px 34px rgba(0,0,0,.3);cursor:pointer;animation:monte .25s cubic-bezier(.2,.9,.3,1)}
+  .page-resto{padding-bottom:110px}
+}
+@media (max-width:760px){
+  body{-webkit-tap-highlight-color:transparent}
+  .haut .wrap{height:58px}.haut .logo img{width:30px;height:30px}
+  /* barre du bas flottante, onglet actif en pastille */
+  .bas{left:10px;right:10px;bottom:calc(8px + env(safe-area-inset-bottom));border:0;border-radius:24px;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(16px) saturate(170%);
+    box-shadow:0 10px 30px rgba(0,0,0,.16);padding:6px}
+  .bas a{border-radius:18px;padding:6px 0 7px;transition:background .2s}
+  .bas a.on{background:var(--rose-doux)}.bas a.on span{transform:scale(1.12)}
+  #app{padding-bottom:96px}
+  /* pied de page long seulement sur l'accueil (les liens de l'écosystème y restent) */
+  body:not([data-page=accueil]) .pied,body:not([data-page=accueil]) .eco{display:none}
+  .pied .wrap{grid-template-columns:1fr}
+  .grandes{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .grande{min-height:122px;padding:14px;border-radius:22px}.grande span{font-size:34px}.grande b{font-size:18px}
+  .section{padding-top:18px}.section h2{font-size:20px}
+  /* restaurant : grande photo, retour posé dessus, plats façon appli */
+  .page-resto{padding:0}.page-resto>.fiche{gap:0}
+  .resto-hero{margin:0 -16px;border-radius:0 0 28px 28px!important;aspect-ratio:16/10!important;box-shadow:none}
+  .retour-flottant{display:grid;place-items:center;position:absolute;top:12px;left:12px;z-index:2;width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.92);font:900 20px var(--corps);color:var(--titre);box-shadow:0 4px 14px rgba(0,0,0,.2);cursor:pointer}
+  .page-resto .fiche>div{padding:0 16px}
+  .onglets-cat{top:58px;margin:12px -16px 0;padding:8px 16px}
+  .page-resto .type{border-width:0 0 2px;border-radius:0;box-shadow:none;padding:14px 2px;background:transparent}
+  .page-resto .type>div:first-child:has(img){flex-direction:row-reverse;justify-content:space-between;width:100%}
+  .page-resto .type img{width:84px!important;height:84px!important;border-radius:16px!important}
+  /* trajet : carte plein écran, formulaire dans un panneau qui glisse par-dessus */
+  .page-move{padding:0}.page-move .titre-move{display:none}.page-move .fiche{display:block}
+  .page-move .carte-move{position:fixed;left:0;right:0;top:58px;height:calc(100dvh - 58px);min-height:0;border:0;border-radius:0;z-index:0}
+  .page-move aside{position:relative;z-index:2;margin-top:40dvh}
+  .page-move #fRes{border-radius:28px 28px 0 0;border:0;box-shadow:0 -14px 40px rgba(0,0,0,.18);min-height:60dvh;padding-top:8px}
+  .page-move #fRes::before{content:"";display:block;width:46px;height:5px;border-radius:9px;background:var(--ligne);margin:4px auto 6px}
+  /* toucher : petit enfoncement, comme une appli */
+  .grande:active,.profil-c:active,.ev:active,.en-cours:active,.cuisine:active,.pastille-u:active,.btn:active{transform:scale(.97)}
+}
+@keyframes monte{from{transform:translateY(30px);opacity:0}}
+@keyframes fondu{from{opacity:0}}
+@keyframes apparait{from{opacity:0}}   /* fondu seul : un déplacement casserait les éléments fixés à l'écran (panier, carte, GPS) */
+#app>*{animation:apparait .28s ease backwards}
+body.sans-defil .bas{display:none}
+@media (prefers-reduced-motion:reduce){#app>*,.barre-panier,.voile-panier{animation:none!important}.page-resto #panneauCmd{transition:none}}

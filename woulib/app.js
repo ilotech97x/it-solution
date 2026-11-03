@@ -33,7 +33,7 @@ function universFerme(code, terr) {
 }
 
 const APP = {
-  nom: 'Woulib', titre: 'Woulib — repas livrés, VTC, taxis et GPS', accueilConnecte: '#/', pourTel: 'que le restaurant, le chauffeur ou le livreur puisse vous joindre',
+  nom: 'Woulib', titre: 'Woulib — repas livrés, VTC, taxis et GPS', accueilConnecte: '#/', apresInscription: '#/bienvenue', pourTel: 'que le restaurant, le chauffeur ou le livreur puisse vous joindre',
   menu: () => [['#/manger', '🍛 Food'], ['#/move', '🚗 Move'], ['#/gps', '🧭 GPS'], moi ? ['#/compte', 'Mon compte'] : ['#/pros', 'Professionnels'], ...(profil?.role === 'admin' ? [['#/admin', 'Admin']] : [])],
   menuBas: () => [['#/', '🏠', 'Accueil'], ['#/manger', '🍛', 'Food'], ['#/move', '🚗', 'Move'], ['#/gps', '🧭', 'GPS'], [moi ? '#/compte' : '#/connexion', '🙂', moi ? 'Compte' : 'Connexion']],
   // à chaque changement de page : arrêter les rafraîchissements, couper le GPS hors des pages qui guident, couleurs de l'univers visité
@@ -44,44 +44,70 @@ const APP = {
     if (!h.startsWith('#/gps') && typeof arreterGuidage === 'function') arreterGuidage();
     const m = Object.values(MODULES).find(x => x.routes.test(h));
     document.body.dataset.zone = m?.zone || 'accueil';
+    document.body.dataset.page = h.split('?')[0].split('/')[1] || 'accueil';   // téléphone : pied de page seulement sur l'accueil
   },
   pages: {}
 };
 
-const blocPros = () => `<div class="univers">
-  <a class="univ" href="#/pro"><span class="u-ico">👩‍🍳</span><b>Restaurateurs</b><span>Votre carte en ligne, les commandes en direct sur votre téléphone, des livreurs sans en embaucher. Inscription gratuite pour démarrer.</span><em class="btn btn-p">Inscrire mon restaurant</em></a>
-  <a class="univ univ-move" href="#/chauffeur"><span class="u-ico">🧑‍✈️</span><b>Chauffeurs et livreurs</b><span>VTC, taxis, livreurs à scooter ou à vélo : acceptez les courses et livraisons qui vous arrangent, près de chez vous. Comptes vérifiés.</span><em class="btn btn-p">Devenir chauffeur ou livreur</em></a></div>`;
+// commission de la plateforme vue par le pro : ce qu'il doit, ses ventes du mois, le détail (commun/commissions.sql)
+const SOURCES_CM = { commande: '🍛 Repas', course: '🚗 Course', livraison: '🛵 Livraison', reservation: '🏡 Séjour', prestation: '🔧 Prestation', billet: '🎟️ Billet' };
+async function blocCommission() {
+  if (!BASE_V2) return '';
+  const c = await q(sb.rpc('mes_commissions')).catch(() => null);
+  if (!c || !c.lignes.length) return '';
+  return `<details class="panneau commission"><summary><b>💶 Commission Woulib</b> · à régler : <b>${eur(c.due)}</b> <span class="muted petit">· ventes du mois ${eur(c.ventes_mois)}</span></summary>
+    <p class="petit muted">Vos clients vous paient directement ; la commission de la plateforme est réglée une fois par mois (relevé envoyé sur WhatsApp ou par email).</p>
+    ${c.lignes.map(x => `<div class="ligne-panier"><span>${SOURCES_CM[x.source] || x.source} · ${esc(jourHeure(x.created_at))}<small>${eur(x.base)} × ${Number(x.taux)} %</small></span><b style="${x.statut === 'annulee' ? 'text-decoration:line-through;opacity:.5' : ''}">${eur(x.montant)}${x.statut === 'payee' ? ' ✓' : ''}</b></div>`).join('')}</details>`;
+}
 
-// accueil : trois grandes actions, ce qui est en cours, les restaurants ouverts, puis le reste en petit
+// taux de commission affichés aux pros (réglés dans l'administration ; repli : taux de départ)
+const tauxPro = code => Number(univers(code)?.parametres?.commission_pct ?? { food: 10, move: 10, living: 8, events: 5 }[code] ?? 0);
+const POURQUOI = [['💸', 'Plus juste pour les pros', 'Commission de 5 à 10 %, quand les grandes plateformes prennent souvent 25 à 30 %.'],
+  ['🤝', 'Vous payez directement', 'Espèces ou carte, au restaurant, au chauffeur ou au livreur. Personne ne garde votre argent.'],
+  ['🌴', 'D’ici, pour ici', 'Restaurants, chauffeurs et livreurs de votre île, vérifiés un par un.'],
+  ['🛡️', 'Sécurité', 'Code de remise à la livraison, trajet partagé en direct avec un proche, bouton d’urgence.']];
+
+// accueil : une recherche, quatre grandes actions, ce qui est en cours, les cuisines, les restaurants ouverts
 APP.pages[''] = async () => {
   const reg = await chargerRegistre(), terr = terrPrefere();
   const bientot = reg.filter(u => !(u.statut === 'actif' && MODULES[u.code]) && u.statut !== 'masque');
   const ouvert = c => universOuvert(c);
   vue(`<section class="accueil"><div class="wrap">
-    <h1>${moi && profil?.prenom ? `Bonjour ${esc(profil.prenom)} 👋` : 'Woulib, <em>tout le quotidien</em>'}</h1>
-    <p class="muted">Manger, se déplacer, s’orienter : tout avec Woulib.</p>
+    <div class="acc-tete"><div><h1>${moi && profil?.prenom ? `Bonjour ${esc(profil.prenom)} 👋` : 'Woulib, <em>tout le quotidien</em>'}</h1><p class="muted">Qu’est-ce qu’on fait aujourd’hui ?</p></div>
+      <a class="chip-terr" href="#/manger" title="Territoire">📍 ${esc(terr || 'Martinique')}</a></div>
+    <form class="recherche-unique" id="fCherche"><div class="seg"><button type="button" class="on" data-seg="manger">🍛 Manger</button><button type="button" data-seg="trajet">🚗 Trajet</button></div>
+      <div class="rch"><span aria-hidden="true">🔎</span><input name="q" placeholder="Un plat, un restaurant, une envie…" aria-label="Rechercher" autocomplete="off"><button class="btn btn-p">Go</button></div></form>
     <div class="grandes">
       ${ouvert('food') ? '<a class="grande g-food" href="#/manger"><span>🍛</span><b>Manger</b><small>Livré ou à emporter</small></a>' : ''}
       ${ouvert('move') ? '<a class="grande g-move" href="#/move"><span>🚗</span><b>Se déplacer</b><small>VTC et taxis</small></a>' : ''}
-      <a class="grande g-gps" href="#/gps"><span>🧭</span><b>GPS</b><small>Alertes route</small></a></div>
+      <a class="grande g-gps" href="#/gps"><span>🧭</span><b>GPS</b><small>Alertes route</small></a>
+      <a class="grande g-pro" href="#/pros"><span>💼</span><b>Gagner avec Woulib</b><small>Resto, chauffeur, livreur…</small></a></div>
     <div id="enCours"></div>
+    ${ouvert('food') ? `<section class="section"><h2>Envie de…</h2><div class="defile cuisines">${Object.entries(CUISINES).filter(([k]) => k !== 'autre').map(([k, [i, t]]) => `<a class="cuisine" href="#/manger?cuisine=${k}"><span>${i}</span>${esc(t)}</a>`).join('')}</div></section>` : ''}
     <section class="section" id="restosAccueil" hidden><div class="titre-s"><h2>Ouverts maintenant</h2><a href="#/manger">Tout voir →</a></div><div class="defile" id="restosListe"></div></section>
+    <section class="section"><h2>Pourquoi Woulib ?</h2><div class="pourquoi">${POURQUOI.map(([i, t, d]) => `<div><span>${i}</span><b>${t}</b><small>${d}</small></div>`).join('')}</div></section>
     <section class="section"><h2>Bientôt sur Woulib</h2><div class="defile" id="univers">${bientot.map(u => u.statut === 'externe'
         ? `<a class="pastille-u" href="${esc(u.lien)}"><span>${u.icone}</span><b>${esc(u.nom.replace('Woulib ', ''))}</b><small>Ouvert</small></a>`
-        : `<button class="pastille-u" data-alerte="${u.code}" title="${esc(u.description)}"><span>${u.icone}</span><b>${esc(u.nom.replace('Woulib ', ''))}</b><small>🔔 Me prévenir</small></button>`).join('')}</div></section>
-    <section class="section pros-ligne"><b>Vous êtes professionnel ?</b> <a href="#/pro">👩‍🍳 Inscrire mon restaurant</a> <a href="#/chauffeur">🧑‍✈️ Devenir chauffeur ou livreur</a></section></div></section>`);
+        : `<button class="pastille-u" data-alerte="${u.code}" title="${esc(u.description)}"><span>${u.icone}</span><b>${esc(u.nom.replace('Woulib ', ''))}</b><small>🔔 Me prévenir</small></button>`).join('')}</div></section></div></section>`);
+  let seg = 'manger';
+  $('#fCherche').addEventListener('click', e => { const b = e.target.closest('[data-seg]'); if (!b) return; seg = b.dataset.seg;
+    document.querySelectorAll('[data-seg]').forEach(x => x.classList.toggle('on', x === b)); $('#fCherche').q.placeholder = seg === 'manger' ? 'Un plat, un restaurant, une envie…' : 'Où allez-vous ?'; $('#fCherche').q.focus(); });
+  $('#fCherche').addEventListener('submit', e => { e.preventDefault(); const t = e.target.q.value.trim();
+    if (seg === 'trajet') { try { sessionStorage.setItem('wlDest', t); } catch (x) { /* facultatif */ } return aller('#/move'); }
+    aller('#/manger' + (t ? '?' + new URLSearchParams({ q: t }) : '')); });
   $('#univers').onclick = async e => {
     const b = e.target.closest('[data-alerte]'); if (!b || !exigeCompte()) return;
     try { await q(sb.from('alertes_univers').insert({ univers: b.dataset.alerte })); b.querySelector('small').textContent = '✓ Prévenu'; b.disabled = true; toast('C’est noté : nous vous préviendrons à l’ouverture.'); } catch (err) { toast(erreur(err), true); }
   };
-  // ce qui est en cours : commande ou course (un seul bandeau, le plus récent d'abord)
+  // ce qui est en cours : commande ou course, avec une barre d'avancement
   if (moi) {
     const [cmd, crs, deja] = await Promise.all([
       q(sb.from('commandes').select('id, statut, restaurants(nom)').eq('client_id', moi.id).in('statut', ['envoyee', 'acceptee', 'en_preparation', 'prete', 'en_livraison']).order('created_at', { ascending: false }).limit(1)).catch(() => []),
       q(sb.from('courses').select('id, statut, arrivee_txt').eq('client_id', moi.id).in('statut', ['demande', 'acceptee', 'en_route', 'arrivee', 'a_bord']).order('created_at', { ascending: false }).limit(1)).catch(() => []),
       q(sb.from('alertes_univers').select('univers')).catch(() => [])]);
-    $('#enCours').innerHTML = [...cmd.map(c => `<a class="en-cours" href="#/suivi/${c.id}"><span>🛵</span><div><b>${esc(c.restaurants?.nom || 'Votre commande')}</b><small>${esc(ST_CMD[c.statut]?.[1] || '')}</small></div><em>Suivre →</em></a>`),
-      ...crs.map(c => `<a class="en-cours g-move" href="#/course/${c.id}"><span>🚗</span><div><b>Vers ${esc(c.arrivee_txt)}</b><small>${esc(ST_COURSE[c.statut]?.[1] || '')}</small></div><em>Suivre →</em></a>`)].join('');
+    const pas = (l, st) => Math.max(1, l.findIndex(e => e[0] === st) + 1) / l.length * 100;
+    $('#enCours').innerHTML = [...cmd.map(c => `<a class="en-cours" href="#/suivi/${c.id}"><span>🛵</span><div><b>${esc(c.restaurants?.nom || 'Votre commande')}</b><small>${esc(ST_CMD[c.statut]?.[1] || '')}</small><i class="prog"><i style="width:${pas(ETAPES, c.statut)}%"></i></i></div><em>Suivre →</em></a>`),
+      ...crs.map(c => `<a class="en-cours g-move" href="#/course/${c.id}"><span>🚗</span><div><b>Vers ${esc(c.arrivee_txt)}</b><small>${esc(ST_COURSE[c.statut]?.[1] || '')}</small><i class="prog"><i style="width:${pas(ETAPES_C, c.statut)}%"></i></i></div><em>Suivre →</em></a>`)].join('');
     deja.forEach(a => { const b = document.querySelector(`[data-alerte="${a.univers}"]`); if (b) { b.querySelector('small').textContent = '✓ Prévenu'; b.disabled = true; } });
   }
   if (ouvert('food')) {
@@ -91,7 +117,29 @@ APP.pages[''] = async () => {
     if (l.length && $('#restosListe')) { $('#restosListe').innerHTML = l.map(x => carteResto(x)).join(''); $('#restosAccueil').hidden = false; }
   }
 };
-APP.pages.pros = async () => vue(`<div class="wrap" style="padding-top:22px"><h1>Professionnels</h1><p class="muted">Chaque restaurant, chauffeur et livreur est vérifié avant sa mise en ligne.</p>${blocPros()}</div>`);
+
+// juste après l'inscription : choisir ce qu'on vient faire (chacun peut proposer ses services, vérifié avant publication)
+const PROFILS = () => [['🛍️', 'Commander et me déplacer', 'Repas, VTC, taxis, GPS. C’est gratuit.', '#/', null],
+  ['👩‍🍳', 'J’ai un restaurant, un snack, un traiteur', 'Votre carte en ligne, des livreurs sans en embaucher.', '#/pro/resto/nouveau', `Commission ${tauxPro('food')} % sur les repas`],
+  ['🚗', 'Je suis chauffeur VTC ou taxi', 'Des courses près de chez vous, payées directement par le client.', '#/chauffeur', `Commission ${tauxPro('move')} % sur les courses`],
+  ['🛵', 'Je veux livrer (scooter, vélo, voiture)', 'Les frais de livraison et 100 % des pourboires pour vous.', '#/chauffeur', 'Commission 10 % sur les frais de livraison, 0 % sur les pourboires'],
+  ['🔧', 'Je propose mes services', 'Ménage, jardin, bricolage, informatique, conciergerie…', 'https://immo.ilo-tech.com/#/compte/partenaire', `Commission ${tauxPro('living')} % sur les prestations`],
+  ['🏡', 'Je loue un logement', 'Villa, gîte, appartement : vos réservations, vos règles.', 'https://immo.ilo-tech.com/#/compte/logements', `Commission ${tauxPro('living')} % sur les séjours`],
+  ['🎟️', 'J’organise des événements', 'Billets QR code, contrôle à l’entrée, liste des participants.', '../pass/#/orga', `Commission ${tauxPro('events')} % sur les billets payants, 0 % sur les gratuits`]];
+const cartesProfils = l => `<div class="profils">${l.map(([i, t, d, h, c]) => `<a class="profil-c" href="${h}"><span>${i}</span><div><b>${t}</b><small>${d}</small>${c ? `<em>${c} · inscription gratuite</em>` : ''}</div><i>›</i></a>`).join('')}</div>`;
+APP.pages.bienvenue = async () => {
+  await chargerRegistre();
+  vue(`<div class="wrap bienvenue"><h1>Bienvenue${profil?.prenom ? ' ' + esc(profil.prenom) : ''} ! 🎉</h1><p class="muted">Que voulez-vous faire avec Woulib ? Tout se fait avec le même compte, et vous pourrez en faire plusieurs.</p>${cartesProfils(PROFILS())}</div>`);
+};
+APP.pages.pros = async () => {
+  await chargerRegistre();
+  vue(`<div class="wrap bienvenue"><h1>Gagnez avec Woulib</h1><p class="muted">Inscription gratuite. Vos clients vous paient directement ; Woulib prend seulement une petite commission sur ce que vous vendez, réglée une fois par mois. Chaque pro est vérifié avant sa mise en ligne.</p>
+    ${cartesProfils(PROFILS().slice(1))}
+    <section class="section"><h2>Pourquoi les pros choisissent Woulib</h2><div class="pourquoi">${[['💸', 'Une commission juste', 'De 5 à 10 % selon l’activité, contre souvent 25 à 30 % sur les grandes plateformes. Pas d’abonnement, pas de frais d’inscription.'],
+      ['💶', 'Votre argent tout de suite', 'Le client vous paie directement. Vous réglez la commission une fois par mois.'],
+      ['📱', 'Tout depuis le téléphone', 'Commandes et courses en direct, carte, horaires, codes promo, chiffres du mois.'],
+      ['🏝️', 'Local et proche', 'Une équipe en Martinique, joignable sur WhatsApp.']].map(([i, t, d]) => `<div><span>${i}</span><b>${t}</b><small>${d}</small></div>`).join('')}</div></section></div>`);
+};
 
 APP.pages.compte = async () => {
   if (!exigeCompte()) return;
@@ -102,6 +150,7 @@ APP.pages.compte = async () => {
 
 // ---------------------------------------------------------------- administration : chaque univers a son onglet ; les modérateurs ne voient que le leur
 const ongletsAdmin = actif => `<h1>Administration</h1><div class="puces">${[['resto', '#/admin', '🍛 Food : restaurants', 'food'], ['woulib', '#/admin/woulib', '🚗 Move : chauffeurs et tarifs', 'move'], ...(BASE_V2 ? [['univers', '#/admin/univers', '🧩 Univers et territoires', null]] : [])]
+  .concat(BASE_V2 && profil?.role === 'admin' ? [['commissions', '#/admin/commissions', '💶 Commissions', null]] : [])
   .filter(([, , , u]) => profil?.role === 'admin' || (u && mesModerations.includes(u))).map(([k, h, t]) => `<a href="${h}" class="${actif === k ? 'on' : ''}">${t}</a>`).join('')}</div>`;
 let mesModerations = [];
 APP.pages.admin = async sous => {
@@ -109,9 +158,24 @@ APP.pages.admin = async sous => {
   await chargerRegistre();
   mesModerations = (await q(sb.from('moderateurs_univers').select('univers').eq('user_id', moi.id)).catch(() => [])).map(x => x.univers);
   if (sous === 'univers') return adminUnivers();
+  if (sous === 'commissions') return adminCommissions();
   if (sous === 'woulib' || (profil?.role !== 'admin' && !mesModerations.includes('food') && mesModerations.includes('move'))) return adminWoulib();
   return adminResto();
 };
+// ce que chaque pro doit à la plateforme ; « Réglé » quand il a payé (il est prévenu)
+async function adminCommissions() {
+  if (profil?.role !== 'admin') return vue('<div class="wrap"><p>Réservé à l’administration.</p></div>');
+  const l = await q(sb.rpc('commissions_a_regler'));
+  vue(`<div class="wrap" style="padding-top:22px">${ongletsAdmin('commissions')}<h2>À régler par les pros (${eur(l.reduce((t, x) => t + Number(x.montant), 0))})</h2>
+    ${l.map(x => `<div class="ligne-l" style="grid-template-columns:minmax(0,1fr) auto"><div><b>${esc(x.prenom)} ${esc(x.nom)}</b> · ${x.univers.map(u => esc(univers(u)?.nom || u)).join(', ')}
+      <div class="muted petit">${x.nb} vente${x.nb > 1 ? 's' : ''} · ${esc(x.email || '')}${x.telephone ? ' · ' + esc(x.telephone) : ''}</div></div>
+      <div class="actions"><b style="font-size:18px">${eur(x.montant)}</b>${x.telephone ? `<a class="btn btn-s btn-wa" target="_blank" rel="noopener" href="${wa(x.telephone, `Bonjour ${x.prenom}, voici votre relevé Woulib : ${eur(x.montant)} de commission pour ${x.nb} vente(s). Merci !`)}">Relevé WhatsApp</a>` : ''}
+        <button class="btn btn-s btn-ok" data-regle="${x.pro_id}" data-montant="${x.montant}">Réglé</button></div></div>`).join('') || '<p class="muted">Rien à régler pour l’instant.</p>'}</div>`);
+  $('#app').onclick = async e => {
+    const b = e.target.closest('[data-regle]'); if (!b || !confirm(`Confirmer le règlement de ${eur(b.dataset.montant)} ?`)) return;
+    try { await q(sb.rpc('regler_commissions', { pro: b.dataset.regle })); toast('Règlement enregistré, le pro est prévenu.'); adminCommissions(); } catch (err) { toast(erreur(err), true); }
+  };
+}
 async function adminUnivers() {
   if (profil?.role !== 'admin') return vue('<div class="wrap"><p>Réservé à l’administration.</p></div>');
   REGISTRE = null; const reg = await chargerRegistre();

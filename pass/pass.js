@@ -343,12 +343,16 @@ async function pageOrga(sous, id) {
   if (sous === 'promo') return pagePromo(id);
   vue('<div class="chargement">Chargement…</div>');
   const ev = await q(sb.from('evenements').select('*').eq('orga_id', moi.id).order('debut', { ascending: false }));
+  const cm = await sb.rpc('mes_commissions').then(r => r.error || !r.data?.lignes?.length ? null : r.data);   // commission de la billetterie (billets payants)
   const stats = {};
   if (ev.length) {
     const [types, bil] = await Promise.all([q(sb.from('billets_types').select('evenement_id, quantite').in('evenement_id', ev.map(e => e.id))), q(sb.from('billets').select('evenement_id, statut, prix').in('evenement_id', ev.map(e => e.id)))]);
     ev.forEach(e => { const b = bil.filter(x => x.evenement_id === e.id && x.statut !== 'annule'); stats[e.id] = { places: types.filter(t => t.evenement_id === e.id).reduce((s, t) => s + t.quantite, 0), vendus: b.length, entres: b.filter(x => x.statut === 'utilise').length, aEncaisser: b.filter(x => x.statut === 'reserve').reduce((s, x) => s + Number(x.prix), 0) }; });
   }
   vue(`<div class="wrap" style="padding-top:22px"><div class="titre-s"><h1>Espace organisateur</h1><a class="btn btn-p" href="#/orga/evenement/nouveau">+ Nouvel événement</a></div>
+    ${cm ? `<details class="panneau" style="margin-bottom:16px;padding:14px 16px"><summary><b>💶 Commission EventPass</b> · à régler : <b>${eur(cm.due)}</b> <span class="muted petit">· billets payants réglés ce mois : ${eur(cm.ventes_mois)}</span></summary>
+      <p class="petit muted">5 % du prix des billets payants (0 % sur les gratuits). Les participants vous paient directement ; la commission est réglée chaque mois.</p>
+      ${cm.lignes.map(x => `<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0"><span>🎟️ Billet de ${eur(x.base)} · ${new Date(x.created_at).toLocaleDateString('fr-FR')}</span><b style="${x.statut === 'annulee' ? 'text-decoration:line-through;opacity:.5' : ''}">${eur(x.montant)}${x.statut === 'payee' ? ' ✓' : ''}</b></div>`).join('')}</details>` : ''}
     ${ev.length ? ev.map(e => { const s = stats[e.id]; return `<div class="ligne-l">${e.affiche ? `<img class="mini" src="${esc(photo(e.affiche))}" alt="">` : '<div class="mini"></div>'}
       <div><b>${esc(e.titre)}</b> ${tag(ST_EV[e.statut])}<div class="muted petit">${esc(quand(e.debut, e.fuseau))} · ${lieuEv(e)}</div>
         <div class="petit">🎟️ ${s.vendus} / ${s.places} réservés · ✅ ${s.entres} entrés${s.aEncaisser ? ` · 💶 ${eur(s.aEncaisser)} à encaisser` : ''}</div>

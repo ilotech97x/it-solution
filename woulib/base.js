@@ -108,7 +108,7 @@ function pageInscription() {
     e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)), b = e.target.querySelector('button'); b.disabled = true;
     try {
       const r = await q(sb.auth.signUp({ email: d.email.trim(), password: d.mdp, options: { data: { prenom: d.prenom.trim(), nom: d.nom.trim(), telephone: d.telephone.trim() } } }));
-      if (r.session) { await chargerMoi(); toast('Compte créé, bienvenue !'); aller(decodeURIComponent(param().retour || '') || APP.accueilConnecte); }
+      if (r.session) { await chargerMoi(); toast('Compte créé, bienvenue !'); aller(decodeURIComponent(param().retour || '') || APP.apresInscription || APP.accueilConnecte); }
       else vue('<div class="wrap"><div class="carte-f"><h1>Vérifiez vos emails 📩</h1><p>Cliquez sur le lien reçu pour activer votre compte, puis connectez-vous.</p></div></div>');
     } catch (err) { toast(erreur(err), true); b.disabled = false; }
   });
