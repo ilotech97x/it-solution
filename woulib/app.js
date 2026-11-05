@@ -50,7 +50,7 @@ const APP = {
   menu: () => [['#/manger', '🍛 Food'], ['#/move', '🚗 Move'], ['#/gps', '🧭 GPS'], ...(moi ? [['#/activite', '🧾 Activité'], ['#/compte', 'Mon compte']] : [['#/pros', 'Professionnels']]), ...(profil?.role === 'admin' ? [['#/admin', 'Admin']] : [])],
   menuBas: () => [['#/', ICO.accueil, 'Accueil'], ['#/manger', ICO.manger, 'Manger'], ['#/move', ICO.trajets, 'Trajets'], ['#/activite', ICO.activite, 'Activité'], [moi ? '#/compte' : '#/connexion', ICO.compte, moi ? 'Compte' : 'Connexion']],
   icones: () => ICO,
-  differes: { gps: 'gps.js?v=4', projets: 'projets.js?v=2', projet: 'projets.js?v=2' },   // chargés à la première ouverture
+  differes: { gps: 'gps.js?v=4', projets: 'projets.js?v=2', projet: 'projets.js?v=2', assistance: 'compte.js?v=1' },   // chargés à la première ouverture
   // bouton retour d'une page ouverte directement (lien partagé) : l'accueil de son univers
   parent: h => Object.values(MODULES).find(m => m.routes.test(h.split('?')[0]))?.accueil || '#/',
   // à chaque changement de page : arrêter les rafraîchissements, couper le GPS hors des pages qui guident, couleurs de l'univers visité
@@ -169,16 +169,29 @@ APP.pages.pros = async () => {
       ['🏝️', 'Local et proche', 'Une équipe en Martinique, joignable sur WhatsApp.']].map(([i, t, d]) => `<div><span>${i}</span><b>${t}</b><small>${d}</small></div>`).join('')}</div></section></div>`);
 };
 
-APP.pages.compte = async () => {
+// profil, sécurité, confidentialité, assistance, signaler : compte.js, chargé à la première ouverture
+const chargerCompte = () => chargerScript(APP.differes.assistance);
+APP.pages.compte = async sous => {
   if (!exigeCompte()) return;
+  if (sous) { await chargerCompte(); return APP.sousCompte(sous); }
+  if (profil?.role !== 'admin') mesModerations = (await q(sb.from('moderateurs_univers').select('univers').eq('user_id', moi.id)).catch(() => [])).map(x => x.univers);
   const ligne = ([h, i, t, d]) => `<a class="menu-l" href="${h}"><span>${i}</span><div><b>${t}</b>${d ? `<small>${d}</small>` : ''}</div><i>›</i></a>`;
   vue(`<div class="wrap compte-app"><div class="moi-c"><span class="avatar">${esc((profil?.prenom || moi.email || '?')[0].toUpperCase())}</span><div><h1>${esc(profil?.prenom || '')} ${esc(profil?.nom || '')}</h1><span class="muted">${esc(moi.email)}</span></div></div>
     ${blocInstallation()}
     <h2>Mes activités</h2><div class="menu-g">${[['#/activite', '🧾', 'Tout ce qui est en cours', 'Commandes, trajets, colis, en un seul endroit'], ['#/activite?f=repas', '🍛', 'Mes commandes', ''], ['#/activite?f=trajets', '🚗', 'Mes trajets', ''], ['#/activite?f=colis', '📦', 'Mes colis', ''], ['#/projets', '🗂️', 'Mes projets', 'Anniversaire, mariage, séjour…']].map(ligne).join('')}</div>
     <h2>Gagner avec Woulib</h2><div class="menu-g">${[['#/pro', '👩‍🍳', 'Mon restaurant ou ma boutique', 'Carte, articles, stock, commandes en direct'], ['#/chauffeur', '🧑‍✈️', 'Espace chauffeur et livreur', 'Courses, livraisons, colis, gains'], ['#/pros', '💼', 'Toutes les façons de gagner', '']].map(ligne).join('')}</div>
-    <h2>Réglages</h2><div class="menu-g">${[['https://immo.ilo-tech.com/#/compte/profil', '🙂', 'Modifier mon profil', ''], ['#/notifs', '🔔', 'Notifications', ''], ['cgu.html', '📄', 'Conditions', ''], [wa(WA, 'Bonjour, j’ai une question sur Woulib.'), '💬', 'Aide sur WhatsApp', '']].map(ligne).join('')}
-      ${profil?.role === 'admin' ? ligne(['#/admin', '🛡️', 'Administration', '']) : ''}<a class="menu-l ko" href="#/deconnexion"><span>🚪</span><div><b>Se déconnecter</b></div><i>›</i></a></div></div>`);
+    <h2>Réglages</h2><div class="menu-g">${[['#/compte/profil', '🙂', 'Mon profil', 'Nom, téléphone, territoire'], ['#/notifs', '🔔', 'Notifications', ''], ['#/compte/securite', '🔒', 'Sécurité', 'Mot de passe, appareils connectés'],
+      ['#/compte/confidentialite', '🛡️', 'Confidentialité', 'Télécharger mes données, supprimer mon compte']].map(ligne).join('')}</div>
+    <h2>Aide</h2><div class="menu-g">${[['#/assistance', '💬', 'Assistance', 'Une question, un problème, mes signalements'], [wa(WA, 'Bonjour, j’ai une question sur Woulib.'), '📱', 'Aide sur WhatsApp', ''],
+      ['cgu.html', '📄', 'Conditions d’utilisation', ''], ['confidentialite.html', '📄', 'Politique de confidentialité', '']].map(ligne).join('')}
+      ${profil?.role === 'admin' || mesModerations.length ? ligne(['#/admin', '🛡️', 'Administration', '']) : ''}<a class="menu-l ko" href="#/deconnexion"><span>🚪</span><div><b>Se déconnecter</b></div><i>›</i></a></div></div>`);
 };
+// bouton « Signaler » d'un restaurant, d'une commande, d'une course… (data-signaler = type, data-id, data-univers, data-nom)
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-signaler]'); if (!b) return;
+  e.preventDefault(); if (!exigeCompte()) return;
+  try { await chargerCompte(); APP.signaler(b.dataset); } catch (err) { toast(erreur(err), true); }
+});
 
 // activité : tout ce qui est en cours puis l'historique, toutes les applis de Woulib mélangées (comme l'onglet « Activité » d'une appli)
 APP.pages.activite = async () => {
@@ -211,12 +224,14 @@ APP.pages.activite = async () => {
 // ---------------------------------------------------------------- administration : chaque univers a son onglet ; les modérateurs ne voient que le leur
 const ongletsAdmin = actif => `<h1>Administration</h1><div class="puces">${[...(PILOTAGE && profil?.role === 'admin' ? [['tableau', '#/admin/tableau', '📊 Tableau de bord', null]] : []), ['resto', '#/admin/food', '🍛 Food : restaurants', 'food'], ['woulib', '#/admin/woulib', '🚗 Move : chauffeurs et tarifs', 'move'], ...(BASE_V2 ? [['univers', '#/admin/univers', '🧩 Univers et territoires', null]] : [])]
   .concat(BASE_V2 && profil?.role === 'admin' ? [['commissions', '#/admin/commissions', '💶 Commissions', null]] : [])
-  .filter(([, , , u]) => profil?.role === 'admin' || (u && mesModerations.includes(u))).map(([k, h, t]) => `<a href="${h}" class="${actif === k ? 'on' : ''}">${t}</a>`).join('')}</div>`;
+  .concat([['signalements', '#/admin/signalements', '🚩 Signalements', '*'], ['assistance', '#/admin/assistance', '💬 Assistance', '*'], ['suppressions', '#/admin/suppressions', '🗑️ Comptes supprimés', null]])
+  .filter(([, , , u]) => profil?.role === 'admin' || (u === '*' ? mesModerations.length > 0 : u && mesModerations.includes(u))).map(([k, h, t]) => `<a href="${h}" class="${actif === k ? 'on' : ''}">${t}</a>`).join('')}</div>`;
 let mesModerations = [];
 APP.pages.admin = async sous => {
   if (!exigeCompte()) return;
   await chargerRegistre();
   mesModerations = (await q(sb.from('moderateurs_univers').select('univers').eq('user_id', moi.id)).catch(() => [])).map(x => x.univers);
+  if (['signalements', 'assistance', 'suppressions'].includes(sous)) { await chargerCompte(); return APP.adminSuivi(sous); }
   if (sous === 'univers') return adminUnivers();
   if (profil?.role === 'admin' && PILOTAGE && (sous === 'tableau' || !sous)) return adminTableau();
   if (sous === 'commissions') return adminCommissions();

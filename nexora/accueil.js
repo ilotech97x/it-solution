@@ -30,7 +30,7 @@ NX.publiques[''] = async () => {
       <div><h3>🔒 Vos données isolées</h3><p class="muted">Chaque entreprise a ses propres données, protégées dans la base elle-même. Même IloTech n’y a pas accès.</p></div>
       <div><h3>🧾 Factures conformes à la loi</h3><p class="muted">Numérotation continue et chronologique, facture validée non modifiable, corrections par avoir, mentions obligatoires.</p></div>
       <div><h3>📤 Vos données vous appartiennent</h3><p class="muted">Export complet à tout moment, sans frais.</p></div></div></section>
-    <footer class="pied-nx">NEXORA est un service d’IloTech (Martinique) · <a href="https://ilo-tech.com/mentions-legales.html">Mentions légales</a> · <a href="https://ilo-tech.com/confidentialite.html">Confidentialité</a> · <a href="cgu.html">Conditions</a></footer>`);
+    <footer class="pied-nx">NEXORA est un service d’IloTech (Martinique) · <a href="https://ilo-tech.com/mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="cgu.html">Conditions</a></footer>`);
 };
 
 function formAuth(id, titre, champs, bouton, bas) {
@@ -58,7 +58,7 @@ NX.publiques.inscription = async () => {
   formAuth('fIns', 'Créer mon compte', `<div class="g2"><label>Prénom<input name="prenom" required maxlength="60" autocomplete="given-name"></label><label>Nom<input name="nom" maxlength="60" autocomplete="family-name"></label></div>
     <label>Email professionnel<input type="email" name="email" required autocomplete="email"></label><label>Téléphone<input type="tel" name="telephone" required pattern="[0-9 +]{6,20}" autocomplete="tel"></label>
     <label>Mot de passe <span class="muted">(8 caractères minimum)</span><input type="password" name="mdp" required minlength="8" autocomplete="new-password"></label>
-    <label class="case"><input type="checkbox" required> J’accepte les <a href="cgu.html" target="_blank">conditions</a> et la <a href="https://ilo-tech.com/confidentialite.html" target="_blank">politique de confidentialité</a>.</label>`,
+    <label class="case"><input type="checkbox" required> J’accepte les <a href="cgu.html" target="_blank">conditions</a> et la <a href="confidentialite.html" target="_blank">politique de confidentialité</a>.</label>`,
     'Créer mon compte', '<p class="petit">Déjà inscrit ? <a href="#/connexion">Se connecter</a></p>');
   $('#fIns').addEventListener('submit', async e => {
     e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)), b = $('button', e.target); b.disabled = true;

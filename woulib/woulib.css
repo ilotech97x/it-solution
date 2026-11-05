@@ -664,3 +664,9 @@ button,.btn,.bas a,.grande,.pastille-u,.cuisine,.seg button,.qte,.menu-l,.act,.a
 .tab-t .num{text-align:right}.tab-t summary{cursor:pointer;font-weight:800;color:var(--doux)}
 @media (max-width:900px){.kpis-t{grid-template-columns:repeat(2,minmax(0,1fr))}.courbes{grid-template-columns:1fr}}
 @media (max-width:420px){.kpi-t b{font-size:23px}}
+/* compte : profil, sécurité, confidentialité, assistance, signalements (compte.js) */
+.compte-s{max-width:760px;padding-top:18px}.compte-s h1{margin:6px 0 14px}.compte-s>h2{margin:22px 0 10px}
+.liste-d{margin:10px 0 14px;padding-left:20px;display:grid;gap:6px}
+.case-l{display:flex!important;gap:10px;align-items:flex-start;font-weight:600}.case-l input{width:22px!important;height:22px;flex:none;accent-color:var(--rose-presse)}
+.aide-l{display:grid;gap:2px}.aide-t{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.reponse{margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--doux-fond)}

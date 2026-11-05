@@ -169,6 +169,7 @@ APP.pages.resto = async id => {
           : `<div class="qte" data-plat="${p.id}"><button type="button" data-d="-1" aria-label="Moins">−</button><output>${nbPlat(p.id)}</output><button type="button" data-d="1" aria-label="Plus">+</button></div>`}</div>`).join('')}</div>`}`).join('')
         : `<div class="vide-etat"><p>${bq ? 'Les articles arrivent bientôt.' : 'La carte arrive bientôt.'}</p></div>`}
       ${bq && plats.some(p => p.majeur) ? `<p class="petit muted">🔞 ${MODERATION}</p>` : ''}
+      <p class="petit" style="margin-top:22px"><button type="button" class="lien" data-signaler="restaurant" data-id="${r.id}" data-univers="food" data-nom="${bq ? 'ce commerce' : 'ce restaurant'}">🚩 Signaler ${bq ? 'ce commerce' : 'ce restaurant'}</button></p>
     </div>
     <aside id="panneauCmd" aria-label="Mon panier"><div class="panier colle" id="panier"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">🧺 Mon panier</h2>
       <button type="button" class="btn btn-s fermer-panier" data-fermer-panier>← La carte</button></div><div id="lignes"></div>
@@ -331,7 +332,8 @@ APP.pages.suivi = async id => {
           ${lv.code ? `<div style="margin-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="petit">Code à donner au livreur à la remise :</span><b class="code-remise">${esc(lv.code)}</b></div>` : ''}
           <div id="carteLv" style="height:260px;border-radius:18px;margin-top:12px;background:var(--rose-doux)"></div></div>` : ''}
         <div class="actions">${c.restaurants?.telephone ? `<a class="btn btn-s btn-wa" href="${wa(c.restaurants.telephone, 'Bonjour, à propos de ma commande ' + c.id.slice(0, 6).toUpperCase() + ' sur Woulib.')}" target="_blank" rel="noopener">WhatsApp au restaurant</a>` : ''}
-          ${c.statut === 'envoyee' ? '<button class="btn btn-s btn-ko" id="annuler">Annuler</button>' : ''}</div></div>
+          ${c.statut === 'envoyee' ? '<button class="btn btn-s btn-ko" id="annuler">Annuler</button>' : ''}
+          <a class="btn btn-s" href="#/assistance?sujet=commande&id=${c.id}">Un problème ?</a><button type="button" class="btn btn-s" data-signaler="commande" data-id="${c.id}" data-univers="food" data-nom="cette commande">🚩 Signaler</button></div></div>
       ${['livree', 'retiree'].includes(c.statut) && !avis.length ? `<form class="f panneau" id="fAvis" style="margin-top:18px"><h2 style="margin:0">C’était bon ? 😋</h2><label>Note<select name="note">${[5, 4, 3, 2, 1].map(n => `<option value="${n}">${'⭐'.repeat(n)}</option>`).join('')}</select></label>
         <label>Votre avis<textarea name="texte" maxlength="1000" style="min-height:80px"></textarea></label><button class="btn btn-p">Publier mon avis</button></form>` : ''}</div>`);
     $('#annuler')?.addEventListener('click', async () => { if (!confirm('Annuler la commande ?')) return; try { await q(sb.rpc('changer_commande', { cmd: id, nouveau: 'annulee' })); dessiner(); } catch (err) { toast(erreur(err), true); } });

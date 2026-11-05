@@ -144,7 +144,8 @@ APP.pages.course = async id => {
         ${client && ch?.telephone && ACTIVES.includes(c.statut) ? `<a class="btn btn-s btn-wa" href="${wa(ch.telephone, 'Bonjour, votre client Woulib ici.')}" target="_blank" rel="noopener">WhatsApp au chauffeur</a><a class="btn btn-s" href="tel:${esc(ch.telephone)}">📞 Appeler</a>` : ''}
         ${!client ? boutonsChauffeur(c) : ''}
         ${!client && ACTIVES.includes(c.statut) ? (c.statut === 'a_bord' ? `<a class="btn btn-s btn-j" href="${lienGps(c.arrivee_lat, c.arrivee_lng, c.arrivee_txt)}">🧭 GPS vers l’arrivée</a>` : `<a class="btn btn-s btn-j" href="${lienGps(c.depart_lat, c.depart_lng, c.depart_txt)}">🧭 GPS vers le client</a>`) : ''}
-        ${client && ['demande', 'acceptee', 'en_route'].includes(c.statut) ? '<button class="btn btn-s btn-ko" data-av="annulee">Annuler</button>' : ''}</div>
+        ${client && ['demande', 'acceptee', 'en_route'].includes(c.statut) ? '<button class="btn btn-s btn-ko" data-av="annulee">Annuler</button>' : ''}
+        ${client ? `<a class="btn btn-s" href="#/assistance?sujet=course&id=${id}">Un problème ?</a><button type="button" class="btn btn-s" data-signaler="course" data-id="${id}" data-univers="move" data-nom="ce trajet">🚩 Signaler</button>` : ''}</div>
       ${client && !fini && c.statut !== 'terminee' ? `<div class="actions" style="margin-top:10px"><button class="btn btn-s btn-j" id="partager">📤 Partager mon trajet</button><button class="btn btn-s btn-ko" id="sos">🆘 Urgence</button></div>
         <div id="sosZone">${sos ? panneauSos() : ''}</div>` : ''}</div>
       ${client && c.statut === 'terminee' && !avisFait ? `<form class="f panneau" id="fAvis" style="margin-top:16px"><h2 style="margin:0">Comment s’est passé le trajet ?</h2><label>Note<select name="note">${[5, 4, 3, 2, 1].map(n => `<option value="${n}">${'⭐'.repeat(n)}</option>`).join('')}</select></label>
