@@ -267,3 +267,14 @@ table.t th{background:var(--doux-fond);font:900 12px var(--corps);text-transform
 .seg-genre a.on{background:var(--rose);color:#fff}
 .bloc-dates{margin:6px 0 14px;padding:12px 14px;border-radius:var(--r);background:var(--surface);border:2px solid var(--ligne)}.bloc-dates .puces a{font-size:13.5px;padding:6px 12px}
 .fiche>*{min-width:0}
+
+/* ---------------------------------------------------------------- finition « pro » (sites/NORME-APPLIS.md §2) :
+   boutons à plat et sans majuscules, ombres douces réservées à ce qui flotte, bordures fines, appui qui s'enfonce légèrement */
+.btn{text-transform:none;letter-spacing:0;border-width:1.5px;box-shadow:none;margin-bottom:0;transition:transform .1s,filter .15s,background .15s}
+.btn:hover{transform:none;box-shadow:none;filter:brightness(1.03)}
+.btn:active{transform:scale(.97);box-shadow:none}
+.btn-p,.btn-p:hover{box-shadow:0 4px 14px color-mix(in srgb,var(--rose) 26%,transparent)}.btn-p:active{box-shadow:none}
+.btn-j,.btn-ok,.btn-ko,.btn-wa{box-shadow:none}
+.panneau,.ev,.type,.carte-f,.ligne-l,.hud{border-width:1.5px;box-shadow:0 1px 3px rgba(30,15,10,.05)}
+.ev:hover{box-shadow:0 12px 28px rgba(30,15,10,.10)}
+.qte button{box-shadow:none}.qte button:active{transform:scale(.92)}

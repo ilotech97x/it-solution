@@ -237,3 +237,12 @@ a.kpi{display:block;text-decoration:none;color:inherit;transition:border-color .
 @media (max-width:640px){.graph{gap:3px}.graph div:nth-child(even) small{visibility:hidden}.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}}
 .deux>*,.fiche>*,.kpis>*{min-width:0}
 @media (max-width:1000px){.deux,.fiche{grid-template-columns:minmax(0,1fr)}}
+
+/* comparatif d'un devis (écran et impression) */
+.comparatif>summary{cursor:pointer;list-style:none}.comparatif>summary::before{content:'▸ ';color:var(--doux)}.comparatif[open]>summary::before{content:'▾ '}
+.comparatif h3{margin:0 0 8px;font-size:15px}
+.bilan-cp{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.gain-cp{display:grid;gap:2px;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--ok, #16a34a) 10%,transparent);border:1px solid color-mix(in srgb,var(--ok, #16a34a) 35%,transparent)}
+.gain-cp span{font-size:12.5px;color:var(--doux)}.gain-cp b{font-size:18px}.gain-cp.ko{background:color-mix(in srgb,var(--ko) 8%,transparent);border-color:color-mix(in srgb,var(--ko) 30%,transparent)}
+.cp-imp{margin-top:26px;break-inside:avoid}.cp-imp h2{font-size:16px;margin:0 0 8px;color:#111}.cp-imp ul{margin:4px 0 10px;padding-left:18px}
+.gains-imp{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}.gains-imp .gain-cp{background:#f2faf4;border-color:#b7e1c1}.gains-imp .gain-cp.ko{background:#fdf2f2;border-color:#f2c2c2}.gains-imp .gain-cp span{color:#555}

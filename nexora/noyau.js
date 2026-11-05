@@ -38,6 +38,7 @@ function erreur(e) {
 const vide = (titre, texte, bouton = '') => `<div class="vide"><b>${esc(titre)}</b>${texte ? `<p>${texte}</p>` : ''}${bouton}</div>`;
 const tableau = (entetes, lignes, videHtml) => lignes.length ? `<div class="tab-boite"><table class="tab"><thead><tr>${entetes.map(h => `<th class="${h.startsWith('#') ? 'num' : ''}">${esc(h.replace(/^#/, ''))}</th>`).join('')}</tr></thead><tbody>${lignes.join('')}</tbody></table></div>` : `<div class="carte">${videHtml}</div>`;
 const ICONES = {
+  emails: 'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM3 7l9 6 9-6',
   accueil: 'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z', clients: 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8',
   pipeline: 'M3 4h18M6 9h12M9 14h6M11 19h2', activites: 'M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9', devis: 'M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5',
   factures: 'M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2zM9 8h6M9 12h6', catalogue: 'M21 8l-9-5-9 5 9 5zM3 8v8l9 5 9-5V8M12 13v8', reglages: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 2.9-1.2V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
@@ -51,6 +52,7 @@ const icone = n => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><pat
 // ---------------------------------------------------------------- session, entreprises, droits
 let moi = null, profil = null, ORGS = [], ORG = null, ROLE = null;
 let ERP = false;   // erp.sql installé dans la base (sinon les modules de gestion restent masqués)
+let COMM = false;  // communication.sql installé (emails de l'entreprise, comparatif des devis)
 const ROLES = { proprietaire: 'Propriétaire', admin: 'Administrateur', commercial: 'Commercial', comptable: 'Comptable', lecteur: 'Lecteur' };
 const DROITS = { crm: ['proprietaire', 'admin', 'commercial'], ventes: ['proprietaire', 'admin', 'commercial'], facturation: ['proprietaire', 'admin', 'comptable'],
   catalogue: ['proprietaire', 'admin', 'commercial', 'comptable'], equipe: ['proprietaire', 'admin'], parametres: ['proprietaire', 'admin'],
@@ -91,7 +93,7 @@ function modale(titre, corps, { valider = 'Enregistrer', large = false } = {}) {
 const confirmer = async (titre, texte, valider = 'Confirmer') => (await modale(titre, `<p style="margin:0">${texte}</p>`, { valider })) !== null;
 
 const COMMANDES = () => [['#/', 'Tableau de bord', 'accueil'], ['#/clients', 'Clients et prospects', 'clients'], ['#/pipeline', 'Pipeline commercial', 'pipeline'], ['#/activites', 'Activités et rappels', 'activites'],
-  ['#/devis', 'Devis', 'devis'], ['#/factures', 'Factures et avoirs', 'factures'], ['#/catalogue', 'Catalogue', 'catalogue'], ['#/reglages', 'Réglages de l’entreprise', 'reglages'],
+  ...(COMM ? [['#/emails', 'Emails et modèles', 'emails']] : []), ['#/devis', 'Devis', 'devis'], ['#/factures', 'Factures et avoirs', 'factures'], ['#/catalogue', 'Catalogue', 'catalogue'], ['#/reglages', 'Réglages de l’entreprise', 'reglages'],
   ['#/equipe', 'Équipe et rôles', 'equipe'], ['#/journal', 'Journal d’activité', 'journal'], ['#/clients?nouveau=1', 'Nouveau client', 'clients'], ['#/devis/nouveau', 'Nouveau devis', 'devis'], ['#/factures/nouvelle', 'Nouvelle facture', 'factures'],
   ...(ERP ? [['#/abonnements', 'Abonnements (factures récurrentes)', 'abonnements'], ['#/relances', 'Relances des impayés', 'relances'], ['#/depenses', 'Dépenses et achats', 'depenses'], ['#/fournisseurs', 'Fournisseurs', 'fournisseurs'],
   ['#/stock', 'Stock et inventaire', 'stock'], ['#/tresorerie', 'Trésorerie', 'tresorerie'], ['#/rapports', 'Rapports et TVA', 'rapports'], ['#/employes', 'Employés et absences', 'employes']] : [])];
@@ -137,7 +139,7 @@ const sombre = () => (document.documentElement.dataset.theme || (matchMedia('(pr
 
 // ---------------------------------------------------------------- mise en page
 const MENU = () => [['', 'Accueil', 'accueil', [['#/', 'Tableau de bord', 'accueil']]],
-  ['crm', 'Clients', null, [['#/clients', 'Clients', 'clients'], ['#/pipeline', 'Pipeline', 'pipeline'], ['#/activites', 'Activités', 'activites']]],
+  ['crm', 'Clients', null, [['#/clients', 'Clients', 'clients'], ['#/pipeline', 'Pipeline', 'pipeline'], ['#/activites', 'Activités', 'activites'], ...(COMM ? [['#/emails', 'Emails', 'emails']] : [])]],
   ['ventes', 'Ventes', null, [['#/devis', 'Devis', 'devis'], ['#/factures', 'Factures', 'factures'], ...(ERP ? [['#/abonnements', 'Abonnements', 'abonnements'], ['#/relances', 'Relances', 'relances']] : []), ['#/catalogue', 'Catalogue', 'catalogue']]],
   ...(ERP ? [['achats', 'Achats et stock', null, [['#/depenses', 'Dépenses', 'depenses'], ['#/fournisseurs', 'Fournisseurs', 'fournisseurs'], ['#/stock', 'Stock', 'stock']]]] : []),
   ...(peut('tresorerie') ? [['finances', 'Finances', null, [['#/tresorerie', 'Trésorerie', 'tresorerie'], ['#/rapports', 'Rapports et TVA', 'rapports']]]] : []),
@@ -188,6 +190,7 @@ function demarrer() {
   (async () => {
     if (PRET) {
       ERP = !(await sb.from('nx_fournisseurs').select('id').limit(1)).error;
+      COMM = !(await sb.from('nx_modeles_email').select('id').limit(1)).error;
       sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { moi = null; ORG = null; } }); await chargerSession().catch(e => console.error(e));
     }
     rendre();

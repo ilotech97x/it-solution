@@ -5,20 +5,37 @@ const CUISINES = { creole: ['🍛', 'Créole'], snack: ['🌯', 'Snack'], burger
   grillades: ['🍖', 'Grillades'], poisson: ['🐟', 'Poissons'], vegetarien: ['🥗', 'Végétarien'], boulangerie: ['🥖', 'Boulangerie'], dessert: ['🍨', 'Desserts'], traiteur: ['🍱', 'Traiteur'], boissons: ['🥤', 'Boissons'], epicerie: ['🧺', 'Épicerie'], autre: ['🍽️', 'Autre'] };
 const CATS_PLAT = { menu: '🍱 Menus', entree: '🥗 Entrées', plat: '🍛 Plats', accompagnement: '🍚 Accompagnements', dessert: '🍰 Desserts', boisson: '🥤 Boissons' };
 // boutique (boissons, apéro, dépannage : boutique.sql) : des rayons au lieu d'une carte ; l'alcool est toujours 18+
-const CATS_BOUTIQUE = { frais: '🥤 Boissons fraîches', alcool: '🍺 Bières et alcools', apero: '🥜 Apéro et snacks', glace: '🧊 Glaces et glaçons', epicerie: '🧺 Épicerie', maison: '🧻 Maison et dépannage', autre: '✨ Autres' };
-const LIB_CAT = { ...CATS_PLAT, ...CATS_BOUTIQUE };
+const CATS_BOUTIQUE = { frais: '🥤 Boissons fraîches', plat: '🍱 Plats et snacks préparés', alcool: '🍺 Bières et alcools', apero: '🥜 Apéro et snacks', glace: '🧊 Glaces et glaçons', epicerie: '🧺 Épicerie', maison: '🧻 Maison et dépannage', autre: '✨ Autres' };
+const LIB_CAT = { ...CATS_BOUTIQUE, ...CATS_PLAT };
+// les 14 allergènes majeurs (règlement INCO) : affichés avant la commande ; null = pas encore renseigné, [] = aucun
+const ALLERGENES = { gluten: 'Gluten', crustaces: 'Crustacés', oeufs: 'Œufs', poissons: 'Poissons', arachides: 'Arachides', soja: 'Soja', lait: 'Lait', fruits_coque: 'Fruits à coque',
+  celeri: 'Céleri', moutarde: 'Moutarde', sesame: 'Sésame', sulfites: 'Sulfites', lupin: 'Lupin', mollusques: 'Mollusques' };
+const texteAllergenes = p => !Array.isArray(p.allergenes) ? '' : p.allergenes.length ? '⚠️ Allergènes : ' + p.allergenes.map(a => ALLERGENES[a] || a).join(', ') : 'Sans les 14 allergènes majeurs';
 const TYPES_BOUTIQUE = ['boissons', 'epicerie', 'autre'];
 const estBoutique = r => r?.genre === 'boutique';
 const cuisinesVisibles = () => Object.entries(CUISINES).filter(([k]) => BOUTIQUES || !TYPES_BOUTIQUE.slice(0, 2).includes(k));
 const MODERATION = 'L’abus d’alcool est dangereux pour la santé, à consommer avec modération. Vente d’alcool interdite aux mineurs.';
 // une vignette d'article : on l'ajoute d'un geste (+), le compteur apparaît ensuite ; le stock limite la quantité
 const finArticle = p => !p.dispo || p.stock === 0;
-const carteArticle = (p, n, ok) => `<div class="article ${finArticle(p) ? 'fini' : ''}">
+const carteArticle = (p, n, ok) => `<div class="article ${finArticle(p) ? 'fini' : ''}" id="p-${p.id}">
   <div class="art-img">${p.photo ? `<img src="${esc(photo(p.photo))}" alt="" loading="lazy">` : `<span>${(LIB_CAT[p.categorie] || '🛒').split(' ')[0]}</span>`}${p.majeur ? '<em class="art-18" title="Réservé aux majeurs">18+</em>' : ''}</div>
-  <b>${esc(p.nom)}</b>${p.description ? `<small>${esc(p.description)}</small>` : ''}
+  <b>${esc(p.nom)}</b>${p.description ? `<small>${esc(p.description)}</small>` : ''}${p.allergenes?.length ? `<small class="allerg">${esc(texteAllergenes(p))}</small>` : ''}
   <div class="art-bas"><span class="prix">${eur(p.prix)}</span>${finArticle(p) ? '<span class="tag gris">Épuisé</span>' : ok ? `<div class="qte ${n ? '' : 'zero'}" data-plat="${p.id}"><button type="button" data-d="-1" aria-label="Retirer un ${esc(p.nom)}">−</button><output>${n}</output><button type="button" data-d="1" aria-label="Ajouter ${esc(p.nom)}">+</button></div>` : ''}</div>
   ${!finArticle(p) && p.stock != null && p.stock <= 5 ? `<small class="art-stock">Plus que ${p.stock}</small>` : ''}</div>`;
 const maxArticle = p => Math.min(20, p.stock ?? 20);
+// accueil : des plats des restaurants ouverts ; un geste ouvre la carte du restaurant sur ce plat
+async function afficherPlatsAccueil(restos) {
+  const el = $('#platsAcc'); if (!el || !restos.length) return;
+  const l = await memo('acc-plats:' + restos.map(r => r.id).join(','), () => q(sb.from('plats').select('*').in('restaurant_id', restos.map(r => r.id)).in('categorie', ['plat', 'menu']).eq('dispo', true).limit(60)), 30000);
+  const jour = new Date().getDate();   // l'ordre change chaque jour, ceux qui ont une photo d'abord
+  const choix = l.filter(p => p.stock !== 0).sort((a, b) => (!!b.photo - !!a.photo) || ((a.id.charCodeAt(0) + jour) % 7) - ((b.id.charCodeAt(0) + jour) % 7)).slice(0, 12);
+  if (!choix.length || !$('#platsAcc')) return;
+  const resto = id => restos.find(r => r.id === id);
+  el.innerHTML = `<div class="titre-s"><h2>🍛 Plats du moment</h2><a href="#/manger">Tous les restaurants →</a></div>
+    <div class="defile plats-defile">${choix.map(p => `<a class="plat-c" href="#/resto/${p.restaurant_id}?plat=${p.id}"><div class="art-img">${p.photo ? `<img src="${esc(photo(p.photo))}" alt="" loading="lazy">` : `<span>${CUISINES[resto(p.restaurant_id)?.cuisine]?.[0] || '🍛'}</span>`}</div>
+      <b>${esc(p.nom)}</b><small>${esc(resto(p.restaurant_id)?.nom || '')} · ⏱️ ${resto(p.restaurant_id)?.delai_min || 30} min</small><span class="art-bas"><span class="prix">${eur(p.prix)}</span><i class="plus-c" aria-hidden="true">+</i></span></a>`).join('')}</div>`;
+  el.hidden = false;
+}
 // accueil : les articles de la boutique ouverte la plus proche, à ajouter au panier sans quitter l'accueil
 async function afficherBoutiqueAccueil(terr) {
   if (!BOUTIQUES) return;
@@ -145,9 +162,9 @@ APP.pages.resto = async id => {
       <p class="muted">📍 ${esc(r.commune)}${r.adresse ? ', ' + esc(r.adresse) : ''}${!horairesSem && r.horaires ? ` · 🕒 ${esc(r.horaires)}` : ''}</p>
       ${horairesSem ? `<details class="horaires-d"><summary>🕒 Horaires d’ouverture</summary><div>${SEMAINE.map(j => `<span>${JOURS[j]}</span><b>${r.horaires_sem[j]?.length ? esc(r.horaires_sem[j].map(([a, b]) => `${a}–${b}`).join(', ')) : 'Fermé'}</b>`).join('')}</div></details>` : ''}
       ${r.description ? `<p style="white-space:pre-line">${esc(r.description)}</p>` : ''}
-      ${parCat.length > 1 ? `<nav class="onglets-cat" aria-label="${bq ? 'Rayons' : 'Catégories de la carte'}">${parCat.map(([c]) => `<button type="button" data-saut="${c}">${LIB_CAT[c]}</button>`).join('')}</nav>` : ''}
-      ${parCat.length ? parCat.map(([c, l]) => `<h2 style="margin-top:22px" id="cat-${c}">${LIB_CAT[c]}</h2>${bq ? `<div class="rayon">${l.map(p => carteArticle(p, nbPlat(p.id), commandable)).join('')}</div>` : `<div class="types">${l.map(p => `<div class="type" style="${p.dispo ? '' : 'opacity:.5'}">
-        <div style="display:flex;gap:12px;align-items:center">${p.photo ? `<img src="${esc(photo(p.photo))}" alt="" loading="lazy" style="width:64px;height:64px;border-radius:14px;object-fit:cover;flex:none">` : ''}<div><b>${esc(p.nom)}</b>${p.description ? `<div class="muted petit">${esc(p.description)}</div>` : ''}<span class="prix">${eur(p.prix)}</span>${aOptions(p) ? ' <span class="petit muted">· au choix</span>' : ''}${p.dispo ? '' : ' <span class="tag gris">Épuisé</span>'}</div></div>
+      ${parCat.length > 1 ? `<nav class="onglets-cat" aria-label="${bq ? 'Rayons' : 'Catégories de la carte'}">${parCat.map(([c]) => `<button type="button" data-saut="${c}">${CATS[c] || LIB_CAT[c]}</button>`).join('')}</nav>` : ''}
+      ${parCat.length ? parCat.map(([c, l]) => `<h2 style="margin-top:22px" id="cat-${c}">${CATS[c] || LIB_CAT[c]}</h2>${bq ? `<div class="rayon">${l.map(p => carteArticle(p, nbPlat(p.id), commandable)).join('')}</div>` : `<div class="types">${l.map(p => `<div class="type" id="p-${p.id}" style="${p.dispo ? '' : 'opacity:.5'}">
+        <div style="display:flex;gap:12px;align-items:center">${p.photo ? `<img src="${esc(photo(p.photo))}" alt="" loading="lazy" style="width:64px;height:64px;border-radius:14px;object-fit:cover;flex:none">` : ''}<div><b>${esc(p.nom)}</b>${p.description ? `<div class="muted petit">${esc(p.description)}</div>` : ''}${texteAllergenes(p) ? `<div class="allerg">${esc(texteAllergenes(p))}</div>` : ''}<span class="prix">${eur(p.prix)}</span>${aOptions(p) ? ' <span class="petit muted">· au choix</span>' : ''}${p.dispo ? '' : ' <span class="tag gris">Épuisé</span>'}</div></div>
         ${!p.dispo || !commandable ? '' : aOptions(p) ? `<div class="qte" data-opt="${p.id}"><output>${nbPlat(p.id) || ''}</output><button type="button" data-choisir="${p.id}" aria-label="Choisir ${esc(p.nom)}">+</button></div>`
           : `<div class="qte" data-plat="${p.id}"><button type="button" data-d="-1" aria-label="Moins">−</button><output>${nbPlat(p.id)}</output><button type="button" data-d="1" aria-label="Plus">+</button></div>`}</div>`).join('')}</div>`}`).join('')
         : `<div class="vide-etat"><p>${bq ? 'Les articles arrivent bientôt.' : 'La carte arrive bientôt.'}</p></div>`}
@@ -164,7 +181,7 @@ APP.pages.resto = async id => {
           <div style="display:flex;gap:6px;align-items:flex-end"><label style="flex:1">Code promo<input name="code" maxlength="20" autocomplete="off" style="text-transform:uppercase"></label><button type="button" class="btn btn-s" id="appliquer">Appliquer</button></div>
           <label>Un mot pour le restaurant<input name="note" maxlength="500" placeholder="Sans piment, code du portail…"></label></details>
         <div id="majeur"></div><div id="pourboire"></div><div id="totaux"></div><button class="btn btn-p" id="commander" ${commandable ? '' : 'disabled'}>${commandable ? (programmable ? 'Programmer ma commande' : 'Commander') : 'Restaurant fermé'}</button>
-        <p class="muted petit" style="margin:0">${bq ? 'Paiement à la livraison ou au retrait (espèces ou carte, selon la boutique).' : 'Paiement au restaurant ou au livreur (espèces ou carte, selon le restaurant).'}</p></form></div></aside></div>
+        <p class="muted petit" style="margin:0">Allergènes : voir chaque ${bq ? 'article' : 'plat'} ; une question ? Contactez ${bq ? 'la boutique' : 'le restaurant'} avant de commander.</p><p class="muted petit" style="margin:0">${bq ? 'Paiement à la livraison ou au retrait (espèces ou carte, selon la boutique).' : 'Paiement au restaurant ou au livreur (espèces ou carte, selon le restaurant).'}</p></form></div></aside></div>
     <button type="button" class="barre-panier" id="barrePanier" hidden></button><div class="voile-panier" id="voilePanier"></div></div>`);
   const majAdresse = () => {
     $('#adresse').innerHTML = mode === 'livraison' ? `<label>Adresse de livraison<input name="adresse" required maxlength="300" autocomplete="street-address"></label>
@@ -207,7 +224,7 @@ APP.pages.resto = async id => {
   const choisir = p => {
     const d = document.createElement('dialog'); d.className = 'dlg-options';
     d.innerHTML = `<form method="dialog" class="f" id="fOpt"><div style="display:flex;justify-content:space-between;gap:10px;align-items:start"><h2 style="margin:0">${esc(p.nom)}</h2><button type="button" class="btn btn-s" data-fermer aria-label="Fermer">✕</button></div>
-      ${p.description ? `<p class="muted petit" style="margin:0">${esc(p.description)}</p>` : ''}
+      ${p.description ? `<p class="muted petit" style="margin:0">${esc(p.description)}</p>` : ''}${texteAllergenes(p) ? `<p class="allerg" style="margin:0">${esc(texteAllergenes(p))}</p>` : ''}
       ${p.options.map((g, gi) => `<fieldset class="opt-g"><legend><b>${esc(g.nom)}</b> <span class="aide">${g.min > 0 ? (g.max === 1 ? '· obligatoire' : `· au moins ${g.min}`) : '· facultatif'}${g.max > 1 ? ` · jusqu’à ${g.max}` : ''}</span></legend>
         ${g.choix.map((c, ci) => `<label class="opt-c"><input type="${g.min >= 1 && g.max === 1 ? 'radio' : 'checkbox'}" name="g${gi}" value="${ci}"><span>${esc(c.nom)}</span>${Number(c.prix) ? `<b>+${eur(c.prix)}</b>` : ''}</label>`).join('')}</fieldset>`).join('')}
       <div class="opt-bas"><div class="qte"><button type="button" data-q="-1" aria-label="Moins">−</button><output>1</output><button type="button" data-q="1" aria-label="Plus">+</button></div><button class="btn btn-p" id="ajOpt">Ajouter</button></div></form>`;
@@ -248,6 +265,8 @@ APP.pages.resto = async id => {
   document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { mode = b.dataset.mode; majAdresse(); majPanier(); }));
   majAdresse(); majPanier();
   if (param().panier && Object.keys(cart).length && matchMedia('(max-width: 900px)').matches) panneau(true);   // arrivé depuis « Valider mon panier »
+  const vise = param().plat && $('#p-' + param().plat);   // arrivé depuis « Plats du moment » : le plat est montré, son choix ouvert s'il en a
+  if (vise) { vise.scrollIntoView({ block: 'center' }); vise.classList.add('eclaire'); const pv = platDe(param().plat); if (pv && aOptions(pv) && commandable && !finArticle(pv)) choisir(pv); }
   const fuseauR = fuseauDe(r.territoire);
   const champHeure = () => {
     $('#heureCmd').innerHTML = $('#fCmd').quand.value ? `<label>Pour le <span class="aide">(heure de ${esc(r.territoire)}${horairesSem ? ', pendant les heures d’ouverture' : ''})</span><input name="heure" type="datetime-local" required min="${utcVersLocal(new Date(Date.now() + 25 * 6e4).toISOString(), fuseauR)}" max="${utcVersLocal(new Date(Date.now() + 7 * 864e5).toISOString(), fuseauR)}"></label>` : '';
@@ -294,7 +313,7 @@ APP.pages.suivi = async id => {
     const etapes = ETAPES.filter(e => c.mode === 'livraison' || !['en_livraison'].includes(e[0])).map(e => e[0] === 'livree' && c.mode === 'emporter' ? ['retiree', '🎉', 'Retirée'] : e[0] === 'en_preparation' && estBoutique(c.restaurants) ? ['en_preparation', '📦', 'Préparation'] : e);
     const pos = etapes.findIndex(e => e[0] === c.statut), fini = ['refusee', 'annulee'].includes(c.statut);
     const avis = ['livree', 'retiree'].includes(c.statut) ? await q(sb.from('avis_resto').select('id').eq('commande_id', id)) : [];
-    vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><a href="#/commandes" class="petit">← Mes commandes</a>
+    vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><a href="#/activite?f=repas" class="petit">← Mon activité</a>
       <div class="panneau" style="margin-top:10px"><span class="px">Commande ${esc(c.id.slice(0, 6).toUpperCase())} · ${esc(jourHeure(c.created_at))}</span><h1 style="margin:6px 0">${esc(c.restaurants?.nom || '')}</h1>
         ${fini ? `<div class="verdict ko"><big>${c.statut === 'refusee' ? '😕' : '❌'}</big>Commande ${c.statut === 'refusee' ? 'refusée par le restaurant' : 'annulée'}</div>`
           : `<div class="quetes" style="margin:14px 0">${etapes.map((e, i) => `<div class="quete ${i < pos || c.statut === e[0] && ['livree', 'retiree'].includes(e[0]) ? 'faite' : i === pos ? 'actuelle' : ''}"><span class="q-coche">${i <= pos ? '✓' : ''}</span><span class="q-ico">${e[1]}</span><span class="q-titre">${e[2]}</span></div>`).join('')}</div>`}
@@ -331,29 +350,21 @@ APP.pages.suivi = async id => {
   await dessiner();
   clearInterval(suivi); suivi = setInterval(() => { if (location.hash.startsWith('#/suivi/') && !document.hidden) dessiner().catch(() => {}); }, 10000);
 };
-APP.pages.commandes = async () => {
-  if (!exigeCompte()) return;
-  const l = await q(sb.from('commandes').select('*, restaurants(nom, photo)').eq('client_id', moi.id).order('created_at', { ascending: false }).limit(50));
-  vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><h1>Mes commandes</h1>
-    ${l.length ? l.map(c => `<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center"><a class="ligne-l" style="text-decoration:none;color:inherit;margin:0" href="#/suivi/${c.id}">${c.restaurants?.photo ? `<img class="mini" src="${esc(photo(c.restaurants.photo))}" alt="">` : '<div class="mini" style="display:grid;place-items:center;font-size:30px">🍽️</div>'}
-      <div><b>${esc(c.restaurants?.nom || '')}</b> ${tag(ST_CMD[c.statut])}<div class="muted petit">${esc(jourHeure(c.created_at))} · ${eur(c.total)} · ${c.mode === 'livraison' ? '🛵' : '🛍️'}</div></div><span>›</span></a>
-      <button class="btn btn-s" data-encore="${c.id}" data-resto="${c.restaurant_id}" title="Remettre les mêmes plats dans le panier">🔁 Recommander</button></div>`).join('')
-      : '<div class="vide-etat"><div class="ico">🧾</div><h3>Aucune commande pour l’instant</h3><a class="btn btn-p" href="#/manger">Choisir un restaurant</a></div>'}</div>`);
-  $('#app').onclick = async ev => {
-    const b = ev.target.closest('[data-encore]'); if (!b) return;
-    try {
-      const [lignes, plats] = await Promise.all([q(sb.from('commande_lignes').select('plat_id, quantite').eq('commande_id', b.dataset.encore)), q(sb.from('plats').select('*').eq('restaurant_id', b.dataset.resto))]);
-      const cart = {}; let manquants = 0, aChoisir = 0;
-      lignes.forEach(x => {
-        const p = plats.find(y => y.id === x.plat_id && y.dispo);
-        if (!p) manquants++; else if (p.options?.some(g => g.min > 0)) aChoisir++;
-        else cart[p.id] = { p: p.id, n: Math.min(20, (cart[p.id]?.n || 0) + x.quantite), o: [] };
-      });
-      panier.ecrire(b.dataset.resto, cart);
-      toast([manquants && `${manquants} plat(s) plus disponible(s)`, aChoisir && `${aChoisir} plat(s) à rechoisir (accompagnement)`].filter(Boolean).join(' · ') || '🔁 Votre panier est prêt'); aller('#/resto/' + b.dataset.resto);
-    } catch (err) { toast(erreur(err), true); }
-  };
-};
+APP.pages.commandes = () => rediriger('#/activite?f=repas');   // les commandes vivent dans l'onglet Activité
+// remettre dans le panier les plats d'une commande passée (ceux qui sont encore à la carte)
+async function recommander(cmd, resto) {
+  try {
+    const [lignes, plats] = await Promise.all([q(sb.from('commande_lignes').select('plat_id, quantite').eq('commande_id', cmd)), q(sb.from('plats').select('*').eq('restaurant_id', resto))]);
+    const cart = {}; let manquants = 0, aChoisir = 0;
+    lignes.forEach(x => {
+      const p = plats.find(y => y.id === x.plat_id && y.dispo && y.stock !== 0);
+      if (!p) manquants++; else if (p.options?.some(g => g.min > 0)) aChoisir++;
+      else cart[p.id] = { p: p.id, n: Math.min(maxArticle(p), (cart[p.id]?.n || 0) + x.quantite), o: [] };
+    });
+    panier.ecrire(resto, cart);
+    toast([manquants && `${manquants} article(s) plus disponible(s)`, aChoisir && `${aChoisir} plat(s) à rechoisir (accompagnement)`].filter(Boolean).join(' · ') || '🔁 Votre panier est prêt'); aller(`#/resto/${resto}?panier=1`);
+  } catch (err) { toast(erreur(err), true); }
+}
 
 // ---------------------------------------------------------------- espace restaurateur
 APP.pages.pro = async (sous, id) => {
@@ -455,6 +466,7 @@ function lireCreneaux(t) {
 // catalogue de départ d'une boutique : prix indicatifs, que le vendeur ajuste avant d'ajouter
 const DEPART = [['frais', 'Eau minérale 1,5 L', 1.5], ['frais', 'Eau gazeuse 1 L', 1.8], ['frais', 'Soda 33 cl', 1.8], ['frais', 'Jus de fruits local 1 L', 3.5], ['frais', 'Boisson énergisante 25 cl', 2.5],
   ['alcool', 'Bière locale 33 cl', 2.5], ['alcool', 'Pack de 6 bières', 12], ['alcool', 'Rhum agricole blanc 70 cl', 18], ['apero', 'Chips 150 g', 2.5], ['apero', 'Cacahuètes grillées', 2], ['apero', 'Biscuits apéritif', 2.5],
+  ['plat', 'Bokit poulet', 6, false], ['plat', 'Accras de morue (10 pièces)', 5, false], ['plat', 'Sandwich jambon-beurre', 4, false], ['plat', 'Salade de fruits frais', 3.5, false],
   ['glace', 'Sachet de glaçons 2 kg', 3], ['glace', 'Glace en pot 500 ml', 5.5], ['epicerie', 'Baguette de pain', 1.2], ['epicerie', 'Lait 1 L', 1.6], ['maison', 'Gobelets (lot de 50)', 3], ['maison', 'Charbon de bois 3 kg', 7], ['maison', 'Papier toilette (lot de 4)', 3.5]];
 async function pageMenu(rid, edite) {
   const [r, plats] = await Promise.all([q(sb.from('restaurants').select('*').eq('id', rid).single()), q(sb.from('plats').select('*').eq('restaurant_id', rid).order('ordre').order('created_at'))]);
@@ -462,11 +474,12 @@ async function pageMenu(rid, edite) {
   const p0 = plats.find(p => p.id === edite) || { nom: '', prix: '', categorie: bq ? 'frais' : 'plat', description: '', options: [], stock: null };
   vue(`<div class="wrap" style="padding:22px 20px;max-width:860px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>${bq ? 'Articles et stock' : 'La carte'} · ${esc(r.nom)}</h1>
     ${bq && depart.length ? `<details class="panneau depart" ${plats.length ? '' : 'open'}><summary><b>🚀 Catalogue de départ</b> · cochez, mettez vos prix, ajoutez tout d’un coup</summary>
-      <form id="fDepart" class="f"><p class="aide" style="margin:0">Prix indicatifs : remplacez-les par vos vrais prix. Vous pourrez tout modifier ensuite.</p>
-        <div class="depart-l">${depart.map(([c, nom, prix], i) => `<label><input type="checkbox" name="c${i}" checked><span>${LIB_CAT[c].split(' ')[0]} ${esc(nom)}</span><input type="number" name="p${i}" min="0.5" max="500" step="0.1" value="${prix}" aria-label="Prix de ${esc(nom)}"> €</label>`).join('')}</div>
+      <form id="fDepart" class="f"><p class="aide" style="margin:0">Prix indicatifs : remplacez-les par vos vrais prix. Vous pourrez tout modifier ensuite. Plats préparés : seulement si vous respectez les règles d’hygiène (formation HACCP) ; indiquez leurs allergènes.</p>
+        <div class="depart-l">${depart.map(([c, nom, prix, coche = true], i) => `<label><input type="checkbox" name="c${i}" ${coche ? 'checked' : ''}><span>${LIB_CAT[c].split(' ')[0]} ${esc(nom)}</span><input type="number" name="p${i}" min="0.5" max="500" step="0.1" value="${prix}" aria-label="Prix de ${esc(nom)}"> €</label>`).join('')}</div>
         <button class="btn btn-p">Ajouter les articles cochés</button></form></details>` : ''}
     ${plats.length ? plats.map(p => `<div class="ligne-l">${p.photo ? `<img class="mini" style="height:72px" src="${esc(photo(p.photo))}" alt="">` : `<div class="mini" style="height:72px;display:grid;place-items:center;font-size:28px">${(LIB_CAT[p.categorie] || '🍽️').split(' ')[0]}</div>`}
-      <div><b>${esc(p.nom)}</b> · <span class="prix">${eur(p.prix)}</span> ${p.dispo ? '' : tag(['gris', 'Épuisé'])}${p.majeur ? ' ' + tag(['att', '🔞 18+']) : ''}<div class="muted petit">${esc(LIB_CAT[p.categorie] || '')}${p.description ? ' · ' + esc(p.description) : ''}</div>
+      <div><b>${esc(p.nom)}</b> · <span class="prix">${eur(p.prix)}</span> ${p.dispo ? '' : tag(['gris', 'Épuisé'])}${p.majeur ? ' ' + tag(['att', '🔞 18+']) : ''}<div class="muted petit">${esc(CATS[p.categorie] || LIB_CAT[p.categorie] || '')}${p.description ? ' · ' + esc(p.description) : ''}</div>
+        ${BOUTIQUES ? (p.allergenes ? `<div class="allerg">${esc(texteAllergenes(p))}</div>` : tag(['att', '⚠️ Allergènes à renseigner'])) : ''}
         ${bq ? `<label class="stock-l">Stock <input type="number" min="0" max="9999" data-stock="${p.id}" value="${p.stock ?? ''}" placeholder="non suivi" aria-label="Stock de ${esc(p.nom)}">${p.stock === 0 ? ' <b style="color:var(--rouge)">épuisé</b>' : ''}</label>` : ''}
         ${p.options?.length ? `<div class="petit">${p.options.map(g => `<b>${esc(g.nom)}</b> : ${esc(g.choix.map(c => c.nom + (Number(c.prix) ? ' +' + eur(c.prix) : '')).join(', '))}`).join(' · ')}</div>` : ''}</div>
       <div class="actions"><button class="btn btn-s" data-modif="${p.id}">✏️ Modifier</button><button class="btn btn-s ${p.dispo ? '' : 'btn-ok'}" data-dispo="${p.id}" data-v="${!p.dispo}">${p.dispo ? 'Épuisé' : 'Disponible'}</button><button class="btn btn-s btn-ko" data-suppr="${p.id}" aria-label="Retirer ${esc(p.nom)}">×</button></div></div>`).join('') : `<p class="muted">${bq ? 'Aucun article pour l’instant.' : 'Aucun plat pour l’instant.'}</p>`}
@@ -474,6 +487,9 @@ async function pageMenu(rid, edite) {
       <div class="ligne3"><label>Nom<input name="nom" required minlength="2" maxlength="80" placeholder="${bq ? 'Eau 1,5 L' : 'Colombo de poulet'}" value="${esc(p0.nom)}"></label><label>Prix (€)<input name="prix" type="number" min="0.5" max="500" step="${bq ? '0.1' : '0.5'}" required value="${esc(p0.prix)}"></label><label>${bq ? 'Rayon' : 'Catégorie'}<select name="categorie">${Object.entries(CATS).map(([k, t]) => `<option value="${k}" ${k === p0.categorie ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
       <label>Description <span class="aide">(facultatif)</span><input name="description" maxlength="400" placeholder="${bq ? 'Bien fraîche' : 'Riz, légumes pays, sauce chien'}" value="${esc(p0.description || '')}"></label>
       ${bq ? `<label>Stock <span class="aide">(facultatif : vide = pas de suivi ; à 0, l’article s’affiche épuisé)</span><input name="stock" type="number" min="0" max="9999" value="${p0.stock ?? ''}"></label><p class="aide" style="margin:0">🔞 Les articles du rayon « Bières et alcools » sont réservés aux majeurs : âge contrôlé à la remise.</p>` : ''}
+      ${BOUTIQUES ? `<fieldset class="allerg-f"><legend><b>Allergènes présents</b> <span class="aide">(obligatoire pour vendre à distance : les 14 allergènes majeurs)</span></legend>
+        <div class="puces-c">${Object.entries(ALLERGENES).map(([k, t]) => `<label><input type="checkbox" name="al_${k}" ${p0.allergenes?.includes(k) ? 'checked' : ''}> ${t}</label>`).join('')}</div>
+        <label class="aucun"><input type="checkbox" name="al_aucun" ${Array.isArray(p0.allergenes) && !p0.allergenes.length ? 'checked' : ''}> Aucun des 14 allergènes</label></fieldset>` : ''}
       <div ${BASE_V2 && !bq ? '' : 'hidden'}><b>Choix et suppléments</b> <span class="aide">(facultatif : accompagnement au choix, cuisson, sauce, suppléments payants…)</span><div id="groupes">${(p0.options || []).map(blocGroupe).join('')}</div>
         <button type="button" class="btn btn-s" id="ajG">+ Ajouter un choix</button></div>
       <label>Photo <span class="aide">(facultatif${edite && p0.photo ? ' : laissez vide pour garder la photo actuelle' : ''})</span><input type="file" name="fichier" accept="image/*"></label>
@@ -493,7 +509,10 @@ async function pageMenu(rid, edite) {
     }
     const b = f.querySelector('.btn-p'); b.disabled = true;
     try {
-      const l = { nom: d.nom.trim(), prix: +d.prix, categorie: d.categorie, description: d.description.trim() || null, ...(BASE_V2 ? { options } : {}), ...(bq ? { stock: d.stock === '' ? null : +d.stock } : {}) };
+      const al = Object.keys(ALLERGENES).filter(k => d['al_' + k]);
+      if (BOUTIQUES && al.length && d.al_aucun) { b.disabled = false; return toast('Choisissez des allergènes ou « Aucun », pas les deux.', true); }
+      const l = { nom: d.nom.trim(), prix: +d.prix, categorie: d.categorie, description: d.description.trim() || null, ...(BASE_V2 ? { options } : {}), ...(bq ? { stock: d.stock === '' ? null : +d.stock } : {}),
+        ...(BOUTIQUES ? { allergenes: al.length ? al : d.al_aucun ? [] : null } : {}) };
       if (f.fichier.files[0]) l.photo = await envoyerPhoto(f.fichier.files[0]);
       if (edite) await q(sb.from('plats').update(l).eq('id', edite)); else await q(sb.from('plats').insert({ ...l, restaurant_id: rid, ordre: plats.length }));
       toast(edite ? (bq ? 'Article modifié.' : 'Plat modifié.') : bq ? 'Article ajouté.' : 'Plat ajouté.'); pageMenu(rid);

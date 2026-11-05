@@ -11,7 +11,6 @@ const FLECHE = { left: '⬅️', right: '➡️', 'slight left': '↖️', 'slig
 let guidage = null;   // guidage en cours : position, itinéraire, étape, carte, minuteries
 
 // lien vers le GPS depuis une course ou une livraison
-const lienGps = (lat, lng, nom) => lat == null ? '' : `#/gps?${new URLSearchParams({ lat, lng, nom: nom || '', retour: location.hash })}`;
 
 // distances en mètres
 const metres = ([a, b], [c, d]) => 2 * 6371000 * Math.asin(Math.sqrt(Math.sin((c - a) * Math.PI / 360) ** 2 + Math.cos(a * Math.PI / 180) * Math.cos(c * Math.PI / 180) * Math.sin((d - b) * Math.PI / 360) ** 2));

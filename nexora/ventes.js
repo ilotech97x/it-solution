@@ -7,6 +7,23 @@ const MOYENS = { virement: 'Virement', carte: 'Carte bancaire', especes: 'Espèc
 const tagFacture = f => f.type === 'avoir' ? tag(f.statut === 'brouillon' ? ST_FACT.brouillon : ['violet', 'Avoir']) :
   (['validee', 'partielle'].includes(f.statut) && f.echeance && f.echeance < aujourdhui() ? tag(['ko', 'En retard']) : tag(ST_FACT[f.statut]));
 const arrondi = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+// comparatif d'un devis : ce que le client paie aujourd'hui, ce qu'il paiera ensuite, ce qu'il y gagne sur la durée choisie (communication.sql)
+function bilanComparatif(c, investissement) {
+  if (!c || !(Number(c.cout_actuel) > 0 || c.actuel || c.avantages?.length)) return null;
+  const k = c.periode === 'an' ? 1 : 12, n = Number(c.annees || 3), inv = Number(investissement || 0);
+  const actuelAn = Number(c.cout_actuel || 0) * k, proposeAn = Number(c.cout_propose || 0) * k, economieAn = actuelAn - proposeAn;
+  const totalActuel = actuelAn * n, totalPropose = inv + proposeAn * n;
+  return { k, n, inv, actuelAn, proposeAn, economieAn, totalActuel, totalPropose, gain: totalActuel - totalPropose, roi: economieAn > 0 && inv > 0 ? Math.ceil(inv / (economieAn / 12)) : null };
+}
+const lignesTexte = t => String(t || '').split('\n').map(x => x.trim()).filter(Boolean).slice(0, 12).map(x => x.slice(0, 200));
+function lireComparatif(d) {
+  const c = { actuel: (d.cp_actuel || '').trim().slice(0, 160), cout_actuel: d.cp_cout_actuel === '' ? 0 : Number(d.cp_cout_actuel), periode: d.cp_periode === 'an' ? 'an' : 'mois', points_faibles: lignesTexte(d.cp_points_faibles),
+    propose: (d.cp_propose || '').trim().slice(0, 160), cout_propose: d.cp_cout_propose === '' ? 0 : Number(d.cp_cout_propose), avantages: lignesTexte(d.cp_avantages), inconvenients: lignesTexte(d.cp_inconvenients), annees: Number(d.cp_annees || 3) };
+  return c.actuel || c.propose || c.cout_actuel || c.points_faibles.length || c.avantages.length || c.inconvenients.length ? c : null;
+}
+const texteBilan = b => !b ? '' : `${b.economieAn >= 0 ? `<div class="gain-cp"><span>Économie par an</span><b>${montant(b.economieAn)}</b></div>` : `<div class="gain-cp ko"><span>Coût en plus par an</span><b>${montant(-b.economieAn)}</b></div>`}
+  <div class="gain-cp ${b.gain >= 0 ? '' : 'ko'}"><span>${b.gain >= 0 ? 'Gain net' : 'Coût net'} sur ${b.n} an${b.n > 1 ? 's' : ''} (devis compris)</span><b>${montant(Math.abs(b.gain))}</b></div>
+  ${b.roi ? `<div class="gain-cp"><span>Rentabilisé en</span><b>${b.roi} mois</b></div>` : ''}`;
 function calculer(lignes) {   // même règle que la base, pour l'affichage pendant la saisie
   const parTaux = {}; let ht = 0;
   lignes.forEach(l => { const h = arrondi(Number(l.quantite) * Number(l.prix_ht) * (1 - Number(l.remise_pct || 0) / 100)); ht += h; parTaux[l.taux_tva] = (parTaux[l.taux_tva] || 0) + h; });
@@ -123,6 +140,7 @@ async function editeur(type, id) {
 
   let boutons = `<a class="btn" href="#/imprimer/${type}/${id}">🖨️ Imprimer / PDF</a>`;
   if (type === 'devis') {
+    if (COMM && doc.nx_clients?.email && ['brouillon', 'envoye'].includes(doc.statut)) boutons += `<button class="btn" data-ecrire-devis="${id}">✉️ Envoyer par email</button>`;
     if (doc.statut === 'brouillon' && peut('ventes')) boutons += `<button class="btn" data-st="envoye">Marquer comme envoyé</button><button class="btn btn-ko" id="suppr">Supprimer</button>`;
     if (doc.statut === 'envoye' && (peut('ventes') || peut('facturation'))) boutons += `<button class="btn btn-p" id="facturer">✓ Accepté : créer la facture</button><button class="btn" data-st="refuse">Refusé</button><button class="btn" data-st="brouillon">Modifier</button>`;
     if (['refuse', 'expire'].includes(doc.statut) && peut('ventes')) boutons += `<button class="btn" data-st="brouillon">Repasser en brouillon</button>`;
@@ -151,6 +169,16 @@ async function editeur(type, id) {
           <td class="num">${nombre(l.quantite)} ${esc(l.unite)}</td><td class="num">${montant(l.prix_ht)}</td><td class="num">${Number(l.remise_pct) ? nombre(l.remise_pct) + ' %' : ''}</td><td class="num">${nombre(l.taux_tva)} %</td>
           <td class="num">${montant(arrondi(l.quantite * l.prix_ht * (1 - l.remise_pct / 100)))}</td></tr>`).join('')}</tbody></table>`}
         <div id="totaux">${totauxHtml(totServeur)}</div></div>
+      ${type === 'devis' && COMM ? (() => { const c = doc.comparatif || {}, dis = editable ? '' : 'disabled', l = a => esc((a || []).join('\n')); return `<details class="carte comparatif" ${doc.comparatif ? 'open' : ''}><summary><b>Comparatif pour le client</b> <span class="muted petit">facultatif : ce qu’il a aujourd’hui, ce que vous proposez, ce qu’il y gagne</span></summary>
+        <div class="g2" style="margin-top:12px"><div><h3>Aujourd’hui</h3><label>Ce que le client a<input name="cp_actuel" maxlength="160" value="${esc(c.actuel || '')}" placeholder="Ex. Box opérateur et dépannage à l’acte" ${dis}></label>
+            <div class="g2"><label>Ce que ça lui coûte (€)<input name="cp_cout_actuel" type="number" min="0" step="0.01" value="${c.cout_actuel || ''}" ${dis}></label><label>Par<select name="cp_periode" ${dis}><option value="mois">mois</option><option value="an" ${c.periode === 'an' ? 'selected' : ''}>an</option></select></label></div>
+            <label>Points faibles <span class="muted">(un par ligne)</span><textarea name="cp_points_faibles" rows="3" maxlength="2400" ${dis}>${l(c.points_faibles)}</textarea></label></div>
+          <div><h3>Notre proposition</h3><label>Ce que vous proposez<input name="cp_propose" maxlength="160" value="${esc(c.propose || '')}" placeholder="Ex. Fibre pro, Wi-Fi maillé et maintenance" ${dis}></label>
+            <label>Coût récurrent ensuite (€, même période, en plus du devis)<input name="cp_cout_propose" type="number" min="0" step="0.01" value="${c.cout_propose || ''}" ${dis}></label>
+            <label>Avantages <span class="muted">(un par ligne)</span><textarea name="cp_avantages" rows="3" maxlength="2400" ${dis}>${l(c.avantages)}</textarea></label>
+            <label>Points d’attention <span class="muted">(un par ligne : soyez honnête, cela inspire confiance)</span><textarea name="cp_inconvenients" rows="2" maxlength="2400" ${dis}>${l(c.inconvenients)}</textarea></label></div></div>
+        <label style="max-width:240px">Calculer le gain sur<select name="cp_annees" ${dis}>${[1, 2, 3, 5].map(n => `<option value="${n}" ${Number(c.annees || 3) === n ? 'selected' : ''}>${n} an${n > 1 ? 's' : ''}</option>`).join('')}</select></label>
+        <div class="bilan-cp" id="bilanCp">${texteBilan(bilanComparatif(doc.comparatif, doc.total_ttc))}</div></details>`; })() : ''}
       <div class="carte g2"><label>Notes pour le client<textarea name="notes" maxlength="2000" ${editable ? '' : 'disabled'}>${esc(doc.notes)}</textarea></label>
         <label>Conditions (paiement, pénalités)<textarea name="conditions" maxlength="2000" ${editable ? '' : 'disabled'}>${esc(doc.conditions)}</textarea></label></div>
       ${editable ? '<div class="actions"><button class="btn btn-p">Enregistrer</button><span class="muted petit">Les totaux définitifs sont calculés par NEXORA à l’enregistrement.</span></div>' : ''}</form>
@@ -166,6 +194,7 @@ async function editeur(type, id) {
       if (e.target.name === 'designation') { const p = produits.find(x => x.nom === e.target.value); if (p) { const tr = e.target.closest('tr'); $('[name=prix_ht]', tr).value = p.prix_ht; $('[name=unite]', tr).value = p.unite; if (!ORG.franchise_tva) $('[name=taux_tva]', tr).value = p.taux_tva; } }
       apercu();
     });
+    f.addEventListener('input', e => { if (e.target.name?.startsWith('cp_') && $('#bilanCp')) $('#bilanCp').innerHTML = texteBilan(bilanComparatif(lireComparatif(Object.fromEntries(new FormData(f))), calculer(lireLignes()).ttc)); });
     $('#lignes').addEventListener('click', e => { if (e.target.closest('[data-moins]')) { e.target.closest('tr').remove(); if (!$$('#lignes tbody tr').length) $('#lignes tbody').insertAdjacentHTML('beforeend', ligneHtml()); apercu(); } });
     $('#plus').onclick = () => { $('#lignes tbody').insertAdjacentHTML('beforeend', ligneHtml()); $$('#lignes tbody tr').at(-1).querySelector('input').focus(); };
     f.addEventListener('submit', async e => {
@@ -174,7 +203,7 @@ async function editeur(type, id) {
       if (type === 'devis' && l.some(x => x.quantite <= 0)) return toast('Les quantités d’un devis doivent être positives.', true);
       const b = $('button.btn-p', f); b.disabled = true;
       try {
-        await q(sb.from(table).update({ client_id: d.client_id, objet: d.objet.trim(), date_emission: d.date_emission, notes: d.notes, conditions: d.conditions, ...(type === 'devis' ? { validite: d.validite || null } : doc.type === 'facture' ? { echeance: d.echeance || null } : {}) }).eq('id', id));
+        await q(sb.from(table).update({ client_id: d.client_id, objet: d.objet.trim(), date_emission: d.date_emission, notes: d.notes, conditions: d.conditions, ...(type === 'devis' ? { validite: d.validite || null, ...(COMM ? { comparatif: lireComparatif(d) } : {}) } : doc.type === 'facture' ? { echeance: d.echeance || null } : {}) }).eq('id', id));
         await q(sb.from(tLignes).delete().eq(cle, id));
         if (l.length) await q(sb.from(tLignes).insert(l.map(x => ({ ...x, [cle]: id, org_id: ORG.id }))));
         toast('Enregistré.'); editeur(type, id);
@@ -230,6 +259,16 @@ NX.pages.imprimer = async (type, id) => {
         ${o.franchise_tva ? '' : `<td class="num">${nombre(l.taux_tva)} %</td>`}<td class="num">${montant(arrondi(l.quantite * l.prix_ht * (1 - l.remise_pct / 100)), devise)}</td></tr>`).join('')}</tbody></table>
     <div class="totaux"><div><span>Total HT</span><b>${montant(doc.total_ht, devise)}</b></div>${o.franchise_tva ? '' : t.tvas.map(([r, v]) => `<div><span>TVA ${nombre(r)} %</span><span>${montant(v, devise)}</span></div>`).join('')}
       <div class="ttc"><span>Total TTC</span><span>${montant(doc.total_ttc, devise)}</span></div>${type === 'facture' && doc.type === 'facture' && Number(doc.paye) ? `<div><span>Déjà réglé</span><span>${montant(doc.paye, devise)}</span></div><div><b>Net à payer</b><b>${montant(doc.total_ttc - doc.paye, devise)}</b></div>` : ''}</div>
+    ${type === 'devis' && bilanComparatif(doc.comparatif, doc.total_ttc) ? (() => { const c = doc.comparatif, b = bilanComparatif(c, doc.total_ttc), per = c.periode === 'an' ? 'an' : 'mois', li = a => (a || []).map(x => `<li>${esc(x)}</li>`).join('');
+      return `<section class="cp-imp"><h2>Comparatif : ce que vous gagnez</h2><table><thead><tr><th></th><th>Aujourd’hui</th><th>Avec notre proposition</th></tr></thead><tbody>
+        <tr><td>Solution</td><td>${esc(c.actuel || '—')}</td><td>${esc(c.propose || doc.objet || '—')}</td></tr>
+        <tr><td>Coût récurrent</td><td class="num">${montant(c.cout_actuel || 0, devise)} / ${per}</td><td class="num">${montant(c.cout_propose || 0, devise)} / ${per}</td></tr>
+        <tr><td>Investissement</td><td class="num">—</td><td class="num">${montant(b.inv, devise)} (ce devis)</td></tr>
+        <tr><td><b>Total sur ${b.n} an${b.n > 1 ? 's' : ''}</b></td><td class="num"><b>${montant(b.totalActuel, devise)}</b></td><td class="num"><b>${montant(b.totalPropose, devise)}</b></td></tr></tbody></table>
+        <div class="gains-imp">${texteBilan(b)}</div>
+        ${c.points_faibles?.length || c.avantages?.length ? `<div class="parties">${c.points_faibles?.length ? `<div><b>Aujourd’hui</b><ul>${li(c.points_faibles)}</ul></div>` : ''}${c.avantages?.length ? `<div><b>Ce que vous gagnez en plus</b><ul>${li(c.avantages)}</ul></div>` : ''}</div>` : ''}
+        ${c.inconvenients?.length ? `<p><b>Points d’attention</b></p><ul>${li(c.inconvenients)}</ul>` : ''}
+        <p class="petit" style="color:#666">Estimation établie à partir des coûts actuels indiqués par le client ; elle n’engage pas sur des économies futures.</p></section>`; })() : ''}
     ${type === 'devis' ? '<p style="margin-top:30px">Bon pour accord — date et signature du client :</p><div style="height:70px;border:1px dashed #bbb;border-radius:8px;max-width:320px"></div>' : ''}
     <div class="mentions">${o.franchise_tva ? 'TVA non applicable, art. 293 B du CGI.\n' : ''}${doc.notes ? esc(doc.notes) + '\n' : ''}${esc(doc.conditions)}${o.iban && type === 'facture' && doc.type === 'facture' ? `\nRèglement par virement : IBAN ${esc(o.iban)}` : ''}</div></article>`);
   $('#imp').onclick = () => window.print();

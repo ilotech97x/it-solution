@@ -268,6 +268,17 @@ table.t th{background:var(--doux-fond);font:900 12px var(--corps);text-transform
 .bloc-dates{margin:6px 0 14px;padding:12px 14px;border-radius:var(--r);background:var(--surface);border:2px solid var(--ligne)}.bloc-dates .puces a{font-size:13.5px;padding:6px 12px}
 .fiche>*{min-width:0}
 
+/* ---------------------------------------------------------------- finition « pro » (sites/NORME-APPLIS.md §2) :
+   boutons à plat et sans majuscules, ombres douces réservées à ce qui flotte, bordures fines, appui qui s'enfonce légèrement */
+.btn{text-transform:none;letter-spacing:0;border-width:1.5px;box-shadow:none;margin-bottom:0;transition:transform .1s,filter .15s,background .15s}
+.btn:hover{transform:none;box-shadow:none;filter:brightness(1.03)}
+.btn:active{transform:scale(.97);box-shadow:none}
+.btn-p,.btn-p:hover{box-shadow:0 4px 14px color-mix(in srgb,var(--rose) 26%,transparent)}.btn-p:active{box-shadow:none}
+.btn-j,.btn-ok,.btn-ko,.btn-wa{box-shadow:none}
+.panneau,.ev,.type,.carte-f,.ligne-l,.hud{border-width:1.5px;box-shadow:0 1px 3px rgba(30,15,10,.05)}
+.ev:hover{box-shadow:0 12px 28px rgba(30,15,10,.10)}
+.qte button{box-shadow:none}.qte button:active{transform:scale(.92)}
+
 /* ajouts communs des applis Woulib (après pass.css) */
 .fiche-d{grid-template-columns:1fr 390px}
 .fiche-2{grid-template-columns:1fr 1fr;padding-top:10px}
@@ -602,3 +613,54 @@ button,.btn,.bas a,.grande,.pastille-u,.cuisine,.seg button,.qte,.menu-l,.act,.a
   .installer{padding:10px 12px;gap:10px;border-radius:18px;margin:0 0 12px}.installer>span{font-size:24px}.installer b{font-size:15px}.installer small{font-size:12.5px;line-height:1.3}
 }
 .art-img{aspect-ratio:4/3}.art-img span{font-size:38px}
+
+/* finition « pro » (norme §2) : icônes au trait dans la navigation, appui doux, pas d'ombre « 3D » */
+.bas a span{display:grid;place-items:center;height:26px;font-size:0}.bas a span svg{width:24px;height:24px}
+.bas a{color:var(--doux);font-weight:700}.bas a.on{color:var(--rose)}.bas a.on span{transform:none}.bas a.on span svg{stroke-width:2.4}
+.retour-app svg{width:26px;height:26px}.retour-app:not([hidden]){padding-bottom:0}.cloche-app svg{width:22px;height:22px}.cloche-app{color:var(--titre)}
+.article .qte button{box-shadow:none}.article .qte.zero [data-d="1"]{box-shadow:0 3px 10px color-mix(in srgb,var(--rose) 35%,transparent)}
+.act.actif{box-shadow:0 4px 14px color-mix(in srgb,var(--rose) 14%,transparent)}
+.tailles .type.on{box-shadow:0 4px 14px color-mix(in srgb,var(--rose) 14%,transparent)}
+.grande{box-shadow:0 6px 16px rgba(30,15,10,.10)!important}
+/* plats du moment */
+.plats-defile{gap:12px;padding-bottom:6px}
+.plat-c{flex:0 0 200px;display:flex;flex-direction:column;gap:3px;text-decoration:none;color:var(--titre);scroll-snap-align:start}
+.plat-c .art-img{aspect-ratio:4/3;border-radius:16px}.plat-c b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.plat-c small{color:var(--doux);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plus-c{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--rose);color:#fff;font:900 20px var(--corps);font-style:normal}
+.plat-c:active{transform:scale(.98)}
+/* allergènes */
+.allerg{color:var(--jaune-presse);font-size:12.5px;font-weight:700}
+.allerg-f{border:1.5px solid var(--ligne);border-radius:14px;padding:10px 12px;display:grid;gap:8px}
+.puces-c{display:flex;flex-wrap:wrap;gap:6px}.puces-c label,.allerg-f .aucun{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1.5px solid var(--ligne);border-radius:999px;font-weight:700;font-size:13px;cursor:pointer}
+.puces-c input,.allerg-f .aucun input{width:16px;height:16px}
+.puces-c label:has(input:checked){background:var(--jaune-doux);border-color:var(--jaune)}
+/* plat visé depuis l'accueil */
+.eclaire{animation:eclaire 1.6s ease 2}
+@keyframes eclaire{50%{outline:3px solid var(--rose);outline-offset:2px}}
+@media (prefers-reduced-motion:reduce){.eclaire{animation:none;outline:3px solid var(--rose)}}
+/* activité : filtres et bouton « recommander » */
+.activite .puces{margin:4px 0 6px}.act-l{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+
+/* tableau de bord de l'administration */
+.tableau h2{margin:26px 0 10px}
+.kpis-t{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}
+.kpi-t{background:var(--surface);border:1.5px solid var(--ligne);border-radius:18px;padding:14px 16px;display:grid;gap:2px}
+.kpi-t span{color:var(--doux);font-weight:700;font-size:13px}.kpi-t b{font:700 28px var(--titres);color:var(--titre)}.kpi-t small{color:var(--doux);font-size:12.5px}
+.a-valider{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--jaune-doux);border:1.5px solid var(--jaune);margin-bottom:6px}
+.courbes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.courbe{margin:0;background:var(--surface);border:1.5px solid var(--ligne);border-radius:18px;padding:14px}
+.courbe figcaption{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}.courbe figcaption span{color:var(--doux);font-size:13px;font-weight:700}
+.courbe-zone{position:relative;touch-action:pan-y}.courbe svg{display:block;width:100%;height:130px;overflow:visible}
+.courbe .axe{stroke:var(--ligne);stroke-width:1}.courbe .aire{fill:color-mix(in srgb,var(--c) 12%,transparent)}.courbe .trait{fill:none;stroke:var(--c);stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.courbe .repere{stroke:var(--doux);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
+.courbe .max{position:absolute;top:-4px;left:0;font-size:11px;color:var(--doux);font-weight:700}
+.courbe .pt{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px var(--surface);transform:translate(-50%,-50%);pointer-events:none}
+.courbe .bulle{position:absolute;top:-30px;transform:translateX(-50%);background:var(--titre);color:#fff;font-size:12.5px;font-weight:700;padding:4px 8px;border-radius:8px;white-space:nowrap;pointer-events:none}
+.courbe .axe-x{display:flex;justify-content:space-between;font-size:11.5px;color:var(--doux);margin-top:4px}
+.apps-t{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.app-t{display:grid;gap:4px;align-content:start;background:var(--surface);border:1.5px solid var(--ligne);border-radius:18px;padding:14px 16px;text-decoration:none;color:var(--texte)}
+.app-t b{font:700 17px var(--titres);color:var(--titre);margin-bottom:4px}.app-t span{font-size:13.5px;color:var(--doux)}.app-t em{font-style:normal;font-weight:800;color:var(--titre)}
+.tab-t{margin-top:14px;overflow-x:auto}.tab-t table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:14px;overflow:hidden}.tab-t th,.tab-t td{padding:8px 12px;border-bottom:1px solid var(--ligne);text-align:left;font-size:14px}
+.tab-t .num{text-align:right}.tab-t summary{cursor:pointer;font-weight:800;color:var(--doux)}
+@media (max-width:900px){.kpis-t{grid-template-columns:repeat(2,minmax(0,1fr))}.courbes{grid-template-columns:1fr}}
+@media (max-width:420px){.kpi-t b{font-size:23px}}

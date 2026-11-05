@@ -76,7 +76,7 @@ APP.pages.express = async () => {
 // ---------------------------------------------------------------- suivre (expéditeur) ou livrer (livreur)
 APP.pages.colis = async id => {
   if (!exigeCompte()) return;
-  if (!id) return mesColisPage();
+  if (!id) return rediriger('#/activite?f=colis');   // la liste des colis vit dans l'onglet Activité
   let L = null, carte = null, calques = null;
   const dessiner = async () => {
     const c = await q(sb.rpc('detail_colis', { cid: id }));
@@ -115,14 +115,6 @@ APP.pages.colis = async id => {
   };
   clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/colis/') && !document.hidden) dessiner().catch(() => {}); }, 10000);
 };
-
-async function mesColisPage() {
-  const l = await q(sb.rpc('mes_colis'));
-  vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><div class="titre-s"><h1>Mes colis</h1><a class="btn btn-p" href="#/express">+ Envoyer un colis</a></div>
-    ${l.length ? l.map(c => `<a class="ligne-l" style="grid-template-columns:48px minmax(0,1fr) auto;text-decoration:none;color:inherit" href="#/colis/${c.id}"><span style="font-size:30px">${c.role === 'livreur' ? '🛵' : '📦'}</span>
-      <div><b>Pour ${esc(c.depot_nom)}</b> ${tag(ST_COLIS[c.statut])}<div class="muted petit">${esc(jourHeure(c.created_at))} · ${eur(c.prix)} · ${esc(c.depot_txt.split(',')[0])}${c.role === 'livreur' ? ' · vous livrez' : ''}</div></div><span>›</span></a>`).join('')
-      : '<div class="vide-etat"><div class="ico">📦</div><h3>Aucun colis pour l’instant</h3><a class="btn btn-p" href="#/express">Envoyer un colis</a></div>'}</div>`);
-}
 
 // pour l'espace livreur (move.js) : colis à prendre et missions en cours
 async function blocColisLivreur(ch) {

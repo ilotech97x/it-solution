@@ -134,7 +134,8 @@ async function pageNotifs() {
 function nav() {
   const h = location.hash || '#/', on = p => (p === '#/' ? h === '#/' || h.startsWith('#/?') : h.startsWith(p)) ? 'on' : '';
   const b = n => n ? `<span class="badge">${n}</span>` : '';
-  const c = $('#clocheApp'); if (c) { c.hidden = !moi; c.innerHTML = '🔔' + b(nbNotifs); }
+  const c = $('#clocheApp'); if (c) { c.hidden = !moi; c.innerHTML = (APP.icones?.().cloche || '🔔') + b(nbNotifs); }
+  const r = $('#retourApp'); if (r && APP.icones && !r.querySelector('svg')) r.innerHTML = APP.icones().retour;
   $('#nav').innerHTML = APP.menu().map(([href, t]) => `<a href="${href}" class="${on(href)}">${t}</a>`).join('') +
     (moi ? `<a class="cloche" href="#/notifs" aria-label="Notifications">🔔${b(nbNotifs)}</a><a href="#/deconnexion">Déconnexion</a>` : `<a href="#/connexion" class="${on('#/connexion')}">Connexion</a><a class="btn btn-p btn-s" href="#/inscription">Commencer</a>`);
   $('#bas').innerHTML = APP.menuBas().map(([href, i, t, n]) => `<a href="${href}" class="${on(href)}"><span>${i}</span>${t}${b(n)}</a>`).join('');
@@ -173,6 +174,9 @@ function titreBarre() {
     guetteTitre.observe(h1);
   }
 }
+const chargerScript = src => new Promise((ok, ko) => { if (document.querySelector(`script[src="${src}"]`)) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
+// ancienne adresse remplacée par une autre : sans laisser d'étape dans l'historique (le retour ne ramène pas ici)
+const rediriger = h => location.replace(h);
 function revenir() { if ((history.state?.rang || 1) > 1) history.back(); else aller(APP.parent ? APP.parent(location.hash) : '#/'); }
 async function rendre() {
   const brut = location.hash || '#/', h = brut.split('?')[0], parts = h.split('/').slice(1);
@@ -204,7 +208,9 @@ async function afficherPage(h, parts) {
     if (parts[0] === 'inscription') return pageInscription();
     if (parts[0] === 'notifs') return await pageNotifs();
     if (parts[0] === 'deconnexion') { await sb.auth.signOut(); await chargerMoi(); toast('À bientôt !'); return aller('#/'); }
-    const page = APP.pages[parts[0] || ''];
+    let page = APP.pages[parts[0] || ''];
+    // module chargé seulement quand on l'ouvre (GPS, projets…) : l'appli démarre plus vite
+    if (!page && APP.differes?.[parts[0]]) { await chargerScript(APP.differes[parts[0]]); page = APP.pages[parts[0]]; }
     if (page) return await page(...parts.slice(1));
     vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Page introuvable</h3><a href="#/">Accueil</a></div>');
   } catch (e) { vue(`<div class="wrap"><div class="vide-etat" style="margin-top:30px"><h3>Oups</h3><p>${esc(erreur(e))}</p><a href="#/">Accueil</a></div></div>`); }

@@ -7,6 +7,8 @@ const ST_COURSE = { demande: ['att', 'Recherche'], acceptee: ['ok', 'Acceptée']
   terminee: ['gris', 'Terminée'], annulee: ['ko', 'Annulée'], expiree: ['gris', 'Expirée'] };
 const ST_CH = { demande: ['att', 'En vérification'], valide: ['ok', 'Validé'], refuse: ['ko', 'Refusé'], suspendu: ['ko', 'Suspendu'] };
 const ACTIVES = ['acceptee', 'en_route', 'arrivee', 'a_bord'];
+// lien vers le GPS de Woulib (gps.js, chargé à la demande) pour aller à un point
+const lienGps = (lat, lng, nom) => lat == null ? '' : `#/gps?${new URLSearchParams({ lat, lng, nom: nom || '', retour: location.hash })}`;
 // raccourcis aéroports (coordonnées de l'aérogare)
 const AEROPORTS = { Martinique: ['Aéroport Aimé Césaire, Le Lamentin', 14.591, -60.9966], Guadeloupe: ['Aéroport Pôle Caraïbes, Les Abymes', 16.2653, -61.5272],
   Guyane: ['Aéroport Félix Éboué, Matoury', 4.8198, -52.3604], 'Saint-Martin': ['Aéroport de Grand-Case', 18.1006, -63.0475], 'Saint-Barthélemy': ['Aéroport Rémy de Haenen, Saint-Jean', 17.9044, -62.8436],
@@ -126,7 +128,7 @@ APP.pages.course = async id => {
     const fini = ['annulee', 'expiree'].includes(c.statut), pos = ETAPES_C.findIndex(e => e[0] === c.statut);
     if (client && c.statut === 'terminee' && avisFait === null) avisFait = (await q(sb.from('avis_course').select('id').eq('course_id', id))).length > 0;
     if (!$('#carteC')) {
-      vue(`<div class="wrap" style="padding-top:22px;max-width:900px"><a href="${client ? '#/courses' : '#/chauffeur'}" class="petit">← ${client ? 'Mes courses' : 'Espace chauffeur'}</a>
+      vue(`<div class="wrap" style="padding-top:22px;max-width:900px"><a href="${client ? '#/activite?f=trajets' : '#/chauffeur'}" class="petit">← ${client ? 'Mes courses' : 'Espace chauffeur'}</a>
         <div class="fiche fiche-2"><div id="carteC" style="height:420px;border-radius:24px;border:2px solid var(--ligne);background:var(--rose-doux)"></div><div id="infos"></div></div></div>`);
       try { L = await chargerCarte(); carte = fondCarte(L, $('#carteC'), [c.depart_lat, c.depart_lng], 13); calques = L.layerGroup().addTo(carte); } catch (e) { /* carte facultative */ }
     }
@@ -183,15 +185,7 @@ const boutonsChauffeur = c => ({ acceptee: [['en_route', '🚗 Je pars', 'btn-p'
   arrivee: [['a_bord', '🛣️ Client à bord', 'btn-ok'], ['annulee', 'Client absent', 'btn-ko']], a_bord: [['terminee', '🏁 Terminer la course', 'btn-ok']] }[c.statut] || [])
   .map(([s, t, cl]) => `<button class="btn btn-s ${cl}" data-av="${s}">${t}</button>`).join('');
 
-APP.pages.courses = async () => {
-  if (!exigeCompte()) return;
-  const l = await q(sb.from('courses').select('*').eq('client_id', moi.id).order('created_at', { ascending: false }).limit(50));
-  vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><h1>Mes courses</h1>
-    ${l.length ? l.map(c => `<a class="ligne-l" style="grid-template-columns:48px 1fr auto;text-decoration:none;color:inherit" href="#/course/${c.id}"><span style="font-size:32px">${CATS[c.categorie][0]}</span>
-      <div><b>${esc(c.depart_txt)} → ${esc(c.arrivee_txt)}</b> ${tag(ST_COURSE[c.statut])}<div class="muted petit">${esc(jourHeure(c.heure || c.created_at))} · ${eur(c.prix_estime)} · ${c.distance_km} km</div></div><span>›</span></a>`).join('')
-      : '<div class="vide-etat"><div class="ico">🚗</div><h3>Aucune course pour l’instant</h3><a class="btn btn-p" href="#/move">Réserver un chauffeur</a></div>'}</div>`);
-};
-
+APP.pages.courses = () => rediriger('#/activite?f=trajets');   // les trajets vivent dans l'onglet Activité
 // ---------------------------------------------------------------- espace chauffeur
 function partagerPosition(actif) {
   if (!actif) { if (suiviGps !== null) { navigator.geolocation.clearWatch(suiviGps); suiviGps = null; } return; }
