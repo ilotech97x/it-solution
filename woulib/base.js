@@ -19,8 +19,17 @@ const photo = p => !p ? '' : /^https:\/\//.test(p) ? p : PRET ? sb.storage.from(
 const wa = (tel, txt) => `https://wa.me/${telInternational(tel || WA) || WA}?text=${encodeURIComponent(txt)}`;
 const param = () => Object.fromEntries(new URLSearchParams(location.hash.split('?')[1] || ''));
 const aller = h => { if (location.hash === h) rendre(); else location.hash = h; };
-const vue = h => { $('#app').innerHTML = h; };
-const attente = () => vue('<div class="chargement">Chargement…</div>');
+// une page qui répond après qu'on l'a quittée n'écrase pas la suivante ; le premier affichage libère la transition de page
+const vue = h => { if (pageEnCours !== null && location.hash !== pageEnCours) return; $('#app').innerHTML = h; if (aRestaurer) window.scrollTo(0, aRestaurer); if (premierRendu) { const f = premierRendu; premierRendu = null; f(); } };
+// en attendant les données : la forme de la page (blocs gris qui miroitent), pas un texte « Chargement… »
+const attente = () => vue(`<div class="wrap squelette" aria-busy="true" aria-label="Chargement"><i class="sq sq-t"></i><i class="sq sq-l"></i><div class="sq-g">${'<i class="sq sq-c"></i>'.repeat(4)}</div><i class="sq sq-l"></i><i class="sq sq-l court"></i></div>`);
+// petite mémoire des lectures : revenir sur une page est instantané ; la base reste la référence (commande, stock… revérifiés par le serveur)
+const memoire = new Map();
+function memo(cle, f, ms = 30000) {
+  const m = memoire.get(cle); if (m && Date.now() - m.t < ms) return m.p;
+  const p = f().catch(e => { memoire.delete(cle); throw e; }); memoire.set(cle, { t: Date.now(), p }); return p;
+}
+const oublier = debut => { for (const k of [...memoire.keys()]) if (k.startsWith(debut)) memoire.delete(k); };
 function toast(m, ko = false) { const t = document.createElement('div'); t.className = 'toast' + (ko ? ' ko' : ''); t.textContent = m; t.setAttribute('role', 'status'); document.body.appendChild(t); setTimeout(() => t.remove(), ko ? 6000 : 3500); }
 function erreur(e) {
   const m = String(e?.message || e || '');
@@ -70,7 +79,7 @@ function terrPrefere(v) { try { if (v !== undefined) localStorage.setItem('ilTer
 // ---------------------------------------------------------------- session et compte (commun à toutes les applis)
 let moi = null, profil = null, contact = null, nbNotifs = 0;
 async function chargerMoi() {
-  moi = null; profil = null; contact = null; nbNotifs = 0; if (!PRET) return;
+  moi = null; profil = null; contact = null; nbNotifs = 0; memoire.clear(); if (!PRET) return;
   moi = (await sb.auth.getSession()).data.session?.user || null;
   if (!moi) return;
   const [p, c, n] = await Promise.all([q(sb.from('profiles').select('*').eq('id', moi.id).maybeSingle()), q(sb.from('contacts').select('*').eq('id', moi.id).maybeSingle()).catch(() => null),
@@ -125,14 +134,70 @@ async function pageNotifs() {
 function nav() {
   const h = location.hash || '#/', on = p => (p === '#/' ? h === '#/' || h.startsWith('#/?') : h.startsWith(p)) ? 'on' : '';
   const b = n => n ? `<span class="badge">${n}</span>` : '';
+  const c = $('#clocheApp'); if (c) { c.hidden = !moi; c.innerHTML = '🔔' + b(nbNotifs); }
   $('#nav').innerHTML = APP.menu().map(([href, t]) => `<a href="${href}" class="${on(href)}">${t}</a>`).join('') +
     (moi ? `<a class="cloche" href="#/notifs" aria-label="Notifications">🔔${b(nbNotifs)}</a><a href="#/deconnexion">Déconnexion</a>` : `<a href="#/connexion" class="${on('#/connexion')}">Connexion</a><a class="btn btn-p btn-s" href="#/inscription">Commencer</a>`);
   $('#bas').innerHTML = APP.menuBas().map(([href, i, t, n]) => `<a href="${href}" class="${on(href)}"><span>${i}</span>${t}${b(n)}</a>`).join('');
 }
+// ---------------------------------------------------------------- navigation façon appli
+// Chaque entrée de l'historique porte son rang : en avançant, la page arrive de la droite ; en revenant, elle repart vers la droite
+// et l'on retrouve l'endroit où l'on était ; entre onglets du bas, simple fondu. Les pages restent des fonctions qui appellent vue().
+let rang = 0, pageEnCours = null, premierRendu = null, aRestaurer = null, recul = false;
+const defilements = {};
+const onglets = () => APP.menuBas().map(([h]) => h.split('?')[0]);
+const estOnglet = h => onglets().includes(h);
+function sensNavigation(prec, h) {
+  const st = history.state;
+  let s = 'avant';
+  if (st && typeof st.rang === 'number') { s = st.rang < rang ? 'retour' : st.rang === rang ? 'meme' : 'avant'; rang = st.rang; }
+  else { rang += 1; try { history.replaceState({ rang }, ''); } catch (e) { /* historique indisponible */ } }
+  recul = s === 'retour';   // en revenant (même vers un onglet), on retrouve l'endroit de la page
+  if (prec === h) return 'meme';
+  if (estOnglet(h) && (s === 'avant' || estOnglet(prec))) return 'onglet';
+  return s;
+}
+// barre du haut sur téléphone : retour (pages intérieures), titre de la page qui apparaît quand son grand titre passe sous la barre
+let guetteTitre = null;
+function barreApp(h) {
+  const racine = estOnglet(h);
+  document.body.dataset.racine = racine ? 'oui' : 'non';
+  const r = $('#retourApp'); if (r) r.hidden = racine;
+  $('.haut')?.classList.remove('titre-on');
+}
+function titreBarre() {
+  const t = $('#titreApp'), h1 = $('#app h1'); if (!t) return;
+  t.textContent = h1 ? h1.textContent.replace(/\s+/g, ' ').trim() : '';
+  guetteTitre?.disconnect(); guetteTitre = null;
+  if (h1 && 'IntersectionObserver' in window) {
+    guetteTitre = new IntersectionObserver(([e]) => $('.haut')?.classList.toggle('titre-on', !e.isIntersecting && e.boundingClientRect.top < 80), { rootMargin: '-60px 0px 0px 0px' });
+    guetteTitre.observe(h1);
+  }
+}
+function revenir() { if ((history.state?.rang || 1) > 1) history.back(); else aller(APP.parent ? APP.parent(location.hash) : '#/'); }
 async function rendre() {
-  const h = (location.hash || '#/').split('?')[0], parts = h.split('/').slice(1);
-  if (APP.quitter) APP.quitter(h);
-  nav(); window.scrollTo(0, 0); document.title = APP.titre;
+  const brut = location.hash || '#/', h = brut.split('?')[0], parts = h.split('/').slice(1);
+  const prec = pageEnCours === null ? null : (pageEnCours || '#/').split('?')[0];
+  defilements[rang] = scrollY;
+  const sens = sensNavigation(prec, h);
+  pageEnCours = location.hash;
+  const executer = async () => {
+    if (APP.quitter) APP.quitter(h);
+    aRestaurer = recul ? defilements[rang] || null : null;
+    nav(); barreApp(h); window.scrollTo(0, 0); document.title = APP.titre;
+    await afficherPage(h, parts);
+    if (aRestaurer) window.scrollTo(0, aRestaurer);
+    aRestaurer = null; titreBarre();
+  };
+  const anime = prec !== null && sens !== 'meme' && document.startViewTransition && !document.hidden && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!anime) return executer();
+  // la page glisse dès qu'elle a quelque chose à montrer (au plus tard 150 ms : sa forme en attendant les données)
+  document.documentElement.dataset.sens = sens;
+  let pret; const affichee = new Promise(r => { pret = r; }); premierRendu = pret;
+  const t = document.startViewTransition(() => { const p = executer(); return Promise.race([affichee, p, new Promise(r => setTimeout(r, 150)).then(() => { if (premierRendu === pret) attente(); })]); });
+  const fin = () => { if (document.documentElement.dataset.sens === sens) delete document.documentElement.dataset.sens; };
+  t.ready.catch(() => {}); t.updateCallbackDone.catch(() => {}); t.finished.then(fin, fin);
+}
+async function afficherPage(h, parts) {
   try {
     if (!PRET) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Ouverture très bientôt</h3></div>');
     if (parts[0] === 'connexion') return pageConnexion();
@@ -145,9 +210,53 @@ async function rendre() {
   } catch (e) { vue(`<div class="wrap"><div class="vide-etat" style="margin-top:30px"><h3>Oups</h3><p>${esc(erreur(e))}</p><a href="#/">Accueil</a></div></div>`); }
 }
 function demarrer() {
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   window.addEventListener('hashchange', rendre);
+  $('#retourApp')?.addEventListener('click', revenir);
+  gestes();
   (async () => {
     if (PRET) { sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { moi = null; profil = null; nav(); } }); await chargerMoi().catch(() => {}); }
     rendre();
   })();
 }
+
+// ---------------------------------------------------------------- gestes et toucher
+// appli installée : glisser depuis le bord gauche pour revenir, tirer vers le bas en haut d'un onglet pour rafraîchir
+// (dans le navigateur, ces gestes existent déjà). Petite vibration au toucher des boutons d'ajout et des onglets (Android).
+const installee = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function gestes() {
+  let g = null;
+  const indic = (cls, txt) => { let e = $('.' + cls); if (!e) { e = document.createElement('div'); e.className = cls; e.setAttribute('aria-hidden', 'true'); e.textContent = txt; document.body.appendChild(e); } return e; };
+  addEventListener('touchstart', e => {
+    g = null; if (!installee() || e.touches.length > 1 || document.body.classList.contains('sans-defil') || e.target.closest('.leaflet-container, .gps, dialog, input, textarea, select')) return;
+    const t = e.touches[0];
+    if (t.clientX < 24 && (history.state?.rang || 1) > 1) g = { type: 'retour', x: t.clientX, y: t.clientY, d: 0 };
+    else if (scrollY <= 0 && estOnglet((location.hash || '#/').split('?')[0])) g = { type: 'maj', x: t.clientX, y: t.clientY, d: 0 };
+  }, { passive: true });
+  addEventListener('touchmove', e => {
+    if (!g) return; const t = e.touches[0], dx = t.clientX - g.x, dy = t.clientY - g.y;
+    if (g.type === 'retour') { if (Math.abs(dy) > 60) { g = null; $('.geste-retour')?.remove(); return; } g.d = dx; const el = indic('geste-retour', '‹'); el.style.transform = `translate(${Math.min(dx, 90) - 50}px, ${t.clientY - 24}px)`; el.classList.toggle('pret', dx > 80); }
+    else { if (scrollY > 0 || dy < 0 || Math.abs(dx) > Math.abs(dy)) { g = null; $('.geste-maj')?.remove(); return; } g.d = dy; const el = indic('geste-maj', '↻'); el.style.transform = `translateY(${Math.min(dy, 110) - 50}px) rotate(${dy * 3}deg)`; el.classList.toggle('pret', dy > 80); }
+  }, { passive: true });
+  addEventListener('touchend', () => {
+    if (!g) return; const fait = g.d > 80, type = g.type; g = null;
+    $('.geste-retour')?.remove();
+    if (type === 'maj') { const el = $('.geste-maj'); if (fait && el) { el.classList.add('tourne'); oublier(''); Promise.resolve(rendre()).finally(() => setTimeout(() => el.remove(), 300)); } else el?.remove(); }
+    else if (fait) history.back();
+  });
+  document.addEventListener('click', e => { if (e.target.closest('.bas a, .qte button, .seg button, [data-vibre]')) try { navigator.vibrate?.(8); } catch (x) { /* facultatif */ } }, true);
+}
+// proposer d'installer l'appli (Android : bouton ; iPhone : la marche à suivre) ; jamais si elle l'est déjà ou si on l'a refusé
+let invitationInstall = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); invitationInstall = e; document.querySelectorAll('[data-installer]').forEach(b => { b.hidden = false; }); });
+function blocInstallation() {
+  let refuse = false; try { refuse = localStorage.getItem('ilInstallNon') === '1'; } catch (e) { /* stockage indisponible */ }
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !/crios|fxios/i.test(navigator.userAgent);
+  if (installee() || refuse || !matchMedia('(max-width: 900px)').matches) return '';
+  return `<div class="installer" id="blocInstall"><span>📲</span><div><b>Installez ${esc(APP.nom)}</b><small>${ios ? 'Touchez <b>Partager</b> ⬆️ puis <b>« Sur l’écran d’accueil »</b>.' : 'Plein écran, une icône sur votre téléphone.'}</small></div>
+    ${ios ? '' : `<button class="btn btn-s btn-p" data-installer ${invitationInstall ? '' : 'hidden'}>Installer</button>`}<button class="fermer-i" data-install-non aria-label="Plus tard">✕</button></div>`;
+}
+document.addEventListener('click', async e => {
+  if (e.target.closest('[data-install-non]')) { try { localStorage.setItem('ilInstallNon', '1'); } catch (x) { /* stockage indisponible */ } $('#blocInstall')?.remove(); }
+  if (e.target.closest('[data-installer]') && invitationInstall) { invitationInstall.prompt(); const r = await invitationInstall.userChoice.catch(() => null); invitationInstall = null; if (r?.outcome === 'accepted') $('#blocInstall')?.remove(); }
+});

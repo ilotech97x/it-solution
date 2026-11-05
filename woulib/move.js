@@ -200,6 +200,17 @@ function partagerPosition(actif) {
   suiviGps = navigator.geolocation.watchPosition(p => { if (Date.now() - dernier < 15000) return; dernier = Date.now(); sb.rpc('maj_position', { plat: p.coords.latitude, plng: p.coords.longitude }).then(() => {}); },
     () => toast('Autorisez la localisation pour que vos clients vous voient arriver.', true), { enableHighAccuracy: true, maximumAge: 10000 });
 }
+// le livreur peut tenir sa propre boutique (boissons, apéro, dépannage) : il reçoit les commandes et livre lui-même
+async function blocBoutique() {
+  await chargerRegistre(); if (!BOUTIQUES) return '';
+  const b = (await q(sb.from('restaurants').select('id, nom, statut, ouvert').eq('owner', moi.id).eq('genre', 'boutique').limit(1)).catch(() => null))?.[0];
+  if (b === undefined) return `<a class="appel-boutique" href="#/pro/boutique/nouveau"><span>🛒</span><div><b>Vendez des boissons et du dépannage</b><small>Votre boutique dans Woulib : les clients remplissent leur panier, vous livrez ou ils passent prendre. Vous gérez vos prix et votre stock.</small></div><i>›</i></a>`;
+  if (!b) return '';
+  const n = b.statut === 'publie' ? (await q(sb.from('commandes').select('id').eq('restaurant_id', b.id).in('statut', ['envoyee', 'acceptee', 'en_preparation', 'prete', 'en_livraison'])).catch(() => [])).length : 0;
+  return `<div class="panneau ma-boutique"><div><b>🛒 ${esc(b.nom)}</b> ${tag(ST_RESTO[b.statut])}${b.statut === 'publie' ? ` <span class="petit">${b.ouvert ? '🟢 ouverte' : '⚪ fermée'}</span>` : ''}
+    <div class="muted petit">${b.statut === 'publie' ? `${n} commande${n > 1 ? 's' : ''} en cours` : b.statut === 'en_attente' ? 'En vérification : vous serez prévenu dès sa mise en ligne.' : 'Ajoutez vos articles puis envoyez-la en validation.'}</div></div>
+    <div class="actions">${b.statut === 'publie' ? `<a class="btn btn-s btn-j" href="#/pro/commandes">🧾 Commandes${n ? ` (${n})` : ''}</a>` : ''}<a class="btn btn-s" href="#/pro/menu/${b.id}">🧺 Articles et stock</a><a class="btn btn-s" href="#/pro">Gérer</a></div></div>`;
+}
 APP.pages.chauffeur = async sous => {
   if (!moi) return vue(`<section class="hero"><div class="wrap"><div class="press">🧑‍✈️ Chauffeurs et livreurs</div><h1>Des courses et des livraisons, <em>vous gardez l’essentiel</em>.</h1>
     <p>VTC ou taxi avec carte professionnelle, ou livreur à scooter, à vélo ou en voiture : recevez des missions près de vous, acceptez celles qui vous arrangent. Le client vous paie directement ; Woulib prend seulement 10 % (les pourboires restent à 100 % pour vous).</p>
@@ -217,13 +228,14 @@ APP.pages.chauffeur = async sous => {
       livreur ? [] : q(sb.from('courses').select('*').eq('chauffeur_id', moi.id).in('statut', ACTIVES).order('created_at')), livreur ? [] : q(sb.rpc('courses_disponibles')),
       ch.livraisons ? q(sb.rpc('livraisons_disponibles')) : [], ch.livraisons ? q(sb.rpc('mes_livraisons')) : [], q(sb.rpc('mes_gains')).catch(() => null)]);
     const cm = await blocCommission();
-    const colisHtml = await blocColisLivreur(ch);
+    const colisHtml = await blocColisLivreur(ch), boutiqueHtml = livreur || ch.livraisons ? await blocBoutique() : '';
     const lvActives = mesLv.filter(x => ['acceptee', 'au_restaurant', 'recuperee'].includes(x.statut));
     partagerPosition(moiCh.disponible || enCours.length > 0 || lvActives.length > 0);
     vue(`<div class="wrap" style="padding-top:22px;max-width:900px"><div class="titre-s"><h1>Espace ${livreur ? 'livreur' : 'chauffeur'}</h1><a class="btn btn-s" href="#/chauffeur/profil">${livreur ? 'Mes infos' : 'Mon véhicule'}</a></div>
       <div class="panneau" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b style="font-size:20px">${moiCh.disponible ? '🟢 Disponible' : '⚪ Hors service'}</b>
         <div class="muted petit">${esc(ch.vehicule)}${ch.immatriculation ? ' · ' + esc(ch.immatriculation) : ''}${livreur ? ' · livreur' : ` · ${CATS[ch.categorie][0]} ${CATS[ch.categorie][1]}`}${ch.livraisons && !livreur ? ' · accepte les livraisons' : ''} · ${esc(ch.territoire)}</div></div>
         <button class="btn ${moiCh.disponible ? 'btn-ko' : 'btn-ok'}" id="dispo">${moiCh.disponible ? 'Passer hors service' : 'Je suis disponible'}</button></div>
+      ${boutiqueHtml}
       ${gains ? `<div class="grille" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:14px 0">${[['Aujourd’hui', gains.jour], ['7 jours', gains.semaine], ['30 jours', gains.mois]].map(([t, v]) => `<div class="panneau" style="padding:12px;text-align:center"><div class="muted petit">${t}</div><b style="font:700 24px var(--titres)">${eur(v)}</b></div>`).join('')}</div>
         <p class="muted petit" style="margin-top:-6px">${gains.nb_livraisons} livraison(s) et ${gains.nb_courses} course(s) sur 30 jours. Montants indicatifs : frais de livraison et prix estimés des courses.</p>
       ${cm}

@@ -2,8 +2,51 @@
    Prix, totaux et étapes de commande contrôlés par la base (food.sql). */
 'use strict';
 const CUISINES = { creole: ['🍛', 'Créole'], snack: ['🌯', 'Snack'], burger: ['🍔', 'Burgers'], pizza: ['🍕', 'Pizzas'], asiatique: ['🥡', 'Asiatique'], sushi: ['🍣', 'Sushis'],
-  grillades: ['🍖', 'Grillades'], poisson: ['🐟', 'Poissons'], vegetarien: ['🥗', 'Végétarien'], boulangerie: ['🥖', 'Boulangerie'], dessert: ['🍨', 'Desserts'], traiteur: ['🍱', 'Traiteur'], autre: ['🍽️', 'Autre'] };
+  grillades: ['🍖', 'Grillades'], poisson: ['🐟', 'Poissons'], vegetarien: ['🥗', 'Végétarien'], boulangerie: ['🥖', 'Boulangerie'], dessert: ['🍨', 'Desserts'], traiteur: ['🍱', 'Traiteur'], boissons: ['🥤', 'Boissons'], epicerie: ['🧺', 'Épicerie'], autre: ['🍽️', 'Autre'] };
 const CATS_PLAT = { menu: '🍱 Menus', entree: '🥗 Entrées', plat: '🍛 Plats', accompagnement: '🍚 Accompagnements', dessert: '🍰 Desserts', boisson: '🥤 Boissons' };
+// boutique (boissons, apéro, dépannage : boutique.sql) : des rayons au lieu d'une carte ; l'alcool est toujours 18+
+const CATS_BOUTIQUE = { frais: '🥤 Boissons fraîches', alcool: '🍺 Bières et alcools', apero: '🥜 Apéro et snacks', glace: '🧊 Glaces et glaçons', epicerie: '🧺 Épicerie', maison: '🧻 Maison et dépannage', autre: '✨ Autres' };
+const LIB_CAT = { ...CATS_PLAT, ...CATS_BOUTIQUE };
+const TYPES_BOUTIQUE = ['boissons', 'epicerie', 'autre'];
+const estBoutique = r => r?.genre === 'boutique';
+const cuisinesVisibles = () => Object.entries(CUISINES).filter(([k]) => BOUTIQUES || !TYPES_BOUTIQUE.slice(0, 2).includes(k));
+const MODERATION = 'L’abus d’alcool est dangereux pour la santé, à consommer avec modération. Vente d’alcool interdite aux mineurs.';
+// une vignette d'article : on l'ajoute d'un geste (+), le compteur apparaît ensuite ; le stock limite la quantité
+const finArticle = p => !p.dispo || p.stock === 0;
+const carteArticle = (p, n, ok) => `<div class="article ${finArticle(p) ? 'fini' : ''}">
+  <div class="art-img">${p.photo ? `<img src="${esc(photo(p.photo))}" alt="" loading="lazy">` : `<span>${(LIB_CAT[p.categorie] || '🛒').split(' ')[0]}</span>`}${p.majeur ? '<em class="art-18" title="Réservé aux majeurs">18+</em>' : ''}</div>
+  <b>${esc(p.nom)}</b>${p.description ? `<small>${esc(p.description)}</small>` : ''}
+  <div class="art-bas"><span class="prix">${eur(p.prix)}</span>${finArticle(p) ? '<span class="tag gris">Épuisé</span>' : ok ? `<div class="qte ${n ? '' : 'zero'}" data-plat="${p.id}"><button type="button" data-d="-1" aria-label="Retirer un ${esc(p.nom)}">−</button><output>${n}</output><button type="button" data-d="1" aria-label="Ajouter ${esc(p.nom)}">+</button></div>` : ''}</div>
+  ${!finArticle(p) && p.stock != null && p.stock <= 5 ? `<small class="art-stock">Plus que ${p.stock}</small>` : ''}</div>`;
+const maxArticle = p => Math.min(20, p.stock ?? 20);
+// accueil : les articles de la boutique ouverte la plus proche, à ajouter au panier sans quitter l'accueil
+async function afficherBoutiqueAccueil(terr) {
+  if (!BOUTIQUES) return;
+  let r = sb.from('restaurants').select('*').eq('genre', 'boutique').eq('statut', 'publie').eq('ouvert', true).limit(10);
+  if (terr) r = r.eq('territoire', terr);
+  const b = (await memo('acc-boutiques:' + terr, () => q(r))).find(x => etatOuverture(x).ouvert);
+  if (!b || !$('#boutiqueAcc')) return;
+  const arts = (await memo('acc-articles:' + b.id, () => q(sb.from('plats').select('*').eq('restaurant_id', b.id).eq('dispo', true).order('ordre').order('created_at').limit(16)), 15000))
+    .filter(p => p.stock !== 0 && !p.options?.length);
+  const el = $('#boutiqueAcc'); if (!arts.length || !el) return;
+  const cart = lirePanier(b.id), nb = k => cart[k]?.n || 0;
+  el.innerHTML = `<div class="titre-s"><h2>🥤 Boissons et dépannage</h2><a href="#/resto/${b.id}">Tout voir →</a></div>
+    <p class="muted petit" style="margin:-6px 0 10px">${esc(b.nom)} · ⏱️ ${b.delai_min} min${b.livraison ? ` · 🛵 ${Number(b.frais_livraison) ? eur(b.frais_livraison) : 'livraison offerte'}` : ''}${b.emporter ? ' · 🛍️ à retirer sur place' : ''}</p>
+    <div class="defile rayon-defile">${arts.map(p => carteArticle(p, nb(p.id), true)).join('')}</div>
+    ${arts.some(p => p.majeur) ? `<p class="petit muted" style="margin:6px 0 0">${MODERATION}</p>` : ''}<button type="button" class="barre-vite" id="barreVite" hidden></button>`;
+  el.hidden = false;
+  const maj = () => { const n = Object.values(cart).reduce((t, x) => t + x.n, 0); $('#barreVite').hidden = !n; $('#barreVite').innerHTML = `<span>🧺 ${n} article${n > 1 ? 's' : ''}</span><b>Valider mon panier →</b>`; };
+  el.addEventListener('click', e => {
+    if (e.target.closest('#barreVite')) return aller(`#/resto/${b.id}?panier=1`);
+    const bt = e.target.closest('.qte[data-plat] [data-d]'); if (!bt) return;
+    const qt = bt.closest('.qte'), p = arts.find(x => x.id === qt.dataset.plat), c = cart[p.id] || { p: p.id, n: 0, o: [] };
+    const voulu = c.n + Number(bt.dataset.d); if (voulu > maxArticle(p)) return toast(p.stock != null ? `Plus que ${p.stock} en stock` : '20 au maximum', true);
+    c.n = Math.max(0, voulu); if (c.n) cart[p.id] = c; else delete cart[p.id];
+    panier.ecrire(b.id, cart); qt.querySelector('output').textContent = c.n; qt.classList.toggle('zero', !c.n); maj();
+    if (c.n === 1 && bt.dataset.d === '1') toast('🧺 Ajouté au panier');
+  });
+  maj();
+}
 const ETAPES = [['envoyee', '📨', 'Envoyée'], ['acceptee', '👍', 'Acceptée'], ['en_preparation', '👩‍🍳', 'En cuisine'], ['prete', '🛍️', 'Prête'], ['en_livraison', '🛵', 'En route'], ['livree', '🎉', 'Livrée']];
 const ST_CMD = { envoyee: ['att', 'Envoyée'], acceptee: ['ok', 'Acceptée'], refusee: ['ko', 'Refusée'], en_preparation: ['ok', 'En cuisine'], prete: ['ok', 'Prête'], en_livraison: ['ok', 'En route'],
   livree: ['gris', 'Livrée'], retiree: ['gris', 'Retirée'], annulee: ['ko', 'Annulée'] };
@@ -48,7 +91,7 @@ APP.pages.manger = async () => {
       <select name="territoire" aria-label="Territoire">${optsTerritoires(terr, 'Tous les territoires')}</select>
       <select name="mode" aria-label="Mode"><option value="">Livraison ou à emporter</option><option value="livraison" ${p.mode === 'livraison' ? 'selected' : ''}>🛵 Livraison</option><option value="emporter" ${p.mode === 'emporter' ? 'selected' : ''}>🛍️ À emporter</option></select>
       <button class="btn btn-p">Rechercher</button></form></div></section>
-    <div class="wrap"><div class="puces">${[['', '✨', 'Tout'], ...Object.entries(CUISINES).map(([k, [i, t]]) => [k, i, t])].map(([k, i, t]) => `<a href="#/manger?${new URLSearchParams({ ...p, cuisine: k })}" class="${(p.cuisine || '') === k ? 'on' : ''}">${i} ${esc(t)}</a>`).join('')}</div>
+    <div class="wrap"><div class="puces">${[['', '✨', 'Tout'], ...cuisinesVisibles().map(([k, [i, t]]) => [k, i, t])].map(([k, i, t]) => `<a href="#/manger?${new URLSearchParams({ ...p, cuisine: k })}" class="${(p.cuisine || '') === k ? 'on' : ''}">${i} ${esc(t)}</a>`).join('')}</div>
       <section class="section"><div id="liste" class="chargement">Chargement…</div></section>
       <section class="section"><div class="vide-etat appel-pro">
         <div><h2>Vous avez un restaurant ?</h2><p class="muted" style="margin:0">Inscription gratuite pour démarrer : votre carte en ligne, les commandes en direct sur votre téléphone, vos clients vous paient directement.</p></div>
@@ -81,17 +124,18 @@ const carteResto = (x, n) => { const e = etatOuverture(x); return `<a class="ev"
 // ---------------------------------------------------------------- restaurant : carte et panier
 APP.pages.resto = async id => {
   attente(); await chargerRegistre();
-  const r = await q(sb.from('restaurants').select('*').eq('id', id).maybeSingle());
+  const r = await memo('resto:' + id, () => q(sb.from('restaurants').select('*').eq('id', id).maybeSingle()), 20000);
   if (!r) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Restaurant introuvable</h3><a href="#/manger">Tous les restaurants</a></div>');
-  const [plats, n] = await Promise.all([q(sb.from('plats').select('*').eq('restaurant_id', id).order('ordre').order('created_at')), q(sb.from('notes_resto').select('*').eq('restaurant_id', id))]);
+  const [plats, n] = await memo('resto-carte:' + id, () => Promise.all([q(sb.from('plats').select('*').eq('restaurant_id', id).order('ordre').order('created_at')), q(sb.from('notes_resto').select('*').eq('restaurant_id', id))]), 20000);
+  const bq = estBoutique(r), CATS = bq ? CATS_BOUTIQUE : CATS_PLAT;
   const platDe = k => plats.find(p => p.id === k), aOptions = p => p.options?.length > 0;
   let cart = lirePanier(id);
-  Object.keys(cart).forEach(k => { const p = platDe(cart[k].p); if (!p || !p.dispo || !(cart[k].n > 0) || cart[k].o.some(([g, c]) => !p.options?.[g]?.choix?.[c])) delete cart[k]; });
+  Object.keys(cart).forEach(k => { const p = platDe(cart[k].p); if (!p || finArticle(p) || !(cart[k].n > 0) || cart[k].o.some(([g, c]) => !p.options?.[g]?.choix?.[c])) delete cart[k]; else cart[k].n = Math.min(cart[k].n, maxArticle(p)); });
   let mode = r.livraison ? 'livraison' : 'emporter', tip = 0;
   // fermé à cette heure mais interrupteur allumé et horaires remplis : on peut programmer pour ses heures d'ouverture
   const etat = etatOuverture(r), programmable = !etat.ouvert && etat.auto, commandable = etat.ouvert || programmable;
   const nbPlat = k => Object.values(cart).filter(x => x.p === k).reduce((t, x) => t + x.n, 0);
-  const parCat = Object.keys(CATS_PLAT).map(c => [c, plats.filter(p => p.categorie === c)]).filter(([, l]) => l.length);
+  const parCat = [...Object.keys(CATS), ...Object.keys(LIB_CAT).filter(k => !CATS[k])].map(c => [c, plats.filter(p => p.categorie === c)]).filter(([, l]) => l.length);
   const horairesSem = r.horaires_sem && Object.keys(r.horaires_sem).length;
   document.title = `${r.nom} — Woulib`;
   vue(`<div class="wrap page-resto"><div class="fiche fiche-d">
@@ -101,12 +145,13 @@ APP.pages.resto = async id => {
       <p class="muted">📍 ${esc(r.commune)}${r.adresse ? ', ' + esc(r.adresse) : ''}${!horairesSem && r.horaires ? ` · 🕒 ${esc(r.horaires)}` : ''}</p>
       ${horairesSem ? `<details class="horaires-d"><summary>🕒 Horaires d’ouverture</summary><div>${SEMAINE.map(j => `<span>${JOURS[j]}</span><b>${r.horaires_sem[j]?.length ? esc(r.horaires_sem[j].map(([a, b]) => `${a}–${b}`).join(', ')) : 'Fermé'}</b>`).join('')}</div></details>` : ''}
       ${r.description ? `<p style="white-space:pre-line">${esc(r.description)}</p>` : ''}
-      ${parCat.length > 1 ? `<nav class="onglets-cat" aria-label="Catégories de la carte">${parCat.map(([c]) => `<button type="button" data-saut="${c}">${CATS_PLAT[c]}</button>`).join('')}</nav>` : ''}
-      ${parCat.length ? parCat.map(([c, l]) => `<h2 style="margin-top:22px" id="cat-${c}">${CATS_PLAT[c]}</h2><div class="types">${l.map(p => `<div class="type" style="${p.dispo ? '' : 'opacity:.5'}">
+      ${parCat.length > 1 ? `<nav class="onglets-cat" aria-label="${bq ? 'Rayons' : 'Catégories de la carte'}">${parCat.map(([c]) => `<button type="button" data-saut="${c}">${LIB_CAT[c]}</button>`).join('')}</nav>` : ''}
+      ${parCat.length ? parCat.map(([c, l]) => `<h2 style="margin-top:22px" id="cat-${c}">${LIB_CAT[c]}</h2>${bq ? `<div class="rayon">${l.map(p => carteArticle(p, nbPlat(p.id), commandable)).join('')}</div>` : `<div class="types">${l.map(p => `<div class="type" style="${p.dispo ? '' : 'opacity:.5'}">
         <div style="display:flex;gap:12px;align-items:center">${p.photo ? `<img src="${esc(photo(p.photo))}" alt="" loading="lazy" style="width:64px;height:64px;border-radius:14px;object-fit:cover;flex:none">` : ''}<div><b>${esc(p.nom)}</b>${p.description ? `<div class="muted petit">${esc(p.description)}</div>` : ''}<span class="prix">${eur(p.prix)}</span>${aOptions(p) ? ' <span class="petit muted">· au choix</span>' : ''}${p.dispo ? '' : ' <span class="tag gris">Épuisé</span>'}</div></div>
         ${!p.dispo || !commandable ? '' : aOptions(p) ? `<div class="qte" data-opt="${p.id}"><output>${nbPlat(p.id) || ''}</output><button type="button" data-choisir="${p.id}" aria-label="Choisir ${esc(p.nom)}">+</button></div>`
-          : `<div class="qte" data-plat="${p.id}"><button type="button" data-d="-1" aria-label="Moins">−</button><output>${nbPlat(p.id)}</output><button type="button" data-d="1" aria-label="Plus">+</button></div>`}</div>`).join('')}</div>`).join('')
-        : '<div class="vide-etat"><p>La carte arrive bientôt.</p></div>'}
+          : `<div class="qte" data-plat="${p.id}"><button type="button" data-d="-1" aria-label="Moins">−</button><output>${nbPlat(p.id)}</output><button type="button" data-d="1" aria-label="Plus">+</button></div>`}</div>`).join('')}</div>`}`).join('')
+        : `<div class="vide-etat"><p>${bq ? 'Les articles arrivent bientôt.' : 'La carte arrive bientôt.'}</p></div>`}
+      ${bq && plats.some(p => p.majeur) ? `<p class="petit muted">🔞 ${MODERATION}</p>` : ''}
     </div>
     <aside id="panneauCmd" aria-label="Mon panier"><div class="panier colle" id="panier"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">🧺 Mon panier</h2>
       <button type="button" class="btn btn-s fermer-panier" data-fermer-panier>← La carte</button></div><div id="lignes"></div>
@@ -118,8 +163,8 @@ APP.pages.resto = async id => {
           <label>Quand ?<select name="quand">${programmable ? '' : '<option value="">Dès que possible</option>'}<option value="plus">Programmer pour plus tard</option></select></label><div id="heureCmd"></div>
           <div style="display:flex;gap:6px;align-items:flex-end"><label style="flex:1">Code promo<input name="code" maxlength="20" autocomplete="off" style="text-transform:uppercase"></label><button type="button" class="btn btn-s" id="appliquer">Appliquer</button></div>
           <label>Un mot pour le restaurant<input name="note" maxlength="500" placeholder="Sans piment, code du portail…"></label></details>
-        <div id="pourboire"></div><div id="totaux"></div><button class="btn btn-p" id="commander" ${commandable ? '' : 'disabled'}>${commandable ? (programmable ? 'Programmer ma commande' : 'Commander') : 'Restaurant fermé'}</button>
-        <p class="muted petit" style="margin:0">Paiement au restaurant ou au livreur (espèces ou carte, selon le restaurant).</p></form></div></aside></div>
+        <div id="majeur"></div><div id="pourboire"></div><div id="totaux"></div><button class="btn btn-p" id="commander" ${commandable ? '' : 'disabled'}>${commandable ? (programmable ? 'Programmer ma commande' : 'Commander') : 'Restaurant fermé'}</button>
+        <p class="muted petit" style="margin:0">${bq ? 'Paiement à la livraison ou au retrait (espèces ou carte, selon la boutique).' : 'Paiement au restaurant ou au livreur (espèces ou carte, selon le restaurant).'}</p></form></div></aside></div>
     <button type="button" class="barre-panier" id="barrePanier" hidden></button><div class="voile-panier" id="voilePanier"></div></div>`);
   const majAdresse = () => {
     $('#adresse').innerHTML = mode === 'livraison' ? `<label>Adresse de livraison<input name="adresse" required maxlength="300" autocomplete="street-address"></label>
@@ -131,12 +176,15 @@ APP.pages.resto = async id => {
   let remise = 0, codeOk = null;
   const lignesPanier = () => Object.entries(cart).map(([k, v]) => { const p = platDe(v.p); return p && v.n > 0 ? { k, p, n: v.n, pu: Number(p.prix) + supplement(p, v.o), lib: libelleOptions(p, v.o) } : null; }).filter(Boolean);
   const sousTotal = () => lignesPanier().reduce((t, x) => t + x.pu * x.n, 0);
-  const majCompteurs = () => document.querySelectorAll('.qte[data-plat],.qte[data-opt]').forEach(qt => { const k = qt.dataset.plat || qt.dataset.opt; qt.querySelector('output').textContent = nbPlat(k) || (qt.dataset.plat ? 0 : ''); });
+  const majCompteurs = () => document.querySelectorAll('.qte[data-plat],.qte[data-opt]').forEach(qt => { const k = qt.dataset.plat || qt.dataset.opt; qt.querySelector('output').textContent = nbPlat(k) || (qt.dataset.plat ? 0 : ''); qt.classList.toggle('zero', !nbPlat(k)); });
   const majPanier = () => {
     const l = lignesPanier(), st = sousTotal(), frais = mode === 'livraison' ? Number(r.frais_livraison) : 0, pb = mode === 'livraison' ? tip : 0;
     if (codeOk && remise > st) remise = st;
     $('#lignes').innerHTML = l.length ? l.map(x => `<div class="ligne-panier"><span>${x.n} × ${esc(x.p.nom)}${x.lib ? `<small>${esc(x.lib)}</small>` : ''}</span>
-      <span class="ln-d"><b>${eur(x.pu * x.n)}</b><button type="button" data-l="${esc(x.k)}" data-d="-1" aria-label="Retirer un ${esc(x.p.nom)}">−</button><button type="button" data-l="${esc(x.k)}" data-d="1" aria-label="Ajouter un ${esc(x.p.nom)}">+</button></span></div>`).join('') : '<p class="muted">Ajoutez des plats avec le bouton +.</p>';
+      <span class="ln-d"><b>${eur(x.pu * x.n)}</b><button type="button" data-l="${esc(x.k)}" data-d="-1" aria-label="Retirer un ${esc(x.p.nom)}">−</button><button type="button" data-l="${esc(x.k)}" data-d="1" aria-label="Ajouter un ${esc(x.p.nom)}">+</button></span></div>`).join('') : `<p class="muted">Ajoutez des ${bq ? 'articles' : 'plats'} avec le bouton +.</p>`;
+    // alcool dans le panier : le client confirme sa majorité ; le vendeur contrôle une pièce d'identité à la remise
+    const majeur = l.some(x => x.p.majeur);
+    if (majeur !== !!$('#majeur').childElementCount) $('#majeur').innerHTML = majeur ? `<label class="majeur-ok"><input type="checkbox" name="majeur" required> <span><b>J’ai 18 ans ou plus</b><small>Une pièce d’identité vous sera demandée à la remise.</small></span></label>` : '';
     $('#pourboire').innerHTML = BASE_V2 && l.length && mode === 'livraison' ? `<div class="pourboire"><span class="petit"><b>Pourboire pour le livreur</b> <span class="aide">(facultatif, 100 % pour lui)</span></span>
       <div class="actions">${[0, 1, 2, 3, 5].map(v => `<button type="button" class="btn btn-s ${tip === v ? 'btn-p' : ''}" data-tip="${v}">${v ? eur(v) : 'Non merci'}</button>`).join('')}</div></div>` : '';
     $('#totaux').innerHTML = l.length ? `<div class="muted petit">Sous-total ${eur(st)}${remise ? ` · code ${esc(codeOk)} −${eur(remise)}` : ''}${mode === 'livraison' ? ` · livraison ${frais ? eur(frais) : 'offerte'}` : ''}${pb ? ` · pourboire ${eur(pb)}` : ''}</div><div style="font:700 24px var(--titres)">Total ${eur(st - remise + frais + pb)}</div>
@@ -150,7 +198,7 @@ APP.pages.resto = async id => {
   $('#barrePanier').addEventListener('click', () => panneau(true));
   $('#panneauCmd').addEventListener('click', e => { if (e.target.closest('[data-fermer-panier]')) panneau(false); });
   $('#voilePanier').addEventListener('click', () => panneau(false));
-  $('#retourResto').addEventListener('click', () => history.length > 1 ? history.back() : aller('#/manger'));
+  $('#retourResto').addEventListener('click', revenir);
   document.querySelectorAll('[data-saut]').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('[data-saut]').forEach(x => x.classList.toggle('on', x === b));
     const h = $('#cat-' + b.dataset.saut); window.scrollTo({ top: h.getBoundingClientRect().top + scrollY - 120, behavior: 'smooth' });
@@ -185,18 +233,21 @@ APP.pages.resto = async id => {
   };
   document.querySelectorAll('.qte[data-plat]').forEach(qt => qt.addEventListener('click', ev => {
     const b = ev.target.closest('[data-d]'); if (!b) return;
-    const k = qt.dataset.plat, c = cart[k] || { p: k, n: 0, o: [] }; c.n = Math.max(0, Math.min(20, c.n + Number(b.dataset.d)));
+    const k = qt.dataset.plat, c = cart[k] || { p: k, n: 0, o: [] }, p = platDe(k);
+    if (c.n + Number(b.dataset.d) > maxArticle(p)) return toast(p.stock != null ? `Plus que ${p.stock} en stock` : '20 au maximum', true);
+    c.n = Math.max(0, c.n + Number(b.dataset.d));
     if (c.n) cart[k] = c; else delete cart[k];
     majCompteurs(); majPanier();
   }));
   document.querySelectorAll('[data-choisir]').forEach(b => b.addEventListener('click', () => choisir(platDe(b.dataset.choisir))));
   $('#panier').addEventListener('click', ev => {
     const l = ev.target.closest('[data-l]'), t = ev.target.closest('[data-tip]');
-    if (l && cart[l.dataset.l]) { const c = cart[l.dataset.l]; c.n = Math.max(0, Math.min(20, c.n + Number(l.dataset.d))); if (!c.n) delete cart[l.dataset.l]; majCompteurs(); majPanier(); }
+    if (l && cart[l.dataset.l]) { const c = cart[l.dataset.l], p = platDe(c.p); if (c.n + Number(l.dataset.d) > maxArticle(p)) return toast(p.stock != null ? `Plus que ${p.stock} en stock` : '20 au maximum', true); c.n = Math.max(0, c.n + Number(l.dataset.d)); if (!c.n) delete cart[l.dataset.l]; majCompteurs(); majPanier(); }
     if (t) { tip = Number(t.dataset.tip); majPanier(); }
   });
   document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { mode = b.dataset.mode; majAdresse(); majPanier(); }));
   majAdresse(); majPanier();
+  if (param().panier && Object.keys(cart).length && matchMedia('(max-width: 900px)').matches) panneau(true);   // arrivé depuis « Valider mon panier »
   const fuseauR = fuseauDe(r.territoire);
   const champHeure = () => {
     $('#heureCmd').innerHTML = $('#fCmd').quand.value ? `<label>Pour le <span class="aide">(heure de ${esc(r.territoire)}${horairesSem ? ', pendant les heures d’ouverture' : ''})</span><input name="heure" type="datetime-local" required min="${utcVersLocal(new Date(Date.now() + 25 * 6e4).toISOString(), fuseauR)}" max="${utcVersLocal(new Date(Date.now() + 7 * 864e5).toISOString(), fuseauR)}"></label>` : '';
@@ -225,8 +276,8 @@ APP.pages.resto = async id => {
       const pos = mode === 'livraison' ? (await geocoder(`${d.adresse}, ${d.commune}`, r.territoire).catch(() => []))[0] : null;
       const c = await q(sb.rpc('passer_commande', { resto: id, mode_cmd: mode, lignes, adresse_cmd: d.adresse || null, commune_cmd: d.commune || null, telephone_cmd: d.telephone.trim(), note_cmd: d.note || null,
         lat_cmd: pos?.lat ?? null, lng_cmd: pos?.lng ?? null, heure_cmd: d.heure ? localVersUTC(d.heure, fuseauR) : null, code_cmd: codeOk, ...(BASE_V2 ? { pourboire_cmd: mode === 'livraison' && tip ? tip : null } : {}) }));
-      cart = {}; panier.ecrire(id, cart); toast('🎉 Commande envoyée !'); aller('#/suivi/' + c.id);
-    } catch (err) { toast(erreur(err), true); b.disabled = false; }
+      cart = {}; panier.ecrire(id, cart); oublier('resto'); oublier('acc-'); toast('🎉 Commande envoyée !'); aller('#/suivi/' + c.id);
+    } catch (err) { toast(erreur(err), true); b.disabled = false; if (/stock|épuisé/i.test(err.message || '')) oublier('resto'); }
   });
 };
 
@@ -236,11 +287,11 @@ APP.pages.suivi = async id => {
   await chargerRegistre();
   let L = null;
   const dessiner = async () => {
-    const c = await q(sb.from('commandes').select('*, restaurants(nom, telephone, adresse, commune), commande_lignes(*)').eq('id', id).maybeSingle());
+    const c = await q(sb.from('commandes').select('*, restaurants(*), commande_lignes(*)').eq('id', id).maybeSingle());
     if (!c) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Commande introuvable</h3></div>');
     const lv = c.mode === 'livraison' ? await q(sb.rpc('suivi_livraison', { cmd: id })).catch(() => null) : null;
     const lvActive = lv && ['acceptee', 'au_restaurant', 'recuperee'].includes(lv.statut);
-    const etapes = ETAPES.filter(e => c.mode === 'livraison' || !['en_livraison'].includes(e[0])).map(e => e[0] === 'livree' && c.mode === 'emporter' ? ['retiree', '🎉', 'Retirée'] : e);
+    const etapes = ETAPES.filter(e => c.mode === 'livraison' || !['en_livraison'].includes(e[0])).map(e => e[0] === 'livree' && c.mode === 'emporter' ? ['retiree', '🎉', 'Retirée'] : e[0] === 'en_preparation' && estBoutique(c.restaurants) ? ['en_preparation', '📦', 'Préparation'] : e);
     const pos = etapes.findIndex(e => e[0] === c.statut), fini = ['refusee', 'annulee'].includes(c.statut);
     const avis = ['livree', 'retiree'].includes(c.statut) ? await q(sb.from('avis_resto').select('id').eq('commande_id', id)) : [];
     vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><a href="#/commandes" class="petit">← Mes commandes</a>
@@ -251,7 +302,7 @@ APP.pages.suivi = async id => {
           ${Number(c.remise) ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Code ${esc(c.code_promo)}</span><span>−${eur(c.remise)}</span></div>` : ''}
           ${c.frais > 0 ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Livraison</span><span>${eur(c.frais)}</span></div>` : ''}
           ${Number(c.pourboire) ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Pourboire du livreur 💛</span><span>${eur(c.pourboire)}</span></div>` : ''}
-          ${c.pour_heure ? `<p class="petit"><b>⏰ Programmée pour ${esc(jourHeure(c.pour_heure))}</b></p>` : ''}<div style="font:700 22px var(--titres);margin-top:6px">Total ${eur(c.total)}</div>
+          ${c.pour_heure ? `<p class="petit"><b>⏰ Programmée pour ${esc(jourHeure(c.pour_heure))}</b></p>` : ''}${c.majeur ? '<p class="petit"><b>🔞 Pièce d’identité demandée à la remise.</b></p>' : ''}<div style="font:700 22px var(--titres);margin-top:6px">Total ${eur(c.total)}</div>
           <p class="muted petit">${c.mode === 'livraison' ? `🛵 Livraison : ${esc(c.adresse)}, ${esc(c.commune)}` : `🛍️ À retirer : ${esc(c.restaurants?.adresse || c.restaurants?.commune || '')}`} · ${lv ? `paiement au livreur à la livraison (${eur(c.total)})` : 'paiement sur place'}</p></div>
         ${lv && !fini && lv.statut !== 'livree' ? `<div class="panneau" style="margin:12px 0;padding:14px;border-color:var(--ciel)">
           ${lv.livreur ? `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b>🛵 ${esc(lv.livreur.prenom || 'Votre livreur')}</b> · ${esc(lv.livreur.vehicule)}${lv.livreur.couleur ? ' ' + esc(lv.livreur.couleur) : ''}
@@ -309,6 +360,7 @@ APP.pages.pro = async (sous, id) => {
   if (!exigeCompte()) return;
   await chargerRegistre();
   if (sous === 'resto') return formResto(id === 'nouveau' ? null : id);
+  if (sous === 'boutique') return BOUTIQUES ? formResto(id === 'nouveau' ? null : id, 'boutique') : vue('<div class="wrap vide-etat" style="margin-top:30px"><div class="ico">🛒</div><h3>Les boutiques ouvrent très bientôt</h3><a class="btn btn-p" href="#/pro">Mon espace</a></div>');
   if (sous === 'menu') return pageMenu(id);
   if (sous === 'commandes') return pageCommandesPro();
   if (sous === 'codes') return pageCodes(id);
@@ -318,14 +370,14 @@ APP.pages.pro = async (sous, id) => {
   const cm = await blocCommission();
   vue(`<div class="wrap" style="padding-top:22px">${cm}${dus.length ? `<div class="panneau" style="margin-bottom:16px;border-color:var(--jaune)"><h2 style="margin:0 0 8px">💶 À recevoir des livreurs</h2>
       ${dus.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0"><span><b>${esc(x.livreur)}</b> · ${x.nb} livraison${x.nb > 1 ? 's' : ''}${x.telephone ? ` · <a href="tel:${esc(x.telephone)}">${esc(x.telephone)}</a>` : ''}</span>
-        <span class="actions"><b>${eur(x.montant)}</b><button class="btn btn-s btn-ok" data-recu="${x.livreur_id}" data-montant="${x.montant}">J’ai reçu ${eur(x.montant)}</button></span></div>`).join('')}</div>` : ''}<div class="titre-s"><h1>Espace restaurateur</h1><div class="actions">${l.some(x => x.statut === 'publie') ? '<a class="btn btn-j" href="#/pro/commandes">🧾 Commandes en direct</a>' : ''}${l.length < 3 ? '<a class="btn btn-p" href="#/pro/resto/nouveau">+ Ajouter un restaurant</a>' : ''}</div></div>
-    ${l.length ? l.map(x => `<div class="ligne-l">${x.photo ? `<img class="mini" src="${esc(photo(x.photo))}" alt="">` : `<div class="mini" style="display:grid;place-items:center;font-size:30px">${CUISINES[x.cuisine]?.[0]}</div>`}
+        <span class="actions"><b>${eur(x.montant)}</b><button class="btn btn-s btn-ok" data-recu="${x.livreur_id}" data-montant="${x.montant}">J’ai reçu ${eur(x.montant)}</button></span></div>`).join('')}</div>` : ''}<div class="titre-s"><h1>${l.length && l.every(estBoutique) ? 'Ma boutique' : 'Espace restaurateur'}</h1><div class="actions">${l.some(x => x.statut === 'publie') ? '<a class="btn btn-j" href="#/pro/commandes">🧾 Commandes en direct</a>' : ''}${l.length < 3 ? '<a class="btn btn-p" href="#/pro/resto/nouveau">+ Restaurant</a>' + (BOUTIQUES ? '<a class="btn btn-p" href="#/pro/boutique/nouveau">+ Boutique</a>' : '') : ''}</div></div>
+    ${l.length ? l.map(x => `<div class="ligne-l">${x.photo ? `<img class="mini" src="${esc(photo(x.photo))}" alt="">` : `<div class="mini" style="display:grid;place-items:center;font-size:30px">${estBoutique(x) ? '🛒' : CUISINES[x.cuisine]?.[0]}</div>`}
       <div><b>${esc(x.nom)}</b> ${tag(ST_RESTO[x.statut])}<div class="muted petit">${esc(x.commune)} · ${x.livraison ? '🛵' : ''}${x.emporter ? '🛍️' : ''}</div>${x.statut === 'refuse' && x.motif_refus ? `<div class="petit" style="color:var(--rouge)">Motif : ${esc(x.motif_refus)}</div>` : ''}
         ${x.statut === 'publie' ? `<label style="display:flex;gap:8px;align-items:center;margin-top:6px;font-weight:800"><input type="checkbox" data-ouvert="${x.id}" ${x.ouvert ? 'checked' : ''} style="width:22px;height:22px"> ${x.ouvert ? (x.horaires_sem && Object.keys(x.horaires_sem).length ? '🟢 Commandes activées (selon mes horaires)' : '🟢 Je prends les commandes') : '⚪ Fermé (cochez pour ouvrir)'}</label>` : ''}</div>
-      <div class="actions"><a class="btn btn-s" href="#/pro/menu/${x.id}">🍛 Ma carte</a><a class="btn btn-s" href="#/pro/codes/${x.id}">🏷️ Codes promo</a>${BASE_V2 ? `<a class="btn btn-s" href="#/pro/stats/${x.id}">📊 Chiffres</a>` : ''}<a class="btn btn-s" href="#/pro/resto/${x.id}">Modifier</a>
+      <div class="actions"><a class="btn btn-s" href="#/pro/menu/${x.id}">${estBoutique(x) ? '🧺 Articles et stock' : '🍛 Ma carte'}</a><a class="btn btn-s" href="#/pro/codes/${x.id}">🏷️ Codes promo</a>${BASE_V2 ? `<a class="btn btn-s" href="#/pro/stats/${x.id}">📊 Chiffres</a>` : ''}<a class="btn btn-s" href="#/pro/${estBoutique(x) ? 'boutique' : 'resto'}/${x.id}">Modifier</a>
         ${['brouillon', 'refuse'].includes(x.statut) ? `<button class="btn btn-s btn-p" data-envoi="${x.id}">Envoyer en validation</button>` : ''}
         ${x.statut === 'publie' ? `<button class="btn btn-s" data-pause="${x.id}">Pause</button>` : x.statut === 'pause' ? `<button class="btn btn-s btn-ok" data-reprise="${x.id}">Reprendre</button>` : ''}<a class="btn btn-s" href="#/resto/${x.id}">Voir</a></div></div>`).join('')
-      : '<div class="vide-etat"><div class="ico">👩‍🍳</div><h3>Inscrivez votre restaurant</h3><p class="muted">Gratuit pour démarrer. Nous le vérifions (SIRET, hygiène) avant sa mise en ligne.</p><a class="btn btn-p" href="#/pro/resto/nouveau">Inscrire mon restaurant</a></div>'}</div>`);
+      : '<div class="vide-etat"><div class="ico">👩‍🍳</div><h3>Inscrivez votre restaurant ou votre boutique</h3><p class="muted">Gratuit pour démarrer. Nous vérifions chaque commerce (SIRET, hygiène) avant sa mise en ligne.</p><div class="actions" style="justify-content:center"><a class="btn btn-p" href="#/pro/resto/nouveau">Inscrire mon restaurant</a>' + (BOUTIQUES ? '<a class="btn" href="#/pro/boutique/nouveau">🛒 Ouvrir une boutique (boissons, dépannage)</a>' : '') + '</div></div>'}</div>`);
   $('#app').onchange = async ev => { const o = ev.target.closest('[data-ouvert]'); if (!o) return; try { await q(sb.from('restaurants').update({ ouvert: o.checked }).eq('id', o.dataset.ouvert)); toast(o.checked ? '🟢 Vous prenez les commandes' : 'Fermé aux commandes'); APP.pages.pro(); } catch (err) { toast(erreur(err), true); } };
   $('#app').onclick = async ev => {
     const rc = ev.target.closest('[data-recu]');
@@ -335,12 +387,15 @@ APP.pages.pro = async (sous, id) => {
     try { await q(sb.from('restaurants').update({ statut: st }).eq('id', rid)); toast('C’est fait.'); APP.pages.pro(); } catch (err) { toast(erreur(err), true); }
   };
 };
-async function formResto(id) {
-  const r = id ? await q(sb.from('restaurants').select('*').eq('id', id).single()) : { nom: '', description: '', cuisine: 'creole', territoire: profil?.territoire || terrPrefere() || 'Martinique', commune: profil?.commune || '', adresse: '', telephone: contact?.telephone || '', horaires: '', livraison: true, frais_livraison: 3, minimum: 10, communes_livrees: [], emporter: true, delai_min: 30, photo: null, statut: 'brouillon' };
-  let ph = r.photo;
-  vue(`<div class="wrap" style="padding:22px 20px;max-width:780px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>${id ? 'Modifier le restaurant' : 'Inscrire mon restaurant'}</h1>
-    <form class="f" id="fR"><div class="ligne2"><label>Nom<input name="nom" required minlength="2" maxlength="80" value="${esc(r.nom)}"></label><label>Cuisine<select name="cuisine">${Object.entries(CUISINES).map(([k, [i, t]]) => `<option value="${k}" ${k === r.cuisine ? 'selected' : ''}>${i} ${esc(t)}</option>`).join('')}</select></label></div>
-      <label>Présentation<textarea name="description" maxlength="1500" placeholder="Votre histoire, vos spécialités, vos produits…">${esc(r.description)}</textarea></label>
+async function formResto(id, genre) {
+  const neuf = { nom: genre === 'boutique' ? `${profil?.prenom || ''} Dépannage`.trim() : '', cuisine: genre === 'boutique' ? 'boissons' : 'creole', ...(genre === 'boutique' ? { frais_livraison: 2, minimum: 5, genre } : {}) };
+  const r = id ? await q(sb.from('restaurants').select('*').eq('id', id).single()) : { description: '', territoire: profil?.territoire || terrPrefere() || 'Martinique', commune: profil?.commune || '', adresse: '', telephone: contact?.telephone || '', horaires: '', livraison: true, frais_livraison: 3, minimum: 10, communes_livrees: [], emporter: true, delai_min: 30, photo: null, statut: 'brouillon', ...neuf };
+  let ph = r.photo; const bq = estBoutique(r);
+  const types = Object.entries(CUISINES).filter(([k]) => bq ? TYPES_BOUTIQUE.includes(k) : !['boissons', 'epicerie'].includes(k) || k === r.cuisine);
+  vue(`<div class="wrap" style="padding:22px 20px;max-width:780px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>${bq ? (id ? 'Modifier la boutique' : 'Ouvrir ma boutique') : id ? 'Modifier le restaurant' : 'Inscrire mon restaurant'}</h1>
+    ${bq && !id ? '<p class="muted">Boissons fraîches, glaçons, apéro, petite épicerie, dépannage : les clients remplissent leur panier dans Woulib, vous livrez (ou ils passent prendre). Vous gérez vos articles, vos prix et votre stock.</p>' : ''}
+    <form class="f" id="fR"><div class="ligne2"><label>Nom<input name="nom" required minlength="2" maxlength="80" value="${esc(r.nom)}"></label><label>${bq ? 'Type' : 'Cuisine'}<select name="cuisine">${types.map(([k, [i, t]]) => `<option value="${k}" ${k === r.cuisine ? 'selected' : ''}>${i} ${esc(t)}</option>`).join('')}</select></label></div>
+      <label>Présentation<textarea name="description" maxlength="1500" placeholder="${bq ? 'Boissons bien fraîches, glaçons, apéro… livrés en 30 minutes' : 'Votre histoire, vos spécialités, vos produits…'}">${esc(r.description)}</textarea></label>
       <div class="ligne3"><label>Territoire<select name="territoire" data-villes="villesR">${optsTerritoires(r.territoire)}</select></label><label>Ville<input name="commune" required maxlength="60" list="villesR" value="${esc(r.commune)}">${listeVilles('villesR', r.territoire)}</label><label>Adresse<input name="adresse" maxlength="200" value="${esc(r.adresse || '')}"></label></div>
       <label>Téléphone du restaurant<input name="telephone" type="tel" pattern="[0-9 +]{6,20}" value="${esc(r.telephone || '')}"></label>
       ${BASE_V2 ? `      <div class="panneau" style="padding:14px"><b>🕒 Horaires d’ouverture</b><p class="aide" style="margin:4px 0 10px">Exemple : « 11:00-14:00, 18:00-22:00 ». Vide = fermé ce jour-là. Woulib ouvre et ferme vos commandes tout seul ;
@@ -354,7 +409,7 @@ async function formResto(id) {
         <span>🛵 Mes livraisons sont faites par les livreurs Woulib<br><span class="aide" style="font-weight:600">Pas de livreur à embaucher : dès que vous acceptez une commande, les livreurs vérifiés les plus proches sont prévenus. Le client paie le livreur à la livraison ;
         les frais de livraison (2 € minimum) reviennent au livreur, qui vous remet le prix du repas. Woulib tient le compte de ce qu’il vous doit, et vous confirmez la réception.</span></span></label></div>
       <div><b>Photo</b><div id="apercu" style="max-width:240px;margin:8px 0"></div><input type="file" id="ph" accept="image/*"></div>
-      <label style="display:flex;gap:8px;font-weight:600"><input type="checkbox" required style="width:auto"> Mon activité est déclarée (SIRET) et respecte les règles d’hygiène ; les prix affichés sont les vrais prix.</label>
+      <label style="display:flex;gap:8px;font-weight:600"><input type="checkbox" required style="width:auto"> ${bq ? 'Mon activité est déclarée (SIRET) ; si je vends de l’alcool, j’ai la licence de vente à emporter et je ne vends jamais à un mineur (pièce d’identité à la remise) ; les prix affichés sont les vrais prix.' : 'Mon activité est déclarée (SIRET) et respecte les règles d’hygiène ; les prix affichés sont les vrais prix.'}</label>
       <div class="actions"><button class="btn btn-p" value="en_attente">${id && r.statut === 'publie' ? 'Enregistrer' : 'Enregistrer et envoyer en validation'}</button>${!id || r.statut !== 'publie' ? '<button class="btn" value="brouillon">Brouillon</button>' : ''}</div></form></div>`);
   const ap = () => { $('#apercu').innerHTML = ph ? `<img src="${esc(photo(ph))}" alt="" style="border-radius:16px">` : ''; }; ap();
   brancherVilles(document.querySelector('#fR [name=territoire]'), 'villesR');
@@ -373,14 +428,14 @@ async function formResto(id) {
     }
     const l = { nom: d.nom.trim(), cuisine: d.cuisine, description: d.description.trim(), territoire: d.territoire, commune: d.commune.trim(), adresse: d.adresse.trim() || null, telephone: d.telephone.trim() || null,
       ...(BASE_V2 ? { horaires: Object.keys(sem).length ? null : r.horaires || null, horaires_sem: Object.keys(sem).length ? sem : null } : { horaires: d.horaires?.trim() || null }), livraison: !!d.livraison, emporter: !!d.emporter, delai_min: +d.delai_min, frais_livraison: +d.frais_livraison || 0, minimum: +d.minimum || 0,
-      communes_livrees: d.villes.split(',').map(x => x.trim()).filter(Boolean).slice(0, 40), photo: ph, livreurs_kivora: !!(d.livreurs_kivora && d.livraison) };
+      communes_livrees: d.villes.split(',').map(x => x.trim()).filter(Boolean).slice(0, 40), photo: ph, livreurs_kivora: !!(d.livreurs_kivora && d.livraison), ...(bq && !id ? { genre: 'boutique' } : {}) };
     // position du restaurant (pour envoyer les livreurs les plus proches), recalculée si l'adresse change
     if (r.lat == null || l.adresse !== r.adresse || l.commune !== r.commune) {
       const pos = (await geocoder([l.adresse, l.commune].filter(Boolean).join(', '), l.territoire).catch(() => []))[0];
       if (pos) { l.lat = pos.lat; l.lng = pos.lng; }
     }
     if (!(id && r.statut === 'publie')) l.statut = envoi;
-    try { if (id) await q(sb.from('restaurants').update(l).eq('id', id)); else { const n = await q(sb.from('restaurants').insert(l).select('id').single()); toast('Restaurant créé : ajoutez votre carte !'); return aller('#/pro/menu/' + n.id); } toast('Enregistré.'); aller('#/pro'); }
+    try { if (id) await q(sb.from('restaurants').update(l).eq('id', id)); else { const n = await q(sb.from('restaurants').insert(l).select('id').single()); toast(bq ? 'Boutique créée : ajoutez vos articles !' : 'Restaurant créé : ajoutez votre carte !'); return aller('#/pro/menu/' + n.id); } toast('Enregistré.'); aller('#/pro'); }
     catch (err) { toast(erreur(err), true); }
   });
 }
@@ -397,18 +452,29 @@ function lireCreneaux(t) {
   }
   return l.length && l.length <= 3 ? l.sort((x, y) => x[0] < y[0] ? -1 : 1) : null;
 }
+// catalogue de départ d'une boutique : prix indicatifs, que le vendeur ajuste avant d'ajouter
+const DEPART = [['frais', 'Eau minérale 1,5 L', 1.5], ['frais', 'Eau gazeuse 1 L', 1.8], ['frais', 'Soda 33 cl', 1.8], ['frais', 'Jus de fruits local 1 L', 3.5], ['frais', 'Boisson énergisante 25 cl', 2.5],
+  ['alcool', 'Bière locale 33 cl', 2.5], ['alcool', 'Pack de 6 bières', 12], ['alcool', 'Rhum agricole blanc 70 cl', 18], ['apero', 'Chips 150 g', 2.5], ['apero', 'Cacahuètes grillées', 2], ['apero', 'Biscuits apéritif', 2.5],
+  ['glace', 'Sachet de glaçons 2 kg', 3], ['glace', 'Glace en pot 500 ml', 5.5], ['epicerie', 'Baguette de pain', 1.2], ['epicerie', 'Lait 1 L', 1.6], ['maison', 'Gobelets (lot de 50)', 3], ['maison', 'Charbon de bois 3 kg', 7], ['maison', 'Papier toilette (lot de 4)', 3.5]];
 async function pageMenu(rid, edite) {
-  const [r, plats] = await Promise.all([q(sb.from('restaurants').select('nom').eq('id', rid).single()), q(sb.from('plats').select('*').eq('restaurant_id', rid).order('ordre').order('created_at'))]);
-  const p0 = plats.find(p => p.id === edite) || { nom: '', prix: '', categorie: 'plat', description: '', options: [] };
-  vue(`<div class="wrap" style="padding:22px 20px;max-width:860px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>La carte · ${esc(r.nom)}</h1>
-    ${plats.length ? plats.map(p => `<div class="ligne-l">${p.photo ? `<img class="mini" style="height:72px" src="${esc(photo(p.photo))}" alt="">` : `<div class="mini" style="height:72px;display:grid;place-items:center;font-size:28px">${CATS_PLAT[p.categorie].split(' ')[0]}</div>`}
-      <div><b>${esc(p.nom)}</b> · <span class="prix">${eur(p.prix)}</span> ${p.dispo ? '' : tag(['gris', 'Épuisé'])}<div class="muted petit">${esc(CATS_PLAT[p.categorie])}${p.description ? ' · ' + esc(p.description) : ''}</div>
+  const [r, plats] = await Promise.all([q(sb.from('restaurants').select('*').eq('id', rid).single()), q(sb.from('plats').select('*').eq('restaurant_id', rid).order('ordre').order('created_at'))]);
+  const bq = estBoutique(r), CATS = bq ? CATS_BOUTIQUE : CATS_PLAT, depart = DEPART.filter(([, nom]) => !plats.some(p => p.nom.toLowerCase() === nom.toLowerCase()));
+  const p0 = plats.find(p => p.id === edite) || { nom: '', prix: '', categorie: bq ? 'frais' : 'plat', description: '', options: [], stock: null };
+  vue(`<div class="wrap" style="padding:22px 20px;max-width:860px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>${bq ? 'Articles et stock' : 'La carte'} · ${esc(r.nom)}</h1>
+    ${bq && depart.length ? `<details class="panneau depart" ${plats.length ? '' : 'open'}><summary><b>🚀 Catalogue de départ</b> · cochez, mettez vos prix, ajoutez tout d’un coup</summary>
+      <form id="fDepart" class="f"><p class="aide" style="margin:0">Prix indicatifs : remplacez-les par vos vrais prix. Vous pourrez tout modifier ensuite.</p>
+        <div class="depart-l">${depart.map(([c, nom, prix], i) => `<label><input type="checkbox" name="c${i}" checked><span>${LIB_CAT[c].split(' ')[0]} ${esc(nom)}</span><input type="number" name="p${i}" min="0.5" max="500" step="0.1" value="${prix}" aria-label="Prix de ${esc(nom)}"> €</label>`).join('')}</div>
+        <button class="btn btn-p">Ajouter les articles cochés</button></form></details>` : ''}
+    ${plats.length ? plats.map(p => `<div class="ligne-l">${p.photo ? `<img class="mini" style="height:72px" src="${esc(photo(p.photo))}" alt="">` : `<div class="mini" style="height:72px;display:grid;place-items:center;font-size:28px">${(LIB_CAT[p.categorie] || '🍽️').split(' ')[0]}</div>`}
+      <div><b>${esc(p.nom)}</b> · <span class="prix">${eur(p.prix)}</span> ${p.dispo ? '' : tag(['gris', 'Épuisé'])}${p.majeur ? ' ' + tag(['att', '🔞 18+']) : ''}<div class="muted petit">${esc(LIB_CAT[p.categorie] || '')}${p.description ? ' · ' + esc(p.description) : ''}</div>
+        ${bq ? `<label class="stock-l">Stock <input type="number" min="0" max="9999" data-stock="${p.id}" value="${p.stock ?? ''}" placeholder="non suivi" aria-label="Stock de ${esc(p.nom)}">${p.stock === 0 ? ' <b style="color:var(--rouge)">épuisé</b>' : ''}</label>` : ''}
         ${p.options?.length ? `<div class="petit">${p.options.map(g => `<b>${esc(g.nom)}</b> : ${esc(g.choix.map(c => c.nom + (Number(c.prix) ? ' +' + eur(c.prix) : '')).join(', '))}`).join(' · ')}</div>` : ''}</div>
-      <div class="actions"><button class="btn btn-s" data-modif="${p.id}">✏️ Modifier</button><button class="btn btn-s ${p.dispo ? '' : 'btn-ok'}" data-dispo="${p.id}" data-v="${!p.dispo}">${p.dispo ? 'Épuisé' : 'Disponible'}</button><button class="btn btn-s btn-ko" data-suppr="${p.id}" aria-label="Retirer ${esc(p.nom)}">×</button></div></div>`).join('') : '<p class="muted">Aucun plat pour l’instant.</p>'}
-    <form class="f panneau" id="fP" style="margin-top:16px"><h2 style="margin:0">${edite ? 'Modifier · ' + esc(p0.nom) : 'Ajouter un plat'}</h2>
-      <div class="ligne3"><label>Nom<input name="nom" required minlength="2" maxlength="80" placeholder="Colombo de poulet" value="${esc(p0.nom)}"></label><label>Prix (€)<input name="prix" type="number" min="0.5" max="500" step="0.5" required value="${esc(p0.prix)}"></label><label>Catégorie<select name="categorie">${Object.entries(CATS_PLAT).map(([k, t]) => `<option value="${k}" ${k === p0.categorie ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
-      <label>Description <span class="aide">(facultatif)</span><input name="description" maxlength="400" placeholder="Riz, légumes pays, sauce chien" value="${esc(p0.description || '')}"></label>
-      <div ${BASE_V2 ? '' : 'hidden'}><b>Choix et suppléments</b> <span class="aide">(facultatif : accompagnement au choix, cuisson, sauce, suppléments payants…)</span><div id="groupes">${(p0.options || []).map(blocGroupe).join('')}</div>
+      <div class="actions"><button class="btn btn-s" data-modif="${p.id}">✏️ Modifier</button><button class="btn btn-s ${p.dispo ? '' : 'btn-ok'}" data-dispo="${p.id}" data-v="${!p.dispo}">${p.dispo ? 'Épuisé' : 'Disponible'}</button><button class="btn btn-s btn-ko" data-suppr="${p.id}" aria-label="Retirer ${esc(p.nom)}">×</button></div></div>`).join('') : `<p class="muted">${bq ? 'Aucun article pour l’instant.' : 'Aucun plat pour l’instant.'}</p>`}
+    <form class="f panneau" id="fP" style="margin-top:16px"><h2 style="margin:0">${edite ? 'Modifier · ' + esc(p0.nom) : bq ? 'Ajouter un article' : 'Ajouter un plat'}</h2>
+      <div class="ligne3"><label>Nom<input name="nom" required minlength="2" maxlength="80" placeholder="${bq ? 'Eau 1,5 L' : 'Colombo de poulet'}" value="${esc(p0.nom)}"></label><label>Prix (€)<input name="prix" type="number" min="0.5" max="500" step="${bq ? '0.1' : '0.5'}" required value="${esc(p0.prix)}"></label><label>${bq ? 'Rayon' : 'Catégorie'}<select name="categorie">${Object.entries(CATS).map(([k, t]) => `<option value="${k}" ${k === p0.categorie ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
+      <label>Description <span class="aide">(facultatif)</span><input name="description" maxlength="400" placeholder="${bq ? 'Bien fraîche' : 'Riz, légumes pays, sauce chien'}" value="${esc(p0.description || '')}"></label>
+      ${bq ? `<label>Stock <span class="aide">(facultatif : vide = pas de suivi ; à 0, l’article s’affiche épuisé)</span><input name="stock" type="number" min="0" max="9999" value="${p0.stock ?? ''}"></label><p class="aide" style="margin:0">🔞 Les articles du rayon « Bières et alcools » sont réservés aux majeurs : âge contrôlé à la remise.</p>` : ''}
+      <div ${BASE_V2 && !bq ? '' : 'hidden'}><b>Choix et suppléments</b> <span class="aide">(facultatif : accompagnement au choix, cuisson, sauce, suppléments payants…)</span><div id="groupes">${(p0.options || []).map(blocGroupe).join('')}</div>
         <button type="button" class="btn btn-s" id="ajG">+ Ajouter un choix</button></div>
       <label>Photo <span class="aide">(facultatif${edite && p0.photo ? ' : laissez vide pour garder la photo actuelle' : ''})</span><input type="file" name="fichier" accept="image/*"></label>
       <div class="actions"><button class="btn btn-p">${edite ? 'Enregistrer' : '+ Ajouter à la carte'}</button>${edite ? '<button type="button" class="btn" id="annulerP">Annuler</button>' : ''}</div></form></div>`);
@@ -427,19 +493,31 @@ async function pageMenu(rid, edite) {
     }
     const b = f.querySelector('.btn-p'); b.disabled = true;
     try {
-      const l = { nom: d.nom.trim(), prix: +d.prix, categorie: d.categorie, description: d.description.trim() || null, ...(BASE_V2 ? { options } : {}) };
+      const l = { nom: d.nom.trim(), prix: +d.prix, categorie: d.categorie, description: d.description.trim() || null, ...(BASE_V2 ? { options } : {}), ...(bq ? { stock: d.stock === '' ? null : +d.stock } : {}) };
       if (f.fichier.files[0]) l.photo = await envoyerPhoto(f.fichier.files[0]);
       if (edite) await q(sb.from('plats').update(l).eq('id', edite)); else await q(sb.from('plats').insert({ ...l, restaurant_id: rid, ordre: plats.length }));
-      toast(edite ? 'Plat modifié.' : 'Plat ajouté.'); pageMenu(rid);
+      toast(edite ? (bq ? 'Article modifié.' : 'Plat modifié.') : bq ? 'Article ajouté.' : 'Plat ajouté.'); pageMenu(rid);
     } catch (err) { toast(/options_valides/.test(err.message) ? 'Choix invalides : vérifiez les titres et les prix.' : erreur(err), true); b.disabled = false; }
   });
+  $('#fDepart')?.addEventListener('submit', async ev => {
+    ev.preventDefault(); const f = ev.target, b = f.querySelector('.btn-p');
+    const l = depart.map(([c, nom], i) => f['c' + i].checked ? { restaurant_id: rid, nom, categorie: c, prix: Number(f['p' + i].value), ordre: plats.length + i } : null).filter(Boolean);
+    if (!l.length) return toast('Cochez au moins un article.', true);
+    if (l.some(x => !(x.prix >= 0.5 && x.prix <= 500))) return toast('Chaque prix doit être entre 0,50 € et 500 €.', true);
+    b.disabled = true;
+    try { await q(sb.from('plats').insert(l)); toast(`${l.length} articles ajoutés : vérifiez vos prix et votre stock.`); pageMenu(rid); } catch (err) { toast(erreur(err), true); b.disabled = false; }
+  });
+  $('#app').onchange = async ev => {
+    const st = ev.target.closest('[data-stock]'); if (!st) return;
+    try { await q(sb.from('plats').update({ stock: st.value === '' ? null : Math.max(0, Math.min(9999, +st.value)) }).eq('id', st.dataset.stock)); toast('Stock enregistré.'); } catch (err) { toast(erreur(err), true); }
+  };
   $('#app').onclick = async ev => {
     const d = ev.target.closest('[data-dispo]'), s = ev.target.closest('[data-suppr]'), m = ev.target.closest('[data-modif]'), rg = ev.target.closest('[data-retirer-g]');
     if (m) return pageMenu(rid, m.dataset.modif);
     if (rg) return rg.closest('[data-g]').remove();
     try {
       if (d) { await q(sb.from('plats').update({ dispo: d.dataset.v === 'true' }).eq('id', d.dataset.dispo)); pageMenu(rid); }
-      if (s && confirm('Retirer ce plat de la carte ?')) { await q(sb.from('plats').delete().eq('id', s.dataset.suppr)); pageMenu(rid); }
+      if (s && confirm(bq ? 'Retirer cet article ?' : 'Retirer ce plat de la carte ?')) { await q(sb.from('plats').delete().eq('id', s.dataset.suppr)); pageMenu(rid); }
     } catch (err) { toast(erreur(err), true); }
   };
 }
@@ -468,7 +546,7 @@ const SUIVANT = { envoyee: [['acceptee', '👍 Accepter', 'btn-ok'], ['refusee',
 async function pageCommandesPro() {
   let connues = null;
   const dessiner = async () => {
-    const mes = await q(sb.from('restaurants').select('id, nom').eq('owner', moi.id));
+    const mes = await q(sb.from('restaurants').select('*').eq('owner', moi.id));
     const [l, lvs] = mes.length ? await Promise.all([q(sb.from('commandes').select('*, commande_lignes(*)').in('restaurant_id', mes.map(x => x.id)).gte('created_at', new Date(Date.now() - 36 * 36e5).toISOString()).order('created_at', { ascending: false })),
       q(sb.rpc('livraisons_resto')).catch(() => [])]) : [[], []];
     const lvDe = c => lvs.find(x => x.commande_id === c.id && !['annulee', 'echec'].includes(x.statut));
@@ -478,10 +556,10 @@ async function pageCommandesPro() {
     connues = new Set(l.map(c => c.id));
     const col = (titre, filtre) => { const x = l.filter(filtre); return `<div><h2>${titre} (${x.length})</h2>${x.map(c => `<div class="panneau" style="margin-bottom:12px;padding:14px">
       <div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(c.id.slice(0, 6).toUpperCase())} · ${esc(c.client_nom)}</b>${tag(ST_CMD[c.statut])}</div>
-      ${c.pour_heure ? `<div class="tag att" style="margin:4px 0">⏰ Pour ${esc(jourHeure(c.pour_heure))}</div>` : ''}${Number(c.remise) ? `<div class="petit">🏷️ Code ${esc(c.code_promo)} : −${eur(c.remise)}</div>` : ''}
+      ${c.pour_heure ? `<div class="tag att" style="margin:4px 0">⏰ Pour ${esc(jourHeure(c.pour_heure))}</div>` : ''}${c.majeur ? '<div class="tag ko" style="margin:4px 0">🔞 Alcool : contrôlez une pièce d’identité à la remise</div>' : ''}${Number(c.remise) ? `<div class="petit">🏷️ Code ${esc(c.code_promo)} : −${eur(c.remise)}</div>` : ''}
       <div class="muted petit">${esc(heure(c.created_at))} · ${c.mode === 'livraison' ? `🛵 ${esc(c.adresse)}, ${esc(c.commune)}` : '🛍️ À emporter'} · <a href="${wa(c.telephone, 'Bonjour, ici le restaurant pour votre commande ' + c.id.slice(0, 6).toUpperCase() + ' (Woulib).')}" target="_blank" rel="noopener">${esc(c.telephone)}</a></div>
       <ul style="margin:8px 0;padding-left:18px">${c.commande_lignes.map(x => `<li><b>${x.quantite} ×</b> ${esc(x.nom)}${x.options ? ` <span class="muted">· ${esc(x.options)}</span>` : ''}${x.note ? ` <i>(${esc(x.note)})</i>` : ''}</li>`).join('')}</ul>${c.note ? `<p class="petit">📝 ${esc(c.note)}</p>` : ''}${infoLv(lvDe(c))}
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>${eur(c.total)}${Number(c.pourboire) ? ` <span class="petit muted">dont ${eur(c.pourboire)} de pourboire livreur</span>` : ''}</b><div class="actions">${(lvDe(c) && ['prete', 'en_livraison'].includes(c.statut) ? [] : SUIVANT[c.statut === 'prete' ? 'prete_' + c.mode : c.statut] || []).map(([s, t, cl]) => `<button class="btn btn-s ${cl}" data-cmd="${c.id}" data-st="${s}">${t}</button>`).join('')}</div></div></div>`).join('') || '<p class="muted">—</p>'}</div>`; };
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>${eur(c.total)}${Number(c.pourboire) ? ` <span class="petit muted">dont ${eur(c.pourboire)} de pourboire livreur</span>` : ''}</b><div class="actions">${(lvDe(c) && ['prete', 'en_livraison'].includes(c.statut) ? [] : SUIVANT[c.statut === 'prete' ? 'prete_' + c.mode : c.statut] || []).map(([s, t, cl]) => `<button class="btn btn-s ${cl}" data-cmd="${c.id}" data-st="${s}">${s === 'en_preparation' && estBoutique(mes.find(x => x.id === c.restaurant_id)) ? '📦 Je prépare' : t}</button>`).join('')}</div></div></div>`).join('') || '<p class="muted">—</p>'}</div>`; };
     vue(`<div class="wrap" style="padding-top:22px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>Commandes en direct</h1><p class="muted">Mise à jour automatique toutes les 10 secondes. Gardez cette page ouverte pendant le service.</p>
       <div class="grille" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));align-items:start">${col('🆕 Nouvelles', c => c.statut === 'envoyee')}${col('👩‍🍳 En cours', c => ['acceptee', 'en_preparation', 'prete', 'en_livraison'].includes(c.statut))}${col('✅ Terminées', c => ['livree', 'retiree', 'refusee', 'annulee'].includes(c.statut))}</div></div>`);
   };

@@ -17,17 +17,20 @@
   <link rel="icon" href="img/logo.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="img/icone-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Woulib">
+  <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Woulib">
   <link rel="preload" href="fonts/fredoka.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="woulib.css?v=9">
+  <link rel="stylesheet" href="woulib.css?v=10">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Woulib","alternateName":["Woulib Martinique","Woulib Antilles","Woulib Food","Woulib Move","Woulib GPS","Woulib VTC","Woulib taxi","Woulib livraison","IloTech Woulib","Kivora"],"url":"https://ilo-tech.com/woulib/","inLanguage":"fr-FR","publisher":{"@type":"LocalBusiness","name":"IloTech","alternateName":["Ilo Tech","Ilo-Tech","ILOTECH","Ilotech"],"url":"https://ilo-tech.com/","telephone":"+596696482678"}}</script>
 </head>
 <body>
   <header class="haut"><div class="wrap">
+    <button class="retour-app" id="retourApp" type="button" aria-label="Retour" hidden>‹</button>
     <a class="logo" href="#/"><img src="img/logo.svg" alt="" width="34" height="34"><span>Wou<b>lib</b></span></a>
+    <span class="titre-app" id="titreApp" aria-hidden="true"></span>
+    <a class="cloche-app" id="clocheApp" href="#/notifs" aria-label="Notifications" hidden>🔔</a>
     <nav class="nav" id="nav" aria-label="Menu principal"></nav>
   </div></header>
-  <main id="app"><noscript><div class="wrap" style="padding:40px 20px"><h1>Woulib — repas livrés, VTC, taxis et GPS, aux Antilles et ailleurs</h1><p>Activez JavaScript pour commander ou réserver. Contact : WhatsApp 0696 48 26 78.</p></div></noscript></main>
+  <main id="app"><div class="demarrage" aria-hidden="true"><img src="img/logo.svg" alt="" width="76" height="76"><b>Wou<span>lib</span></b></div><noscript><div class="wrap" style="padding:40px 20px"><h1>Woulib — repas livrés, VTC, taxis et GPS, aux Antilles et ailleurs</h1><p>Activez JavaScript pour commander ou réserver. Contact : WhatsApp 0696 48 26 78.</p></div></noscript></main>
   <footer class="pied"><div class="wrap">
     <div><b style="font-size:20px">Wou<span style="color:#FF5A36">lib</span></b><p>Repas livrés ou à emporter (Food), trajets en VTC ou taxi et livreurs (Move), GPS avec alertes route, aux Antilles, en Guyane, à La Réunion, dans l’Hexagone et ailleurs, par IloTech (Martinique). Restaurants, chauffeurs et livreurs vérifiés.</p><p>WhatsApp : <a href="https://wa.me/596696482678">0696 48 26 78</a></p></div>
     <div><b>Woulib</b><br><a href="#/manger">Food : repas</a><br><a href="#/move">Move : VTC et taxis</a><br><a href="#/gps">GPS et alertes route</a><br><a href="#/pro">Inscrire mon restaurant</a><br><a href="#/chauffeur">Devenir chauffeur ou livreur</a></div>
@@ -38,10 +41,10 @@
   <script src="config.js?v=1"></script>
   <script src="lib/supabase.js?v=2.45.4"></script>
   <script src="territoires.js?v=1"></script>
-  <script src="base.js?v=4"></script>
-  <script src="app.js?v=4"></script>
-  <script src="food.js?v=4"></script>
-  <script src="move.js?v=4"></script>
+  <script src="base.js?v=5"></script>
+  <script src="app.js?v=5"></script>
+  <script src="food.js?v=5"></script>
+  <script src="move.js?v=5"></script>
   <script src="gps.js?v=3"></script>
   <script src="express.js?v=1"></script>
   <script src="projets.js?v=1"></script>

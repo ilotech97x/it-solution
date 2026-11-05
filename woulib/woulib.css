@@ -484,3 +484,121 @@ body.sans-defil .bas{display:none}
 /* ajouter une étape : liste déroulante compacte, champ sur sa propre ligne sur téléphone */
 #fEtape select{min-width:0;max-width:45%;border:0;background:transparent;font:700 13px var(--corps);color:var(--titre)}
 @media (max-width:600px){#fEtape{flex-wrap:wrap;padding:8px}#fEtape input{flex:1 1 100%}#fEtape select{flex:1;max-width:none}}
+
+/* ---------------------------------------------------------------- appli : pages qui glissent, barre du haut, gestes, toucher */
+/* la page entrante arrive de la droite et recouvre la précédente, qui recule un peu (retour : l'inverse) ; entre onglets, fondu.
+   Transitions de vue du navigateur : on anime des images de l'écran, jamais la page elle-même (les éléments fixés restent justes). */
+.haut{view-transition-name:haut}.bas{view-transition-name:bas}
+::view-transition-group(haut),::view-transition-group(bas){animation-duration:.2s}
+@media (max-width:760px){
+  ::view-transition-old(root),::view-transition-new(root){animation-duration:.36s;animation-timing-function:cubic-bezier(.32,.72,0,1);animation-fill-mode:both}
+  html[data-sens=avant]::view-transition-old(root){animation-name:vt-recule}
+  html[data-sens=avant]::view-transition-new(root){animation-name:vt-arrive;box-shadow:-12px 0 32px rgba(58,20,8,.14)}
+  html[data-sens=retour]::view-transition-old(root){animation-name:vt-repart;z-index:2;box-shadow:-12px 0 32px rgba(58,20,8,.14)}
+  html[data-sens=retour]::view-transition-new(root){animation-name:vt-revient}
+}
+html[data-sens=onglet]::view-transition-old(root){animation:vt-efface .12s ease both}
+html[data-sens=onglet]::view-transition-new(root){animation:vt-montre .2s ease both}
+@keyframes vt-arrive{from{transform:translateX(100%)}}
+@keyframes vt-recule{to{transform:translateX(-26%);filter:brightness(.94)}}
+@keyframes vt-repart{to{transform:translateX(100%)}}
+@keyframes vt-revient{from{transform:translateX(-26%);filter:brightness(.94)}}
+@keyframes vt-efface{to{opacity:0}}
+@keyframes vt-montre{from{opacity:0}}
+html[data-sens] #app>*{animation:none}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+/* toucher : pas de surbrillance grise, pas de sélection de texte sur les boutons, pas de zoom au double appui */
+a,button,.btn,label,summary{-webkit-tap-highlight-color:transparent}
+button,.btn,.bas a,.grande,.pastille-u,.cuisine,.seg button,.qte,.menu-l,.act,.article{-webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-touch-callout:none}
+@media (display-mode:standalone){html,body{overscroll-behavior-y:none}}
+/* écran de démarrage (avant le premier affichage) */
+.demarrage{min-height:70vh;display:grid;place-content:center;justify-items:center;gap:10px;font:700 34px var(--titres);color:var(--titre)}
+.demarrage span{color:var(--rose)}.demarrage img{animation:respire 1.2s ease-in-out infinite}
+@keyframes respire{50%{transform:scale(.9)}}
+/* en attendant les données : la forme de la page */
+.squelette{display:grid;gap:14px;padding-top:22px}
+.sq,.chargement::before,.chargement::after{display:block;border-radius:18px;background:linear-gradient(90deg,var(--doux-fond) 0,#fff 45%,var(--doux-fond) 90%);background-size:300% 100%;animation:miroite 1.3s linear infinite}
+.sq-t{height:34px;width:62%}.sq-l{height:16px;width:88%}.sq-l.court{width:52%}.sq-c{height:150px}
+.sq-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.chargement{font-size:0!important;color:transparent!important;padding:6px 0!important;display:grid;gap:12px}
+.chargement::before,.chargement::after{content:''!important;height:140px;font-size:0}
+@keyframes miroite{from{background-position:100% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.sq,.chargement::before,.chargement::after,.demarrage img{animation:none}}
+/* barre du haut (téléphone) : logo sur les onglets ; retour et titre de la page à l'intérieur */
+.retour-app,.titre-app,.cloche-app{display:none}
+@media (max-width:760px){
+  .haut .wrap{gap:6px}
+  .retour-app:not([hidden]){display:grid;place-items:center;flex:none;width:42px;height:42px;margin-left:-10px;border:0;border-radius:50%;background:transparent;font:500 40px/1 var(--corps);color:var(--titre);cursor:pointer;padding-bottom:6px}
+  .retour-app:active{background:var(--doux-fond)}
+  body[data-racine=non] .haut .logo{display:none}
+  body[data-racine=non] .titre-app{display:block;flex:1;min-width:0;font:700 18px var(--titres);color:var(--titre);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s}
+  .haut.titre-on .titre-app{opacity:1;transform:none}
+  .cloche-app:not([hidden]){display:grid;place-items:center;position:relative;flex:none;margin-left:auto;width:42px;height:42px;border-radius:50%;text-decoration:none;font-size:21px}
+  .cloche-app .badge{position:absolute;top:2px;right:0}
+  .retour-flottant{display:none!important}
+}
+/* gestes de l'appli installée : retour depuis le bord gauche, tirer pour rafraîchir */
+.geste-retour,.geste-maj{position:fixed;z-index:200;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--surface);color:var(--titre);font:900 26px var(--corps);box-shadow:0 6px 20px rgba(0,0,0,.2);pointer-events:none;opacity:.7}
+.geste-retour{left:0;top:0}.geste-maj{left:calc(50% - 23px);top:64px}
+.geste-retour.pret,.geste-maj.pret{opacity:1;background:var(--rose);color:#fff}
+.geste-maj.tourne{animation:tourne .7s linear infinite;opacity:1}
+@keyframes tourne{to{transform:translateY(40px) rotate(360deg)}}
+/* installer l'appli */
+.installer{display:flex;gap:12px;align-items:center;margin:4px 0 14px;padding:12px 14px;border-radius:20px;background:var(--surface);border:2px solid var(--ligne);box-shadow:0 6px 18px rgba(58,20,8,.06)}
+.installer>span{font-size:30px}.installer div{flex:1;min-width:0}.installer small{display:block;color:var(--doux);font-size:13px}
+.fermer-i{border:0;background:transparent;font-size:16px;color:var(--doux);cursor:pointer;padding:6px}
+/* compte et activité, façon appli */
+.compte-app{padding-top:20px;max-width:640px}.compte-app h2,.activite h2{font-size:15px;text-transform:uppercase;letter-spacing:.04em;color:var(--doux);margin:22px 0 8px}
+.moi-c{display:flex;gap:14px;align-items:center;margin-bottom:12px}.moi-c h1{margin:0;font-size:26px}
+.avatar{flex:none;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:var(--grad);color:#fff;font:700 26px var(--titres)}
+.menu-g{background:var(--surface);border:2px solid var(--ligne);border-radius:22px;overflow:hidden}
+.menu-l{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:13px 14px;text-decoration:none;color:var(--titre)}
+.menu-l+.menu-l{border-top:1.5px solid var(--ligne)}.menu-l>span{font-size:24px}.menu-l small{display:block;color:var(--doux);font-size:13px;font-weight:600}.menu-l i{font-style:normal;color:var(--doux);font-size:22px}
+.menu-l:active{background:var(--doux-fond)}.menu-l.ko b{color:var(--rouge,#D92D20)}
+.activite{padding-top:20px;max-width:720px}.acts{display:grid;gap:8px}
+.act{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 14px;border-radius:18px;background:var(--surface);border:2px solid var(--ligne);text-decoration:none;color:var(--titre)}
+.act>span{font-size:28px}.act b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.act small{color:var(--doux);font-size:13px}
+.act.actif{border-color:var(--rose);box-shadow:0 4px 0 var(--rose-doux)}.act:active{transform:scale(.98)}
+
+/* ---------------------------------------------------------------- boutique : des vignettes qu'on ajoute d'un geste */
+.rayon{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.article{position:relative;display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:20px;background:var(--surface);border:2px solid var(--ligne);min-width:0}
+.article.fini{opacity:.55}
+.art-img{position:relative;aspect-ratio:1;border-radius:14px;background:var(--doux-fond);display:grid;place-items:center;overflow:hidden;margin-bottom:4px}
+.art-img img{width:100%;height:100%;object-fit:cover}.art-img span{font-size:44px}
+.art-18{position:absolute;top:6px;left:6px;padding:2px 7px;border-radius:9px;background:var(--titre);color:#fff;font:800 11px var(--corps);font-style:normal}
+.article>b{font-size:15px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.article>small{color:var(--doux);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.art-bas{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:auto;min-height:40px}
+.art-bas .prix{font:700 17px var(--titres)}
+.art-stock{color:var(--jaune-presse);font-weight:800;font-size:12px}
+.article .qte{gap:4px}.article .qte button{width:36px;height:36px;border-radius:50%;font-size:20px;box-shadow:0 3px 0 var(--ciel-presse)}
+.article .qte output{min-width:18px;font-size:17px}
+.article .qte.zero output,.article .qte.zero [data-d="-1"]{display:none}
+.article .qte.zero [data-d="1"]{width:40px;height:40px;background:var(--rose);border-color:var(--rose);box-shadow:0 3px 0 var(--rose-presse)}
+.rayon-defile{gap:10px;padding-bottom:6px}.rayon-defile .article{flex:0 0 146px;scroll-snap-align:start}
+.barre-vite:not([hidden]){display:flex;position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;justify-content:space-between;align-items:center;gap:10px;padding:15px 18px;border:0;border-radius:20px;
+  background:var(--titre);color:#fff;font:700 16px var(--corps);box-shadow:0 14px 34px rgba(0,0,0,.3);cursor:pointer;animation:monte .25s cubic-bezier(.2,.9,.3,1)}
+@media (min-width:761px){.barre-vite:not([hidden]){left:auto;right:24px;bottom:24px;width:360px}}
+.majeur-ok{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;background:var(--jaune-doux);border:2px solid var(--jaune);font-weight:600}
+.majeur-ok input{width:22px;height:22px;flex:none;margin-top:2px}.majeur-ok small{display:block;color:var(--doux);font-weight:600}
+.appel-boutique{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;margin:14px 0;padding:14px 16px;border-radius:22px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#FF5A36,#FFB020);box-shadow:0 10px 24px rgba(255,138,61,.3)}
+.appel-boutique>span{font-size:34px}.appel-boutique small{display:block;opacity:.92;font-weight:600}.appel-boutique i{font-style:normal;font-size:26px}
+.ma-boutique{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0}
+.stock-l{display:inline-flex;gap:6px;align-items:center;margin-top:6px;font-weight:800;font-size:13px}.stock-l input{width:96px;padding:6px 8px;border:2px solid var(--ligne);border-radius:10px;font:700 14px var(--corps)}
+.depart{margin-bottom:16px;padding:14px}.depart>summary{cursor:pointer}
+.depart-l{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 14px}
+.depart-l label{display:grid;grid-template-columns:auto minmax(0,1fr) 78px auto;gap:8px;align-items:center;font-weight:700;font-size:14px}
+.depart-l input[type=checkbox]{width:20px;height:20px}.depart-l input[type=number]{padding:5px 6px;border:2px solid var(--ligne);border-radius:10px;font:700 14px var(--corps)}
+@media (max-width:760px){.rayon{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.page-resto .rayon{margin:0 -2px}}
+/* téléphone : les services en pastilles, trois par ligne (super-appli) ; la photo d'une boutique sans image reste basse */
+@media (max-width:760px){
+  .grandes{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+  .grande{min-height:0;padding:12px 6px 11px;border-radius:20px;justify-items:center;align-content:start;text-align:center;gap:6px}
+  .grande span{position:static;font-size:32px}
+  .grande b{font-size:14px;line-height:1.15}.grande small{display:none}
+  .page-resto>.fiche{padding-top:0}
+  .resto-hero:not(:has(img)){aspect-ratio:3/1!important}.resto-hero:not(:has(img))>span{font-size:54px!important}
+  .installer{padding:10px 12px;gap:10px;border-radius:18px;margin:0 0 12px}.installer>span{font-size:24px}.installer b{font-size:15px}.installer small{font-size:12.5px;line-height:1.3}
+}
+.art-img{aspect-ratio:4/3}.art-img span{font-size:38px}

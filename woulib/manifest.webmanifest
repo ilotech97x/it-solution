@@ -1,7 +1,7 @@
 {
   "name": "Woulib — repas, VTC, taxis et GPS",
   "short_name": "Woulib",
-  "description": "Les restaurants d’ici livrés ou à emporter, des chauffeurs VTC et taxis vérifiés, et un GPS avec les alertes route des conducteurs.",
+  "description": "Les restaurants et les boutiques d’ici livrés ou à retirer, des chauffeurs VTC et taxis vérifiés, l’envoi de colis et un GPS avec les alertes route des conducteurs.",
   "lang": "fr",
   "start_url": "./#/",
   "scope": "./",
@@ -9,10 +9,80 @@
   "orientation": "portrait",
   "background_color": "#FFF8F3",
   "theme_color": "#FF5A36",
-  "categories": ["food", "travel", "navigation", "lifestyle"],
+  "categories": [
+    "food",
+    "travel",
+    "navigation",
+    "lifestyle"
+  ],
   "icons": [
-    { "src": "img/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "img/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "img/icone-512-masque.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "img/icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icone-512-masque.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "./",
+  "display_override": [
+    "standalone"
+  ],
+  "shortcuts": [
+    {
+      "name": "Commander à manger",
+      "short_name": "Manger",
+      "url": "./#/manger",
+      "icons": [
+        {
+          "src": "img/icone-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Réserver un trajet",
+      "short_name": "Trajet",
+      "url": "./#/move",
+      "icons": [
+        {
+          "src": "img/icone-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Envoyer un colis",
+      "short_name": "Colis",
+      "url": "./#/express",
+      "icons": [
+        {
+          "src": "img/icone-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Mon activité",
+      "short_name": "Activité",
+      "url": "./#/activite",
+      "icons": [
+        {
+          "src": "img/icone-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }
