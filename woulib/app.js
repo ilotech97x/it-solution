@@ -53,6 +53,9 @@ const ICO = Object.fromEntries(Object.entries({
 }).map(([k, d]) => [k, svg(d)]));
 ICO.trajets = ICO.bouger;
 // territoire que l'appli montre : celui choisi sur cet appareil, sinon celui du profil, sinon la Martinique
+// rafraîchissement automatique (suivi, courses, livraisons) : attendre quand quelqu'un tape, pour ne pas effacer un code ou un message en cours
+const enSaisie = () => document.activeElement?.matches?.('#app input:not([type=checkbox]):not([type=radio]), #app textarea, #app select')
+  || [...document.querySelectorAll('#app input:not([type=checkbox]):not([type=radio]):not([type=hidden]), #app textarea')].some(i => i.value !== i.defaultValue);
 const territoireActif = () => { const t = terrPrefere() || profil?.territoire || 'Martinique'; return TERRITOIRES[t] && t !== 'Autre pays' ? t : 'Martinique'; };
 const APP = {
   nom: 'Woulib', titre: 'Woulib — repas livrés, VTC, taxis et GPS', accueilConnecte: '#/', apresInscription: '#/bienvenue', pourTel: 'que le restaurant, le chauffeur ou le livreur puisse vous joindre',
@@ -66,7 +69,7 @@ const APP = {
     const t = territoireActif(); b.innerHTML = `${ICO.pin}<span>${esc(t)}</span>${ICO.bas}`; b.setAttribute('aria-label', `Choisir le territoire, actuellement ${t}`);
   },
   icones: () => ICO,
-  differes: { gps: 'gps.js?v=5', projets: 'projets.js?v=3', projet: 'projets.js?v=3', assistance: 'compte.js?v=3', recherche: 'recherche.js?v=1' },   // chargés à la première ouverture
+  differes: { gps: 'gps.js?v=5', projets: 'projets.js?v=3', projet: 'projets.js?v=3', assistance: 'compte.js?v=3', recherche: 'recherche.js?v=1', pro: 'pro.js?v=1' },   // chargés à la première ouverture
   // bouton retour d'une page ouverte directement (lien partagé) : l'accueil de son univers
   parent: h => Object.values(MODULES).find(m => m.routes.test(h.split('?')[0]))?.accueil || '#/',
   // à chaque changement de page : arrêter les rafraîchissements, couper le GPS hors des pages qui guident, couleurs de l'univers visité

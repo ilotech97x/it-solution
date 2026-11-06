@@ -248,7 +248,7 @@ APP.pages.course = async id => {
     b.disabled = true;
     try { await q(sb.rpc('avancer_course', { cid: id, nouveau: b.dataset.av })); if (b.dataset.av === 'demande') return aller('#/chauffeur'); await dessiner(); } catch (err) { toast(erreur(err), true); b.disabled = false; }
   };
-  clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/course/') && !document.hidden) dessiner().catch(() => {}); }, 8000);
+  clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/course/') && !document.hidden && !enSaisie()) dessiner().catch(() => {}); }, 8000);
 };
 const panneauSos = () => `<div class="panneau" style="margin-top:10px;border-color:var(--rouge)"><b>🆘 En cas de danger, appelez les secours :</b><div class="actions" style="margin-top:8px">
   <a class="btn btn-ko" href="tel:17">📞 Police 17</a><a class="btn btn-ko" href="tel:112">📞 Urgence 112</a><a class="btn btn-ko" href="tel:15">📞 SAMU 15</a></div>
@@ -333,7 +333,7 @@ APP.pages.chauffeur = async sous => {
       const c = await q(sb.rpc('accepter_course', { cid: b.dataset.accepter })); toast('👍 Course acceptée !'); aller('#/course/' + c.id);
     } catch (err) { toast(erreur(err), true); dessiner(); }
   };
-  clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash === '#/chauffeur' && !document.hidden) dessiner().catch(() => {}); }, 10000);
+  clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash === '#/chauffeur' && !document.hidden && !enSaisie()) dessiner().catch(() => {}); }, 10000);
 };
 
 // ---------------------------------------------------------------- mission de livraison (livreur)
@@ -387,7 +387,7 @@ APP.pages.livraison = async id => {
     b.disabled = true;
     try { await q(sb.rpc('avancer_livraison', { lid: id, nouveau: b.dataset.lv })); if (b.dataset.lv === 'recherche') return aller('#/chauffeur'); dessiner(); } catch (err) { toast(erreur(err), true); b.disabled = false; }
   };
-  clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/livraison/') && !document.hidden) dessiner().catch(() => {}); }, 15000);
+  clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/livraison/') && !document.hidden && !enSaisie()) dessiner().catch(() => {}); }, 15000);
 };
 
 function formChauffeur(ch) {
@@ -445,7 +445,7 @@ APP.pages.partage = async jeton => {
     if (fini) { clearInterval(minuterie); minuterie = null; }
   };
   try { await dessiner(); } catch (err) { return vue(`<div class="wrap vide-etat" style="margin-top:30px"><h3>${esc(erreur(err))}</h3><a class="btn" href="#/">Découvrir Woulib</a></div>`); }
-  clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/partage/') && !document.hidden) dessiner().catch(() => {}); }, 10000);
+  clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/partage/') && !document.hidden && !enSaisie()) dessiner().catch(() => {}); }, 10000);
 };
 
 APP.pages.woulib = APP.pages.move;   // anciens liens #/woulib (redirigés vers #/bouger)

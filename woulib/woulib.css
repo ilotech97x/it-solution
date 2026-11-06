@@ -554,6 +554,34 @@ body.sans-defil{overflow:hidden}
 .carte-plein{height:min(70vh,620px);border-radius:var(--r-carte);overflow:hidden;border:1px solid var(--ligne)}
 .leaflet-container{font:14px var(--police)}.leaflet-popup-content-wrapper{border-radius:var(--r-btn)}
 
+/* ---------------------------------------------------------------- espace restaurateur (maquette « Espace restaurateur ») : en-tête, onglets, commandes en colonnes */
+.page-pro{padding-top:12px;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+.page-pro>h1{margin:4px 0 0;font-size:26px}
+/* téléphone : le nom et l'état sur une ligne, les deux boutons côte à côte dessous ; à partir de 760 px, tout sur une ligne (maquette) */
+.pro-tete{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px 12px}
+.pro-id{display:grid;line-height:1.25;min-width:0}.pro-id b{font-size:20px;overflow-wrap:anywhere}
+.pro-actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,120px),1fr));gap:8px}.pro-actions .btn{margin:0}
+@media (min-width:760px){.pro-tete{display:flex;flex-wrap:wrap}.pro-id{flex:1}.pro-actions{display:flex;flex-wrap:wrap}}
+.etat-pill{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border-radius:999px;background:var(--doux-fond);color:var(--texte-2);font-weight:800;font-size:14px}
+.etat-pill i{width:10px;height:10px;border-radius:50%;background:var(--bord-champ)}.etat-pill.ok{background:var(--canne-doux);color:var(--canne)}.etat-pill.ok i{background:var(--canne)}
+.pro-onglets{margin:0 calc(-1 * var(--g));padding:0 var(--g)}
+.kb-barre{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.kb-barre p{margin:0}
+.kanban{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px;align-items:start}   /* auto-fit : 3 ou 4 colonnes selon la livraison, 2 sur tablette, 1 sur téléphone */
+.kb-col{display:grid;gap:10px;padding:12px;border-radius:var(--r-carte);background:var(--doux-fond);min-width:0}
+.kb-col h2{display:flex;align-items:center;justify-content:space-between;margin:0;font-size:16px}
+.kb-col h2 span{min-width:28px;height:28px;padding:0 8px;display:inline-grid;place-items:center;border-radius:999px;background:var(--surface);font-size:14px}
+.kb-carte{display:grid;gap:6px;padding:12px;border-radius:12px;background:var(--surface);border:1px solid var(--ligne);box-shadow:var(--ombre-1);min-width:0}
+.kb-carte.nouvelle{border:1.5px solid var(--action)}.kb-carte .tag{justify-self:start;white-space:normal}
+.kb-t{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--texte-2)}.kb-t b{color:var(--encre);font-size:15px}
+.kb-l{margin:0;padding-left:18px;font-size:14px;line-height:1.45}.kb-carte p{margin:0}
+.kb-m{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px}.kb-m b{font-size:15px}
+.kb-mode{font-weight:800}.kb-mode.liv{color:var(--lagon-fonce)}.kb-mode.emp{color:var(--attention)}
+.kb-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin-top:2px}.kb-actions .btn{min-height:44px}
+.kb-vide{margin:0;font-size:13px;color:var(--texte-2)}
+.kb-fini summary{cursor:pointer;font-weight:800;min-height:36px;display:flex;align-items:center}.kb-fini .liste-g{margin-top:8px}
+.avis-l{display:grid;gap:2px;padding:12px 14px}.liste-g>.avis-l+.avis-l{border-top:1px solid var(--ligne)}.avis-l b{color:var(--attention);letter-spacing:2px}.avis-l p{margin:4px 0 0}
+@media (min-width:1024px){.pro-onglets{margin:0;padding:0}}
+
 /* ---------------------------------------------------------------- GPS plein écran : carte, consigne en haut, infos et boutons en bas */
 .gps{position:fixed;inset:var(--haut-h) 0 var(--bas-h) 0;z-index:5;background:var(--fond)}   /* téléphone : au-dessus de la barre d'onglets */
 #gpsCarte{position:absolute;inset:0}

@@ -114,7 +114,7 @@ APP.pages.colis = async id => {
     if (b.dataset.colis === 'echec' && !confirm('Le colis n’a pas pu être remis ?')) return;
     try { await q(sb.rpc('avancer_colis', { cid: id, nouveau: b.dataset.colis })); if (b.dataset.colis === 'recherche') return aller('#/chauffeur'); dessiner(); } catch (err) { toast(erreur(err), true); }
   };
-  clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/colis/') && !document.hidden) dessiner().catch(() => {}); }, 10000);
+  clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/colis/') && !document.hidden && !enSaisie()) dessiner().catch(() => {}); }, 10000);
 };
 
 // pour l'espace livreur (move.js) : colis à prendre et missions en cours

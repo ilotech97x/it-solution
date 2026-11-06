@@ -82,6 +82,8 @@ const texteCreneaux = l => (l || []).map(([a, b]) => `${a}-${b}`).join(', ');
 
 // ouvert ou fermé selon les horaires de la semaine (heure du territoire) ; sans horaires, c'est l'interrupteur du restaurateur qui décide
 function etatOuverture(r, t = new Date()) {
+  // « Je ferme 30 min » : fermé jusqu'à l'heure dite ; on peut programmer pour après (espace_pro.sql)
+  if (r.ouvert && r.pause_jusqu_a && new Date(r.pause_jusqu_a) > t) return { ouvert: false, auto: true, texte: `rouvre à ${hFr(utcVersLocal(r.pause_jusqu_a, fuseauDe(r.territoire)).split('T')[1].slice(0, 5))}`, pause: true };
   const h = r.horaires_sem;
   if (!h || !Object.keys(h).length) return { ouvert: !!r.ouvert, auto: false, texte: '' };
   if (!r.ouvert) return { ouvert: false, auto: false, texte: '' };
@@ -306,7 +308,8 @@ APP.pages.resto = async id => {
   if (vise) { vise.scrollIntoView({ block: 'center' }); vise.classList.add('eclaire'); const pv = platDe(param().plat); if (pv && aOptions(pv) && commandable && !finArticle(pv)) choisir(pv); }
   const fuseauR = fuseauDe(r.territoire);
   const champHeure = () => {
-    $('#heureCmd').innerHTML = $('#fCmd').quand.value ? `<label>Pour le <span class="aide">(heure de ${esc(r.territoire)}${horairesSem ? ', pendant les heures d’ouverture' : ''})</span><input name="heure" type="datetime-local" required min="${utcVersLocal(new Date(Date.now() + 25 * 6e4).toISOString(), fuseauR)}" max="${utcVersLocal(new Date(Date.now() + 7 * 864e5).toISOString(), fuseauR)}"></label>` : '';
+    const des = Math.max(Date.now() + 25 * 6e4, etat.pause ? new Date(r.pause_jusqu_a).getTime() + 6e4 : 0);   // pendant une pause : après sa fin
+    $('#heureCmd').innerHTML = $('#fCmd').quand.value ? `<label>Pour le <span class="aide">(heure de ${esc(r.territoire)}${horairesSem ? ', pendant les heures d’ouverture' : ''}${etat.pause ? `, après ${esc(etat.texte.replace('rouvre à ', ''))}` : ''})</span><input name="heure" type="datetime-local" required min="${utcVersLocal(new Date(des).toISOString(), fuseauR)}" max="${utcVersLocal(new Date(Date.now() + 7 * 864e5).toISOString(), fuseauR)}"></label>` : '';
   };
   $('#fCmd').quand.addEventListener('change', champHeure); champHeure();
   $('#appliquer').addEventListener('click', async () => {
@@ -333,7 +336,7 @@ APP.pages.resto = async id => {
       const c = await q(sb.rpc('passer_commande', { resto: id, mode_cmd: mode, lignes, adresse_cmd: d.adresse || null, commune_cmd: d.commune || null, telephone_cmd: d.telephone.trim(), note_cmd: d.note || null,
         lat_cmd: pos?.lat ?? null, lng_cmd: pos?.lng ?? null, heure_cmd: d.heure ? localVersUTC(d.heure, fuseauR) : null, code_cmd: codeOk, ...(BASE_V2 ? { pourboire_cmd: mode === 'livraison' && tip ? tip : null } : {}) }));
       cart = {}; panier.ecrire(id, cart); oublier('resto'); oublier('acc-'); toast(`Commande envoyée à ${r.nom}. ${bq ? 'La boutique' : 'Le restaurant'} doit l’accepter : vous serez prévenu ici.`); aller('#/suivi/' + c.id);
-    } catch (err) { toast(erreur(err), true); b.disabled = false; if (/stock|épuisé/i.test(err.message || '')) oublier('resto'); }
+    } catch (err) { toast(erreur(err).replace(/^[A-Z_]{4,}\s+/, ''), true); b.disabled = false; if (/stock|épuisé|PAUSE/i.test(err.message || '')) oublier('resto'); }
   });
 };
 
@@ -386,7 +389,7 @@ APP.pages.suivi = async id => {
     if (fini || ['livree', 'retiree'].includes(c.statut)) { clearInterval(suivi); suivi = null; }
   };
   await dessiner();
-  clearInterval(suivi); suivi = setInterval(() => { if (location.hash.startsWith('#/suivi/') && !document.hidden) dessiner().catch(() => {}); }, 10000);
+  clearInterval(suivi); suivi = setInterval(() => { if (location.hash.startsWith('#/suivi/') && !document.hidden && !enSaisie()) dessiner().catch(() => {}); }, 10000);
 };
 APP.pages.commandes = () => rediriger('#/activite?f=repas');   // les commandes vivent dans l'onglet Activité
 // remettre dans le panier les plats d'une commande passée (ceux qui sont encore à la carte)
@@ -402,248 +405,4 @@ async function recommander(cmd, resto) {
     panier.ecrire(resto, cart);
     toast([manquants && `${manquants} article(s) plus disponible(s)`, aChoisir && `${aChoisir} plat(s) à rechoisir (accompagnement)`].filter(Boolean).join(' · ') || '🔁 Votre panier est prêt'); aller(`#/resto/${resto}?panier=1`);
   } catch (err) { toast(erreur(err), true); }
-}
-
-// ---------------------------------------------------------------- espace restaurateur
-APP.pages.pro = async (sous, id) => {
-  if (!exigeCompte()) return;
-  await chargerRegistre();
-  if (sous === 'resto') return formResto(id === 'nouveau' ? null : id);
-  if (sous === 'boutique') return BOUTIQUES ? formResto(id === 'nouveau' ? null : id, 'boutique') : vue('<div class="wrap vide-etat" style="margin-top:30px"><div class="ico">🛒</div><h3>Les boutiques ouvrent très bientôt</h3><a class="btn btn-p" href="#/pro">Mon espace</a></div>');
-  if (sous === 'menu') return pageMenu(id);
-  if (sous === 'commandes') return pageCommandesPro();
-  if (sous === 'codes') return pageCodes(id);
-  if (sous === 'stats') return pageStats(id);
-  const l = await q(sb.from('restaurants').select('*').eq('owner', moi.id).order('created_at'));
-  const dus = l.some(x => x.livreurs_kivora) ? await q(sb.rpc('a_recevoir_livreurs')).catch(() => []) : [];
-  const cm = await blocCommission();
-  vue(`<div class="wrap" style="padding-top:22px">${cm}${dus.length ? `<div class="panneau" style="margin-bottom:16px;border-color:var(--jaune)"><h2 style="margin:0 0 8px">💶 À recevoir des livreurs</h2>
-      ${dus.map(x => `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0"><span><b>${esc(x.livreur)}</b> · ${x.nb} livraison${x.nb > 1 ? 's' : ''}${x.telephone ? ` · <a href="tel:${esc(x.telephone)}">${esc(x.telephone)}</a>` : ''}</span>
-        <span class="actions"><b>${eur(x.montant)}</b><button class="btn btn-s btn-ok" data-recu="${x.livreur_id}" data-montant="${x.montant}">J’ai reçu ${eur(x.montant)}</button></span></div>`).join('')}</div>` : ''}<div class="titre-s"><h1>${l.length && l.every(estBoutique) ? 'Ma boutique' : 'Espace restaurateur'}</h1><div class="actions">${l.some(x => x.statut === 'publie') ? '<a class="btn btn-j" href="#/pro/commandes">🧾 Commandes en direct</a>' : ''}${l.length < 3 ? '<a class="btn btn-p" href="#/pro/resto/nouveau">+ Restaurant</a>' + (BOUTIQUES ? '<a class="btn btn-p" href="#/pro/boutique/nouveau">+ Boutique</a>' : '') : ''}</div></div>
-    ${l.length ? l.map(x => `<div class="ligne-l">${x.photo ? `<img class="mini" src="${esc(photo(x.photo))}" alt="">` : `<div class="mini" style="display:grid;place-items:center;font-size:30px">${estBoutique(x) ? '🛒' : CUISINES[x.cuisine]?.[0]}</div>`}
-      <div><b>${esc(x.nom)}</b> ${tag(ST_RESTO[x.statut])}<div class="muted petit">${esc(x.commune)} · ${x.livraison ? '🛵' : ''}${x.emporter ? '🛍️' : ''}</div>${x.statut === 'refuse' && x.motif_refus ? `<div class="petit" style="color:var(--rouge)">Motif : ${esc(x.motif_refus)}</div>` : ''}
-        ${x.statut === 'publie' ? `<label style="display:flex;gap:8px;align-items:center;margin-top:6px;font-weight:800"><input type="checkbox" data-ouvert="${x.id}" ${x.ouvert ? 'checked' : ''} style="width:22px;height:22px"> ${x.ouvert ? (x.horaires_sem && Object.keys(x.horaires_sem).length ? '🟢 Commandes activées (selon mes horaires)' : '🟢 Je prends les commandes') : '⚪ Fermé (cochez pour ouvrir)'}</label>` : ''}</div>
-      <div class="actions"><a class="btn btn-s" href="#/pro/menu/${x.id}">${estBoutique(x) ? '🧺 Articles et stock' : '🍛 Ma carte'}</a><a class="btn btn-s" href="#/pro/codes/${x.id}">🏷️ Codes promo</a>${BASE_V2 ? `<a class="btn btn-s" href="#/pro/stats/${x.id}">📊 Chiffres</a>` : ''}<a class="btn btn-s" href="#/pro/${estBoutique(x) ? 'boutique' : 'resto'}/${x.id}">Modifier</a>
-        ${['brouillon', 'refuse'].includes(x.statut) ? `<button class="btn btn-s btn-p" data-envoi="${x.id}">Envoyer en validation</button>` : ''}
-        ${x.statut === 'publie' ? `<button class="btn btn-s" data-pause="${x.id}">Pause</button>` : x.statut === 'pause' ? `<button class="btn btn-s btn-ok" data-reprise="${x.id}">Reprendre</button>` : ''}<a class="btn btn-s" href="#/resto/${x.id}">Voir</a></div></div>`).join('')
-      : '<div class="vide-etat"><div class="ico">👩‍🍳</div><h3>Inscrivez votre restaurant ou votre boutique</h3><p class="muted">Gratuit pour démarrer. Nous vérifions chaque commerce (SIRET, hygiène) avant sa mise en ligne.</p><div class="actions" style="justify-content:center"><a class="btn btn-p" href="#/pro/resto/nouveau">Inscrire mon restaurant</a>' + (BOUTIQUES ? '<a class="btn" href="#/pro/boutique/nouveau">🛒 Ouvrir une boutique (boissons, dépannage)</a>' : '') + '</div></div>'}</div>`);
-  $('#app').onchange = async ev => { const o = ev.target.closest('[data-ouvert]'); if (!o) return; try { await q(sb.from('restaurants').update({ ouvert: o.checked }).eq('id', o.dataset.ouvert)); toast(o.checked ? '🟢 Vous prenez les commandes' : 'Fermé aux commandes'); APP.pages.pro(); } catch (err) { toast(erreur(err), true); } };
-  $('#app').onclick = async ev => {
-    const rc = ev.target.closest('[data-recu]');
-    if (rc) { if (!confirm(`Confirmer avoir reçu ${eur(rc.dataset.montant)} de ce livreur ?`)) return; try { await q(sb.rpc('confirmer_reversement', { livreur: rc.dataset.recu })); toast('Merci, c’est noté.'); APP.pages.pro(); } catch (err) { toast(erreur(err), true); } return; }
-    const b = ev.target.closest('[data-envoi],[data-pause],[data-reprise]'); if (!b) return;
-    const [rid, st] = b.dataset.envoi ? [b.dataset.envoi, 'en_attente'] : b.dataset.pause ? [b.dataset.pause, 'pause'] : [b.dataset.reprise, 'publie'];
-    try { await q(sb.from('restaurants').update({ statut: st }).eq('id', rid)); toast('C’est fait.'); APP.pages.pro(); } catch (err) { toast(erreur(err), true); }
-  };
-};
-async function formResto(id, genre) {
-  const neuf = { nom: genre === 'boutique' ? `${profil?.prenom || ''} Dépannage`.trim() : '', cuisine: genre === 'boutique' ? 'boissons' : 'creole', ...(genre === 'boutique' ? { frais_livraison: 2, minimum: 5, genre } : {}) };
-  const r = id ? await q(sb.from('restaurants').select('*').eq('id', id).single()) : { description: '', territoire: profil?.territoire || terrPrefere() || 'Martinique', commune: profil?.commune || '', adresse: '', telephone: contact?.telephone || '', horaires: '', livraison: true, frais_livraison: 3, minimum: 10, communes_livrees: [], emporter: true, delai_min: 30, photo: null, statut: 'brouillon', ...neuf };
-  let ph = r.photo; const bq = estBoutique(r);
-  const types = Object.entries(CUISINES).filter(([k]) => bq ? TYPES_BOUTIQUE.includes(k) : !['boissons', 'epicerie'].includes(k) || k === r.cuisine);
-  vue(`<div class="wrap" style="padding:22px 20px;max-width:780px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>${bq ? (id ? 'Modifier la boutique' : 'Ouvrir ma boutique') : id ? 'Modifier le restaurant' : 'Inscrire mon restaurant'}</h1>
-    ${bq && !id ? '<p class="muted">Boissons fraîches, glaçons, apéro, petite épicerie, dépannage : les clients remplissent leur panier dans Woulib, vous livrez (ou ils passent prendre). Vous gérez vos articles, vos prix et votre stock.</p>' : ''}
-    <form class="f" id="fR"><div class="ligne2"><label>Nom<input name="nom" required minlength="2" maxlength="80" value="${esc(r.nom)}"></label><label>${bq ? 'Type' : 'Cuisine'}<select name="cuisine">${types.map(([k, [i, t]]) => `<option value="${k}" ${k === r.cuisine ? 'selected' : ''}>${i} ${esc(t)}</option>`).join('')}</select></label></div>
-      <label>Présentation<textarea name="description" maxlength="1500" placeholder="${bq ? 'Boissons bien fraîches, glaçons, apéro… livrés en 30 minutes' : 'Votre histoire, vos spécialités, vos produits…'}">${esc(r.description)}</textarea></label>
-      <div class="ligne3"><label>Territoire<select name="territoire" data-villes="villesR">${optsTerritoires(r.territoire)}</select></label><label>Ville<input name="commune" required maxlength="60" list="villesR" value="${esc(r.commune)}">${listeVilles('villesR', r.territoire)}</label><label>Adresse<input name="adresse" maxlength="200" value="${esc(r.adresse || '')}"></label></div>
-      <label>Téléphone du restaurant<input name="telephone" type="tel" pattern="[0-9 +]{6,20}" value="${esc(r.telephone || '')}"></label>
-      ${BASE_V2 ? `      <div class="panneau" style="padding:14px"><b>🕒 Horaires d’ouverture</b><p class="aide" style="margin:4px 0 10px">Exemple : « 11:00-14:00, 18:00-22:00 ». Vide = fermé ce jour-là. Woulib ouvre et ferme vos commandes tout seul ;
-        en dehors des horaires, vos clients peuvent programmer leur commande. Laissez tout vide pour ouvrir et fermer vous-même.</p>
-        <div class="horaires-g">${SEMAINE.map(j => `<label>${JOURS[j]}<input name="h${j}" value="${esc(texteCreneaux(r.horaires_sem?.[j]))}" placeholder="Fermé" autocomplete="off"></label>`).join('')}</div>
-        <button type="button" class="btn btn-s" id="copierH" style="margin-top:10px">Copier le lundi sur toute la semaine</button></div>` : `<label>Horaires<input name="horaires" maxlength="200" value="${esc(r.horaires || '')}" placeholder="Lun–Sam 11 h–14 h, 18 h–22 h"></label>`}
-      <div class="ligne3"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="livraison" ${r.livraison ? 'checked' : ''} style="width:auto"> 🛵 Je livre</label><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="emporter" ${r.emporter ? 'checked' : ''} style="width:auto"> 🛍️ À emporter</label><label>Délai moyen (min)<input name="delai_min" type="number" min="5" max="240" value="${r.delai_min}"></label></div>
-      <div class="ligne3"><label>Frais de livraison (€)<input name="frais_livraison" type="number" min="0" max="100" step="0.5" value="${r.frais_livraison}"></label><label>Commande minimum (€)<input name="minimum" type="number" min="0" max="500" value="${r.minimum}"></label>
-        <label>Villes livrées <span class="aide">(virgules ; vide = toutes)</span><input name="villes" maxlength="400" value="${esc(r.communes_livrees.join(', '))}"></label></div>
-      <div class="panneau" style="padding:14px"><label style="display:flex;gap:8px;align-items:flex-start;font-weight:800"><input type="checkbox" name="livreurs_kivora" ${r.livreurs_kivora ? 'checked' : ''} style="width:auto;margin-top:4px">
-        <span>🛵 Mes livraisons sont faites par les livreurs Woulib<br><span class="aide" style="font-weight:600">Pas de livreur à embaucher : dès que vous acceptez une commande, les livreurs vérifiés les plus proches sont prévenus. Le client paie le livreur à la livraison ;
-        les frais de livraison (2 € minimum) reviennent au livreur, qui vous remet le prix du repas. Woulib tient le compte de ce qu’il vous doit, et vous confirmez la réception.</span></span></label></div>
-      <div><b>Photo</b><div id="apercu" style="max-width:240px;margin:8px 0"></div><input type="file" id="ph" accept="image/*"></div>
-      <label style="display:flex;gap:8px;font-weight:600"><input type="checkbox" required style="width:auto"> ${bq ? 'Mon activité est déclarée (SIRET) ; si je vends de l’alcool, j’ai la licence de vente à emporter et je ne vends jamais à un mineur (pièce d’identité à la remise) ; les prix affichés sont les vrais prix.' : 'Mon activité est déclarée (SIRET) et respecte les règles d’hygiène ; les prix affichés sont les vrais prix.'}</label>
-      <div class="actions"><button class="btn btn-p" value="en_attente">${id && r.statut === 'publie' ? 'Enregistrer' : 'Enregistrer et envoyer en validation'}</button>${!id || r.statut !== 'publie' ? '<button class="btn" value="brouillon">Brouillon</button>' : ''}</div></form></div>`);
-  const ap = () => { $('#apercu').innerHTML = ph ? `<img src="${esc(photo(ph))}" alt="" style="border-radius:16px">` : ''; }; ap();
-  brancherVilles(document.querySelector('#fR [name=territoire]'), 'villesR');
-  $('#copierH')?.addEventListener('click', () => { const v = $('#fR').h1.value; SEMAINE.forEach(j => { $('#fR')['h' + j].value = v; }); });
-  $('#ph').addEventListener('change', async e => { const f = e.target.files[0]; if (!f) return; toast('Envoi de la photo…'); try { ph = await envoyerPhoto(f); ap(); } catch (err) { toast(erreur(err), true); } });
-  $('#fR').addEventListener('submit', async ev => {
-    ev.preventDefault(); const f = ev.target, d = Object.fromEntries(new FormData(f)), envoi = ev.submitter?.value || 'en_attente';
-    if (!d.livraison && !d.emporter) return toast('Choisissez livraison, à emporter ou les deux.', true);
-    if (d.livreurs_kivora && d.livraison && (+d.frais_livraison || 0) < 2) return toast('Avec les livreurs Woulib, les frais de livraison doivent être d’au moins 2 € (ils paient le livreur).', true);
-    const sem = {};
-    for (const j of BASE_V2 ? SEMAINE : []) {
-      const t = d['h' + j].trim(); if (!t) continue;
-      const l = lireCreneaux(t);
-      if (!l) return toast(`${JOURS[j]} : horaires non compris. Écrivez par exemple « 11:00-14:00, 18:00-22:00 ».`, true);
-      sem[j] = l;
-    }
-    const l = { nom: d.nom.trim(), cuisine: d.cuisine, description: d.description.trim(), territoire: d.territoire, commune: d.commune.trim(), adresse: d.adresse.trim() || null, telephone: d.telephone.trim() || null,
-      ...(BASE_V2 ? { horaires: Object.keys(sem).length ? null : r.horaires || null, horaires_sem: Object.keys(sem).length ? sem : null } : { horaires: d.horaires?.trim() || null }), livraison: !!d.livraison, emporter: !!d.emporter, delai_min: +d.delai_min, frais_livraison: +d.frais_livraison || 0, minimum: +d.minimum || 0,
-      communes_livrees: d.villes.split(',').map(x => x.trim()).filter(Boolean).slice(0, 40), photo: ph, livreurs_kivora: !!(d.livreurs_kivora && d.livraison), ...(bq && !id ? { genre: 'boutique' } : {}) };
-    // position du restaurant (pour envoyer les livreurs les plus proches), recalculée si l'adresse change
-    if (r.lat == null || l.adresse !== r.adresse || l.commune !== r.commune) {
-      const pos = (await geocoder([l.adresse, l.commune].filter(Boolean).join(', '), l.territoire).catch(() => []))[0];
-      if (pos) { l.lat = pos.lat; l.lng = pos.lng; }
-    }
-    if (!(id && r.statut === 'publie')) l.statut = envoi;
-    try { if (id) await q(sb.from('restaurants').update(l).eq('id', id)); else { const n = await q(sb.from('restaurants').insert(l).select('id').single()); toast(bq ? 'Boutique créée : ajoutez vos articles !' : 'Restaurant créé : ajoutez votre carte !'); return aller('#/pro/menu/' + n.id); } toast('Enregistré.'); aller('#/pro'); }
-    catch (err) { toast(erreur(err), true); }
-  });
-}
-// « 11h-14h30, 18:00 - 22:00 » → [["11:00", "14:30"], ["18:00", "22:00"]] ; null si illisible (après minuit : finir à 24:00)
-function lireCreneaux(t) {
-  const l = [];
-  for (const morceau of t.split(/[,;/]|\s+et\s+/).map(x => x.trim()).filter(Boolean)) {
-    const m = morceau.match(/^(\d{1,2})\s*(?:[h:.]\s*(\d{2})?)?\s*(?:-|–|à|a)\s*(\d{1,2})\s*(?:[h:.]\s*(\d{2})?)?$/i);
-    if (!m) return null;
-    const a = `${m[1].padStart(2, '0')}:${m[2] || '00'}`; let b = `${m[3].padStart(2, '0')}:${m[4] || '00'}`;
-    if (b === '00:00') b = '24:00';
-    if (a > '23:59' || (b > '23:59' && b !== '24:00') || a >= b) return null;
-    l.push([a, b]);
-  }
-  return l.length && l.length <= 3 ? l.sort((x, y) => x[0] < y[0] ? -1 : 1) : null;
-}
-// catalogue de départ d'une boutique : prix indicatifs, que le vendeur ajuste avant d'ajouter
-const DEPART = [['frais', 'Eau minérale 1,5 L', 1.5], ['frais', 'Eau gazeuse 1 L', 1.8], ['frais', 'Soda 33 cl', 1.8], ['frais', 'Jus de fruits local 1 L', 3.5], ['frais', 'Boisson énergisante 25 cl', 2.5],
-  ['alcool', 'Bière locale 33 cl', 2.5], ['alcool', 'Pack de 6 bières', 12], ['alcool', 'Rhum agricole blanc 70 cl', 18], ['apero', 'Chips 150 g', 2.5], ['apero', 'Cacahuètes grillées', 2], ['apero', 'Biscuits apéritif', 2.5],
-  ['plat', 'Bokit poulet', 6, false], ['plat', 'Accras de morue (10 pièces)', 5, false], ['plat', 'Sandwich jambon-beurre', 4, false], ['plat', 'Salade de fruits frais', 3.5, false],
-  ['glace', 'Sachet de glaçons 2 kg', 3], ['glace', 'Glace en pot 500 ml', 5.5], ['epicerie', 'Baguette de pain', 1.2], ['epicerie', 'Lait 1 L', 1.6], ['maison', 'Gobelets (lot de 50)', 3], ['maison', 'Charbon de bois 3 kg', 7], ['maison', 'Papier toilette (lot de 4)', 3.5]];
-async function pageMenu(rid, edite) {
-  const [r, plats] = await Promise.all([q(sb.from('restaurants').select('*').eq('id', rid).single()), q(sb.from('plats').select('*').eq('restaurant_id', rid).order('ordre').order('created_at'))]);
-  const bq = estBoutique(r), CATS = bq ? CATS_BOUTIQUE : CATS_PLAT, depart = DEPART.filter(([, nom]) => !plats.some(p => p.nom.toLowerCase() === nom.toLowerCase()));
-  const p0 = plats.find(p => p.id === edite) || { nom: '', prix: '', categorie: bq ? 'frais' : 'plat', description: '', options: [], stock: null };
-  vue(`<div class="wrap" style="padding:22px 20px;max-width:860px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>${bq ? 'Articles et stock' : 'La carte'} · ${esc(r.nom)}</h1>
-    ${bq && depart.length ? `<details class="panneau depart" ${plats.length ? '' : 'open'}><summary><b>🚀 Catalogue de départ</b> · cochez, mettez vos prix, ajoutez tout d’un coup</summary>
-      <form id="fDepart" class="f"><p class="aide" style="margin:0">Prix indicatifs : remplacez-les par vos vrais prix. Vous pourrez tout modifier ensuite. Plats préparés : seulement si vous respectez les règles d’hygiène (formation HACCP) ; indiquez leurs allergènes.</p>
-        <div class="depart-l">${depart.map(([c, nom, prix, coche = true], i) => `<label><input type="checkbox" name="c${i}" ${coche ? 'checked' : ''}><span>${LIB_CAT[c].split(' ')[0]} ${esc(nom)}</span><input type="number" name="p${i}" min="0.5" max="500" step="0.1" value="${prix}" aria-label="Prix de ${esc(nom)}"> €</label>`).join('')}</div>
-        <button class="btn btn-p">Ajouter les articles cochés</button></form></details>` : ''}
-    ${plats.length ? plats.map(p => `<div class="ligne-l">${p.photo ? `<img class="mini" style="height:72px" src="${esc(photo(p.photo))}" alt="">` : `<div class="mini" style="height:72px;display:grid;place-items:center;font-size:28px">${(LIB_CAT[p.categorie] || '🍽️').split(' ')[0]}</div>`}
-      <div><b>${esc(p.nom)}</b> · <span class="prix">${eur(p.prix)}</span> ${p.dispo ? '' : tag(['gris', 'Épuisé'])}${p.majeur ? ' ' + tag(['att', '🔞 18+']) : ''}<div class="muted petit">${esc(CATS[p.categorie] || LIB_CAT[p.categorie] || '')}${p.description ? ' · ' + esc(p.description) : ''}</div>
-        ${BOUTIQUES ? (p.allergenes ? `<div class="allerg">${esc(texteAllergenes(p))}</div>` : tag(['att', '⚠️ Allergènes à renseigner'])) : ''}
-        ${bq ? `<label class="stock-l">Stock <input type="number" min="0" max="9999" data-stock="${p.id}" value="${p.stock ?? ''}" placeholder="non suivi" aria-label="Stock de ${esc(p.nom)}">${p.stock === 0 ? ' <b style="color:var(--rouge)">épuisé</b>' : ''}</label>` : ''}
-        ${p.options?.length ? `<div class="petit">${p.options.map(g => `<b>${esc(g.nom)}</b> : ${esc(g.choix.map(c => c.nom + (Number(c.prix) ? ' +' + eur(c.prix) : '')).join(', '))}`).join(' · ')}</div>` : ''}</div>
-      <div class="actions"><button class="btn btn-s" data-modif="${p.id}">✏️ Modifier</button><button class="btn btn-s ${p.dispo ? '' : 'btn-ok'}" data-dispo="${p.id}" data-v="${!p.dispo}">${p.dispo ? 'Épuisé' : 'Disponible'}</button><button class="btn btn-s btn-ko" data-suppr="${p.id}" aria-label="Retirer ${esc(p.nom)}">×</button></div></div>`).join('') : `<p class="muted">${bq ? 'Aucun article pour l’instant.' : 'Aucun plat pour l’instant.'}</p>`}
-    <form class="f panneau" id="fP" style="margin-top:16px"><h2 style="margin:0">${edite ? 'Modifier · ' + esc(p0.nom) : bq ? 'Ajouter un article' : 'Ajouter un plat'}</h2>
-      <div class="ligne3"><label>Nom<input name="nom" required minlength="2" maxlength="80" placeholder="${bq ? 'Eau 1,5 L' : 'Colombo de poulet'}" value="${esc(p0.nom)}"></label><label>Prix (€)<input name="prix" type="number" min="0.5" max="500" step="${bq ? '0.1' : '0.5'}" required value="${esc(p0.prix)}"></label><label>${bq ? 'Rayon' : 'Catégorie'}<select name="categorie">${Object.entries(CATS).map(([k, t]) => `<option value="${k}" ${k === p0.categorie ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
-      <label>Description <span class="aide">(facultatif)</span><input name="description" maxlength="400" placeholder="${bq ? 'Bien fraîche' : 'Riz, légumes pays, sauce chien'}" value="${esc(p0.description || '')}"></label>
-      ${bq ? `<label>Stock <span class="aide">(facultatif : vide = pas de suivi ; à 0, l’article s’affiche épuisé)</span><input name="stock" type="number" min="0" max="9999" value="${p0.stock ?? ''}"></label><p class="aide" style="margin:0">🔞 Les articles du rayon « Bières et alcools » sont réservés aux majeurs : âge contrôlé à la remise.</p>` : ''}
-      ${BOUTIQUES ? `<fieldset class="allerg-f"><legend><b>Allergènes présents</b> <span class="aide">(obligatoire pour vendre à distance : les 14 allergènes majeurs)</span></legend>
-        <div class="puces-c">${Object.entries(ALLERGENES).map(([k, t]) => `<label><input type="checkbox" name="al_${k}" ${p0.allergenes?.includes(k) ? 'checked' : ''}> ${t}</label>`).join('')}</div>
-        <label class="aucun"><input type="checkbox" name="al_aucun" ${Array.isArray(p0.allergenes) && !p0.allergenes.length ? 'checked' : ''}> Aucun des 14 allergènes</label></fieldset>` : ''}
-      <div ${BASE_V2 && !bq ? '' : 'hidden'}><b>Choix et suppléments</b> <span class="aide">(facultatif : accompagnement au choix, cuisson, sauce, suppléments payants…)</span><div id="groupes">${(p0.options || []).map(blocGroupe).join('')}</div>
-        <button type="button" class="btn btn-s" id="ajG">+ Ajouter un choix</button></div>
-      <label>Photo <span class="aide">(facultatif${edite && p0.photo ? ' : laissez vide pour garder la photo actuelle' : ''})</span><input type="file" name="fichier" accept="image/*"></label>
-      <div class="actions"><button class="btn btn-p">${edite ? 'Enregistrer' : '+ Ajouter à la carte'}</button>${edite ? '<button type="button" class="btn" id="annulerP">Annuler</button>' : ''}</div></form></div>`);
-  if (edite) $('#fP').scrollIntoView({ block: 'start' });
-  $('#ajG').addEventListener('click', () => { if ($('#groupes').children.length >= 8) return toast('8 choix au maximum par plat.', true); $('#groupes').insertAdjacentHTML('beforeend', blocGroupe()); });
-  $('#annulerP')?.addEventListener('click', () => pageMenu(rid));
-  $('#fP').addEventListener('submit', async ev => {
-    ev.preventDefault(); const f = ev.target, d = Object.fromEntries(new FormData(f));
-    const options = [];
-    for (const g of f.querySelectorAll('[data-g]')) {
-      const nom = g.querySelector('[name=gnom]').value.trim(), choix = lireChoix(g.querySelector('[name=gchoix]').value), [, mi, ma] = TYPES_G[g.querySelector('[name=gtype]').value];
-      if (!nom && !choix.length) continue;
-      if (!nom || !choix.length) return toast('Chaque choix demande un titre et au moins une possibilité.', true);
-      if (choix.some(c => !(c.prix >= 0 && c.prix <= 100))) return toast(`« ${nom} » : supplément entre 0 et 100 €.`, true);
-      options.push({ nom: nom.slice(0, 40), min: mi, max: ma || Math.min(20, choix.length), choix: choix.slice(0, 20) });
-    }
-    const b = f.querySelector('.btn-p'); b.disabled = true;
-    try {
-      const al = Object.keys(ALLERGENES).filter(k => d['al_' + k]);
-      if (BOUTIQUES && al.length && d.al_aucun) { b.disabled = false; return toast('Choisissez des allergènes ou « Aucun », pas les deux.', true); }
-      const l = { nom: d.nom.trim(), prix: +d.prix, categorie: d.categorie, description: d.description.trim() || null, ...(BASE_V2 ? { options } : {}), ...(bq ? { stock: d.stock === '' ? null : +d.stock } : {}),
-        ...(BOUTIQUES ? { allergenes: al.length ? al : d.al_aucun ? [] : null } : {}) };
-      if (f.fichier.files[0]) l.photo = await envoyerPhoto(f.fichier.files[0]);
-      if (edite) await q(sb.from('plats').update(l).eq('id', edite)); else await q(sb.from('plats').insert({ ...l, restaurant_id: rid, ordre: plats.length }));
-      toast(edite ? (bq ? 'Article modifié.' : 'Plat modifié.') : bq ? 'Article ajouté.' : 'Plat ajouté.'); pageMenu(rid);
-    } catch (err) { toast(/options_valides/.test(err.message) ? 'Choix invalides : vérifiez les titres et les prix.' : erreur(err), true); b.disabled = false; }
-  });
-  $('#fDepart')?.addEventListener('submit', async ev => {
-    ev.preventDefault(); const f = ev.target, b = f.querySelector('.btn-p');
-    const l = depart.map(([c, nom], i) => f['c' + i].checked ? { restaurant_id: rid, nom, categorie: c, prix: Number(f['p' + i].value), ordre: plats.length + i } : null).filter(Boolean);
-    if (!l.length) return toast('Cochez au moins un article.', true);
-    if (l.some(x => !(x.prix >= 0.5 && x.prix <= 500))) return toast('Chaque prix doit être entre 0,50 € et 500 €.', true);
-    b.disabled = true;
-    try { await q(sb.from('plats').insert(l)); toast(`${l.length} articles ajoutés : vérifiez vos prix et votre stock.`); pageMenu(rid); } catch (err) { toast(erreur(err), true); b.disabled = false; }
-  });
-  $('#app').onchange = async ev => {
-    const st = ev.target.closest('[data-stock]'); if (!st) return;
-    try { await q(sb.from('plats').update({ stock: st.value === '' ? null : Math.max(0, Math.min(9999, +st.value)) }).eq('id', st.dataset.stock)); toast('Stock enregistré.'); } catch (err) { toast(erreur(err), true); }
-  };
-  $('#app').onclick = async ev => {
-    const d = ev.target.closest('[data-dispo]'), s = ev.target.closest('[data-suppr]'), m = ev.target.closest('[data-modif]'), rg = ev.target.closest('[data-retirer-g]');
-    if (m) return pageMenu(rid, m.dataset.modif);
-    if (rg) return rg.closest('[data-g]').remove();
-    try {
-      if (d) { await q(sb.from('plats').update({ dispo: d.dataset.v === 'true' }).eq('id', d.dataset.dispo)); pageMenu(rid); }
-      if (s && confirm(bq ? 'Retirer cet article ?' : 'Retirer ce plat de la carte ?')) { await q(sb.from('plats').delete().eq('id', s.dataset.suppr)); pageMenu(rid); }
-    } catch (err) { toast(erreur(err), true); }
-  };
-}
-// éditeur des choix d'un plat : un titre, un type, une possibilité par ligne (« Frites +1,50 »)
-const TYPES_G = { un: ['1 choix obligatoire', 1, 1], unf: ['1 choix facultatif', 0, 1], plus: ['Plusieurs choix facultatifs', 0, 0] };
-const lireChoix = t => t.split('\n').map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^(.*?)\s*(?:\+\s*(\d+(?:[.,]\d{1,2})?)\s*€?)?$/); return { nom: m[1].trim().slice(0, 60), prix: m[2] ? Number(m[2].replace(',', '.')) : 0 }; }).filter(c => c.nom);
-const blocGroupe = (g = { nom: '', min: 1, max: 1, choix: [] }) => `<div class="panneau groupe-opt" data-g>
-  <div class="ligne2"><label>Titre<input name="gnom" maxlength="40" value="${esc(g.nom)}" placeholder="Accompagnement, Sauce, Suppléments…"></label>
-    <label>Type<select name="gtype">${Object.entries(TYPES_G).map(([k, [t]]) => `<option value="${k}" ${(g.max === 1 ? (g.min ? 'un' : 'unf') : 'plus') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
-  <label>Possibilités <span class="aide">(une par ligne ; prix en plus après « + », ex. « Frites +1,50 »)</span><textarea name="gchoix" rows="3" placeholder="Riz&#10;Frites +1,50">${esc(g.choix.map(c => c.nom + (Number(c.prix) ? ' +' + String(c.prix).replace('.', ',') : '')).join('\n'))}</textarea></label>
-  <button type="button" class="btn btn-s btn-ko" data-retirer-g>Retirer ce choix</button></div>`;
-
-// tableau de bord du restaurateur
-async function pageStats(rid) {
-  const [r, s] = await Promise.all([q(sb.from('restaurants').select('nom').eq('id', rid).single()), q(sb.rpc('stats_resto', { rid }))]);
-  const tuile = (t, v, sous) => `<div class="panneau stat"><span class="petit muted">${t}</span><b>${v}</b>${sous ? `<span class="petit muted">${sous}</span>` : ''}</div>`;
-  vue(`<div class="wrap" style="padding:22px 20px;max-width:860px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>📊 Chiffres · ${esc(r.nom)}</h1>
-    <p class="muted">Ventes des repas après codes promo, hors frais de livraison et pourboires, pour les commandes livrées ou retirées.</p>
-    <div class="stats">${tuile('Aujourd’hui', eur(s.jour.ventes), `${s.jour.nb} commande${s.jour.nb > 1 ? 's' : ''}`)}${tuile('7 jours', eur(s.semaine.ventes), `${s.semaine.nb} commande${s.semaine.nb > 1 ? 's' : ''}`)}
-      ${tuile('30 jours', eur(s.mois.ventes), `${s.mois.nb} commande${s.mois.nb > 1 ? 's' : ''}`)}${tuile('Panier moyen', eur(s.panier_moyen), 'sur 30 jours')}${tuile('Refusées ou annulées', s.annulees, 'sur 30 jours')}</div>
-    <h2>🏆 Les plus vendus (30 jours)</h2>${s.top.length ? `<div class="types">${s.top.map((x, i) => `<div class="type"><span><b>${i + 1}.</b> ${esc(x.nom)}</span><span class="petit">${x.quantite} vendu${x.quantite > 1 ? 's' : ''} · <b>${eur(x.ventes)}</b></span></div>`).join('')}</div>`
-      : '<p class="muted">Pas encore de vente sur les 30 derniers jours.</p>'}</div>`);
-}
-const SUIVANT = { envoyee: [['acceptee', '👍 Accepter', 'btn-ok'], ['refusee', 'Refuser', 'btn-ko']], acceptee: [['en_preparation', '👩‍🍳 En cuisine', 'btn-p'], ['annulee', 'Annuler', 'btn-ko']], en_preparation: [['prete', '✅ Prête', 'btn-ok']],
-  prete_livraison: [['en_livraison', '🛵 Partie en livraison', 'btn-p']], prete_emporter: [['retiree', '🛍️ Retirée par le client', 'btn-ok']], en_livraison: [['livree', '🎉 Livrée', 'btn-ok']] };
-async function pageCommandesPro() {
-  let connues = null;
-  const dessiner = async () => {
-    const mes = await q(sb.from('restaurants').select('*').eq('owner', moi.id));
-    const [l, lvs] = mes.length ? await Promise.all([q(sb.from('commandes').select('*, commande_lignes(*)').in('restaurant_id', mes.map(x => x.id)).gte('created_at', new Date(Date.now() - 36 * 36e5).toISOString()).order('created_at', { ascending: false })),
-      q(sb.rpc('livraisons_resto')).catch(() => [])]) : [[], []];
-    const lvDe = c => lvs.find(x => x.commande_id === c.id && !['annulee', 'echec'].includes(x.statut));
-    const infoLv = v => !v ? '' : v.livreur ? `<div class="petit" style="margin:6px 0">🛵 <b>${esc(v.livreur)}</b> (${esc(v.vehicule)}) · ${{ acceptee: 'en route vers vous', au_restaurant: 'est au restaurant', recuperee: 'en livraison', livree: 'livrée' }[v.statut] || ''}${v.telephone ? ` · <a href="tel:${esc(v.telephone)}">${esc(v.telephone)}</a>` : ''}</div>`
-      : '<div class="petit" style="margin:6px 0">🔎 Recherche d’un livreur Woulib…</div>';
-    if (connues && l.some(c => !connues.has(c.id))) { toast('🔔 Nouvelle commande !'); try { navigator.vibrate?.([120, 80, 120]); } catch (e) { /* facultatif */ } }
-    connues = new Set(l.map(c => c.id));
-    const col = (titre, filtre) => { const x = l.filter(filtre); return `<div><h2>${titre} (${x.length})</h2>${x.map(c => `<div class="panneau" style="margin-bottom:12px;padding:14px">
-      <div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(c.id.slice(0, 6).toUpperCase())} · ${esc(c.client_nom)}</b>${tag(ST_CMD[c.statut])}</div>
-      ${c.pour_heure ? `<div class="tag att" style="margin:4px 0">⏰ Pour ${esc(jourHeure(c.pour_heure))}</div>` : ''}${c.majeur ? '<div class="tag ko" style="margin:4px 0">🔞 Alcool : contrôlez une pièce d’identité à la remise</div>' : ''}${Number(c.remise) ? `<div class="petit">🏷️ Code ${esc(c.code_promo)} : −${eur(c.remise)}</div>` : ''}
-      <div class="muted petit">${esc(heure(c.created_at))} · ${c.mode === 'livraison' ? `🛵 ${esc(c.adresse)}, ${esc(c.commune)}` : '🛍️ À emporter'} · <a href="${wa(c.telephone, 'Bonjour, ici le restaurant pour votre commande ' + c.id.slice(0, 6).toUpperCase() + ' (Woulib).')}" target="_blank" rel="noopener">${esc(c.telephone)}</a></div>
-      <ul style="margin:8px 0;padding-left:18px">${c.commande_lignes.map(x => `<li><b>${x.quantite} ×</b> ${esc(x.nom)}${x.options ? ` <span class="muted">· ${esc(x.options)}</span>` : ''}${x.note ? ` <i>(${esc(x.note)})</i>` : ''}</li>`).join('')}</ul>${c.note ? `<p class="petit">📝 ${esc(c.note)}</p>` : ''}${infoLv(lvDe(c))}
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>${eur(c.total)}${Number(c.pourboire) ? ` <span class="petit muted">dont ${eur(c.pourboire)} de pourboire livreur</span>` : ''}</b><div class="actions">${(lvDe(c) && ['prete', 'en_livraison'].includes(c.statut) ? [] : SUIVANT[c.statut === 'prete' ? 'prete_' + c.mode : c.statut] || []).map(([s, t, cl]) => `<button class="btn btn-s ${cl}" data-cmd="${c.id}" data-st="${s}">${s === 'en_preparation' && estBoutique(mes.find(x => x.id === c.restaurant_id)) ? '📦 Je prépare' : t}</button>`).join('')}</div></div></div>`).join('') || '<p class="muted">—</p>'}</div>`; };
-    vue(`<div class="wrap" style="padding-top:22px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>Commandes en direct</h1><p class="muted">Mise à jour automatique toutes les 10 secondes. Gardez cette page ouverte pendant le service.</p>
-      <div class="grille" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));align-items:start">${col('🆕 Nouvelles', c => c.statut === 'envoyee')}${col('👩‍🍳 En cours', c => ['acceptee', 'en_preparation', 'prete', 'en_livraison'].includes(c.statut))}${col('✅ Terminées', c => ['livree', 'retiree', 'refusee', 'annulee'].includes(c.statut))}</div></div>`);
-  };
-  await dessiner();
-  $('#app').onclick = async ev => { const b = ev.target.closest('[data-cmd]'); if (!b) return; if (['refusee', 'annulee'].includes(b.dataset.st) && !confirm('Confirmer ?')) return; b.disabled = true; try { await q(sb.rpc('changer_commande', { cmd: b.dataset.cmd, nouveau: b.dataset.st })); await dessiner(); } catch (err) { toast(erreur(err), true); b.disabled = false; } };
-  clearInterval(suivi); suivi = setInterval(() => { if (location.hash.startsWith('#/pro/commandes') && !document.hidden) dessiner().catch(() => {}); }, 10000);
-}
-
-// ---------------------------------------------------------------- administration
-
-
-async function pageCodes(rid) {
-  const [r, l] = await Promise.all([q(sb.from('restaurants').select('nom').eq('id', rid).single()), q(sb.from('codes_resto').select('*').eq('restaurant_id', rid).order('created_at', { ascending: false }))]);
-  vue(`<div class="wrap" style="padding:22px 20px;max-width:860px"><a href="#/pro" class="petit">← Espace restaurateur</a><h1>Codes promo · ${esc(r.nom)}</h1>
-    <p class="muted">Partagez un code sur vos réseaux : le client le saisit dans son panier. La remise est à votre charge ; chaque client ne peut l’utiliser qu’une fois.</p>
-    ${l.length ? l.map(k => `<div class="ligne-l" style="grid-template-columns:minmax(0,1fr) auto;${k.actif ? '' : 'opacity:.55'}"><div><b class="mono" style="font-size:18px">${esc(k.code)}</b> · ${k.type === 'pct' ? `−${Number(k.valeur)} %` : `−${eur(k.valeur)}`}
-      <div class="muted petit">${Number(k.minimum) ? `dès ${eur(k.minimum)} · ` : ''}${k.expire_le ? `jusqu’au ${esc(new Date(k.expire_le + 'T12:00').toLocaleDateString('fr-FR'))} · ` : ''}${k.utilisations} utilisation(s)${k.max_utilisations ? ' / ' + k.max_utilisations : ''}</div></div>
-      <button class="btn btn-s ${k.actif ? 'btn-ko' : 'btn-ok'}" data-code="${k.id}" data-actif="${!k.actif}">${k.actif ? 'Désactiver' : 'Réactiver'}</button></div>`).join('') : '<p class="muted">Aucun code pour l’instant.</p>'}
-    <form class="f panneau" id="fCode" style="margin-top:16px"><h2 style="margin:0">Nouveau code</h2>
-      <div class="ligne3"><label>Code<input name="code" required pattern="[A-Za-z0-9]{3,20}" placeholder="BIENVENUE10" style="text-transform:uppercase"></label><label>Type<select name="type"><option value="pct">Pourcentage (%)</option><option value="eur">Montant (€)</option></select></label>
-        <label>Valeur<input name="valeur" type="number" min="0.5" max="90" step="0.5" required value="10"></label></div>
-      <div class="ligne3"><label>Commande minimum (€)<input name="minimum" type="number" min="0" step="0.5" value="0"></label><label>Valable jusqu’au <span class="aide">(facultatif)</span><input name="expire_le" type="date"></label>
-        <label>Nombre max. d’utilisations <span class="aide">(facultatif)</span><input name="max" type="number" min="1"></label></div><button class="btn btn-p">Créer le code</button></form></div>`);
-  $('#fCode').addEventListener('submit', async e => {
-    e.preventDefault(); const d = Object.fromEntries(new FormData(e.target));
-    try { await q(sb.from('codes_resto').insert({ restaurant_id: rid, code: d.code.trim().toUpperCase(), type: d.type, valeur: +d.valeur, minimum: +d.minimum || 0, expire_le: d.expire_le || null, max_utilisations: d.max ? +d.max : null })); toast('Code créé.'); pageCodes(rid); }
-    catch (err) { toast(/duplicate|unique/i.test(err.message) ? 'Ce code existe déjà.' : erreur(err), true); }
-  });
-  $('#app').onclick = async e => { const b = e.target.closest('[data-code]'); if (!b) return; try { await q(sb.from('codes_resto').update({ actif: b.dataset.actif === 'true' }).eq('id', b.dataset.code)); pageCodes(rid); } catch (err) { toast(erreur(err), true); } };
 }
