@@ -89,7 +89,7 @@ APP.pages.gps = async () => {
     const a = b.dataset.gps;
     if (a === 'voix') { guidage.voix = !guidage.voix; if (!guidage.voix) speechSynthesis?.cancel(); majBas(); }
     if (a === 'centrer') { guidage.suivre = true; if (guidage.pos) carte.setView(guidage.pos, Math.max(carte.getZoom(), 16)); majBas(); }
-    if (a === 'stop') { const r = param().retour; arreterGuidage(); aller(r && r.startsWith('#/') ? r : '#/move'); }
+    if (a === 'stop') { const r = param().retour; arreterGuidage(); aller(r && r.startsWith('#/') ? r : '#/bouger'); }
     if (a === 'signaler') { if (!exigeCompte()) return; $('#gpsAlerte').hidden = false; $('#gpsAlerte').innerHTML = `<b>Que se passe-t-il ici ?</b><div class="gps-types">${Object.entries(ALERTES).map(([k, [i, t]]) => `<button class="btn btn-s" data-type="${k}">${i} ${t}</button>`).join('')}</div><button class="btn btn-s" data-gps="fermer">Annuler</button>`; }
     if (a === 'fermer') $('#gpsAlerte').hidden = true;
   };

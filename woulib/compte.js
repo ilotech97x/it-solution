@@ -15,11 +15,72 @@ const MOTIFS = [['arnaque', 'Arnaque ou prix trompeur'], ['faux', 'Fausse inform
   ['droits', 'Photo ou texte copié sans droit'], ['autre', 'Autre chose']];
 const ST_AIDE = { ouverte: ['att', 'En attente'], repondue: ['ok', 'Répondu'], close: ['gris', 'Close'] };
 const ST_SIGNAL = { ouvert: ['att', 'Envoyé'], en_cours: ['att', 'En examen'], traite: ['ok', 'Traité'], rejete: ['gris', 'Sans suite'] };
-const entete = t => `<a class="petit" href="#/compte">← Mon compte</a><h1>${t}</h1>`;
+const entete = t => `<a class="retour-l" href="#/compte">${ICO.retour}Mon compte</a><h1>${t}</h1>`;
 // message d'une fonction de la base, sans son code (COMPTE_PRO, EN_COURS…)
 const sansCode = e => erreur(e).replace(/^[A-Z_]{4,}\s+/, '');
 
-APP.sousCompte = sous => ({ profil: pageProfil, securite: pageSecurite, confidentialite: pageConfidentialite }[sous] || (() => aller('#/compte')))();
+APP.sousCompte = sous => ({ profil: pageProfil, securite: pageSecurite, confidentialite: pageConfidentialite, adresses: pageAdresses, favoris: pageFavoris, paiement: pagePaiement }[sous] || (() => aller('#/compte')))();
+
+// ---------------------------------------------------------------- adresses enregistrées (commun/adresses.sql) : dans le compte, privées
+// Sans la table dans la base, les lieux restent ceux gardés sur cet appareil (Bouger › « Enregistrer ce lieu »).
+async function pageAdresses() {
+  const l = await q(sb.from('adresses').select('*').order('created_at')).catch(() => null);
+  let locaux = []; try { locaux = JSON.parse(localStorage.getItem('kvAdresses')) || []; } catch (e) { /* stockage indisponible */ }
+  const ligne = (a, cle) => `<div class="adr-l"><span class="adr-i" aria-hidden="true">${esc(a.icone || '⭐')}</span><span><b>${esc(a.titre)}</b><small>${esc((a.adresse || a.nom || '').split(',').slice(0, 3).join(','))}</small></span>
+    <button type="button" class="btn-icone" ${cle} aria-label="Retirer ${esc(a.titre)}">${ICO.poubelle}</button></div>`;
+  vue(`<div class="wrap compte-s">${entete('Adresses')}
+    <p class="muted">${l ? 'Vos lieux enregistrés reviennent en un geste dans Bouger, sur tous vos appareils. Ils restent privés : personne d’autre ne les voit.' : 'Vos lieux sont gardés sur cet appareil. Ajoutez-en depuis Bouger : « Enregistrer ce lieu ».'}</p>
+    ${l && locaux.length ? `<div class="bandeau info">${ICO.info}<span><b>${locaux.length} lieu${locaux.length > 1 ? 'x sont gardés' : ' est gardé'} sur cet appareil.</b> Ajoutez-${locaux.length > 1 ? 'les' : 'le'} à votre compte pour ${locaux.length > 1 ? 'les' : 'le'} retrouver partout.
+      <button type="button" class="btn btn-s btn-sec" id="importer" style="margin-top:8px">Ajouter à mon compte</button></span></div>` : ''}
+    <div class="liste-g">${(l || locaux).map((a, i) => ligne(a, l ? `data-suppr="${a.id}"` : `data-local="${i}"`)).join('') || '<p class="muted" style="padding:14px;margin:0">Aucune adresse pour l’instant.</p>'}</div>
+    ${l ? `<form class="f panneau" id="fAdr" style="margin-top:16px"><h2>Ajouter une adresse</h2>
+      <label>Nom<input name="titre" required maxlength="20" placeholder="Maison, Travail, Maman…"></label>
+      <label>Adresse<input name="adresse" required minlength="3" maxlength="200" placeholder="12 rue Schœlcher, Le Lamentin" autocomplete="street-address"></label>
+      <button class="btn btn-p">Chercher l’adresse</button><div id="resAdr" aria-live="polite"></div></form>` : ''}</div>`);
+  const iconeDe = t => /maison|chez/i.test(t) ? '🏠' : /travail|bureau|boulot/i.test(t) ? '💼' : '⭐';
+  $('#app').onclick = async e => {
+    const s = e.target.closest('[data-suppr]'), lo = e.target.closest('[data-local]'), ch = e.target.closest('[data-choix]');
+    if (s) { try { await q(sb.from('adresses').delete().eq('id', s.dataset.suppr)); toast('Adresse retirée.'); pageAdresses(); } catch (err) { toast(erreur(err), true); } }
+    if (lo) { locaux.splice(Number(lo.dataset.local), 1); try { localStorage.setItem('kvAdresses', JSON.stringify(locaux)); } catch (x) { /* stockage indisponible */ } toast('Lieu retiré de cet appareil.'); pageAdresses(); }
+    if (e.target.closest('#importer')) {
+      try {
+        const deja = new Set(l.map(a => a.titre.toLowerCase()));
+        const nv = locaux.filter(a => a.titre && !deja.has(a.titre.toLowerCase())).slice(0, Math.max(0, 10 - l.length)).map(a => ({ titre: a.titre.slice(0, 20), icone: a.icone || '⭐', adresse: String(a.nom).slice(0, 300), lat: a.lat, lng: a.lng, territoire: a.terr || null }));
+        if (nv.length) await q(sb.from('adresses').insert(nv));
+        localStorage.removeItem('kvAdresses'); toast('Lieux ajoutés à votre compte.'); pageAdresses();
+      } catch (err) { toast(erreur(err), true); }
+    }
+    if (ch) {
+      const f = $('#fAdr'), x = JSON.parse(ch.dataset.choix), titre = f.titre.value.trim();
+      try { await q(sb.from('adresses').insert({ titre, icone: iconeDe(titre), adresse: x.nom.slice(0, 300), lat: x.lat, lng: x.lng, territoire: territoireActif() })); toast('Adresse enregistrée.'); pageAdresses(); }
+      catch (err) { toast(/duplicate|unique|23505/i.test(err.message || err.code || '') ? 'Vous avez déjà une adresse avec ce nom.' : sansCode(err), true); }
+    }
+  };
+  $('#fAdr')?.addEventListener('submit', async e => {
+    e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); $('#resAdr').textContent = 'Recherche…';
+    try {
+      const r = await geocoder(d.adresse.trim(), territoireActif());
+      $('#resAdr').innerHTML = r.length ? `<p class="petit muted" style="margin:0 0 6px">Touchez la bonne adresse :</p><div class="liste-g">${r.map(x => `<button type="button" class="sugg-l" data-choix="${esc(JSON.stringify(x))}">${ICO.pin}<span>${esc(x.nom)}</span></button>`).join('')}</div>` : 'Aucune adresse trouvée : précisez la commune.';
+    } catch (err) { $('#resAdr').textContent = 'Recherche indisponible, réessayez.'; }
+  });
+}
+
+// ---------------------------------------------------------------- favoris : restaurants et commerces marqués d'un cœur
+async function pageFavoris() {
+  const f = (await q(sb.from('favoris_resto').select('restaurant_id, created_at, restaurants(*)').order('created_at', { ascending: false })).catch(() => [])).filter(x => x.restaurants);
+  vue(`<div class="wrap compte-s">${entete('Favoris')}
+    ${f.length ? `<div class="liste-restos">${f.map(x => carteResto(x.restaurants)).join('')}</div><p class="muted petit" style="margin-top:12px">Pour retirer un favori, touchez le cœur sur sa page.</p>`
+      : `<div class="vide-etat"><span class="ico">${ICO.coeur}</span><h3>Aucun favori pour l’instant</h3><p class="muted">Touchez le cœur sur la page d’un restaurant ou d’un commerce : il apparaîtra ici et en haut de Manger.</p><a class="btn btn-p" href="#/manger">Voir les restaurants</a></div>`}</div>`);
+}
+
+// ---------------------------------------------------------------- moyens de paiement : ce qui est vrai aujourd'hui
+function pagePaiement() {
+  vue(`<div class="wrap compte-s">${entete('Moyens de paiement')}
+    <div class="bandeau info">${ICO.info}<span>Pour l’instant, vous payez directement <b>le livreur, le chauffeur ou le commerçant</b> : en espèces, ou par carte quand il l’accepte. Woulib ne garde aucune carte bancaire.</span></div>
+    <div class="liste-g" style="margin-top:14px">${[[ICO.manger, 'Repas et commerces', 'Au livreur à la livraison, ou sur place au retrait'], [ICO.taxi, 'Taxi et VTC', 'Au chauffeur, à la fin de la course'], [ICO.colis, 'Colis', 'Au livreur, selon ce qui est convenu à la commande']]
+      .map(([i, t, d]) => `<div class="menu-l"><span class="ico-l">${i}</span><div><b>${t}</b><small>${d}</small></div></div>`).join('')}</div>
+    <p class="muted petit" style="margin-top:12px">Le paiement en ligne arrivera plus tard, avec un prestataire agréé : vous serez prévenu dans l’appli.</p></div>`);
+}
 
 // ---------------------------------------------------------------- profil
 async function pageProfil() {

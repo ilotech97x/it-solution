@@ -16,35 +16,69 @@ const AEROPORTS = { Martinique: ['Aéroport Aimé Césaire, Le Lamentin', 14.591
 let minuterie = null, suiviGps = null;
 
 
-// ---------------------------------------------------------------- réserver
-declarerUnivers('move', { routes: /^#\/(move|woulib|course|courses|chauffeur|livraison|partage|admin\/woulib|gps)\b/, zone: 'move', accueil: '#/move', appel: 'Réserver un trajet' });
+// ---------------------------------------------------------------- Bouger : un seul formulaire, trois modes séparés (AUDIT partie 2.4)
+// Taxi et VTC passent par le moteur de courses actuel (move.sql). Covoiturage et entraide ne sont pas ouverts : leur onglet le dit
+// et propose d'être prévenu (univers « bientôt », woulib/bouger.sql), sans aucun faux trajet ni faux conducteur.
+declarerUnivers('move', { routes: /^#\/(bouger|move|woulib|course|courses|chauffeur|livraison|partage|admin\/woulib|gps)\b/, zone: 'move', accueil: '#/bouger', appel: 'Réserver un trajet' });
+const MODES = [['covoiturage', 'Covoiturage'], ['entraide', 'Entraide'], ['taxi', 'Taxi/VTC']];
+// lieux enregistrés : dans le compte (commun/adresses.sql) quand la base les accepte, sinon sur cet appareil comme avant
+const lieuxLocaux = () => { try { return JSON.parse(localStorage.getItem('kvAdresses')) || []; } catch (e) { return []; } };
+const ecrireLieuxLocaux = l => { try { localStorage.setItem('kvAdresses', JSON.stringify(l.slice(0, 8))); } catch (e) { /* stockage indisponible */ } };
+const lieuxDuCompte = () => moi ? q(sb.from('adresses').select('*').order('created_at')).then(l => l.map(a => ({ id: a.id, titre: a.titre, icone: a.icone, nom: a.adresse, lat: a.lat, lng: a.lng, terr: a.territoire })), () => null) : Promise.resolve(null);
+const iconeLieu = t => /maison|chez/i.test(t) ? '🏠' : /travail|bureau|boulot/i.test(t) ? '💼' : '⭐';
 
-APP.pages.move = async () => {
+APP.pages.bouger = async () => {
   await chargerRegistre(); if (!universOuvert('move')) return universFerme('move');
-  let terr = terrPrefere() || profil?.territoire || 'Martinique'; if (!TERRITOIRES[terr] || terr === 'Autre pays') terr = 'Martinique';
-  const pts = { depart: null, arrivee: null };
-  let cat = 'eco', carte = null, calques = null, L = null, estim = {};
+  let terr = territoireActif();
+  const p = param(), pts = { depart: null, arrivee: null };
+  let cat = 'eco', carte = null, calques = null, L = null, estim = {}, dispo = null, nbPass = 1, quand = '', lieux = [], auCompte = false;
+  let mode = MODES.some(([k]) => k === p.mode) ? p.mode : 'taxi';
   const telConnu = !!contact?.telephone;
-  vue(`<div class="wrap page-move"><h1 class="titre-move">🚗 Où allez-vous ?</h1>
-    <div class="fiche fiche-d"><div><div id="carte" class="carte-move"></div></div>
-      <aside><form class="f panier colle" id="fRes">
-        ${['depart', 'arrivee'].map(k => `<div><label>${k === 'depart' ? '🟢 Départ' : '🏁 Arrivée'}<div style="display:flex;gap:6px"><input id="${k}" placeholder="${k === 'depart' ? 'Adresse, lieu, hôtel…' : 'Où allez-vous ?'}" autocomplete="off" maxlength="200" style="flex:1">
-          <button type="button" class="btn btn-s" data-chercher="${k}" aria-label="Chercher">🔎</button></div></label><div id="res-${k}" class="petit"></div>
-          <div class="puces" style="margin:6px 0 0">${k === 'depart' ? '<a href="#" data-mapos="1">📍 Ma position</a>' : ''}<a href="#" data-aero="${k}">✈️ Aéroport</a><span class="favs puces" data-pour="${k}" style="display:contents"></span></div></div>`).join('')}
-        <div class="types" id="cats">${Object.entries(CATS).map(([k, [i, t, d]]) => `<button type="button" class="type" data-cat="${k}" style="text-align:left;cursor:pointer"><span><b>${i} ${t}</b><div class="muted petit">${d}</div></span><span class="prix" id="px-${k}">—</span></button>`).join('')}</div>
-        <label>Quand ?<select name="quand"><option value="">Maintenant</option><option value="plus">Plus tard</option></select></label><div id="heure"></div>
-        ${telConnu ? '' : `<label>Téléphone<input name="telephone" type="tel" required pattern="[0-9 +]{6,20}" autocomplete="tel"></label>`}
-        <details class="plus-options"><summary>👥 Passagers, bagages, message${telConnu ? ', téléphone' : ''}, territoire</summary>
-          <div class="ligne2"><label>Passagers<input name="passagers" type="number" min="1" max="8" value="1"></label><label>Bagages<input name="bagages" type="number" min="0" max="10" value="0"></label></div>
+  const champ = k => `<div class="pt-l"><span class="pt-m ${k === 'depart' ? 'm-dep' : 'm-arr'}" aria-hidden="true"></span><label for="${k}"><span>${k === 'depart' ? 'Départ' : 'Destination'}</span>
+      <input id="${k}" placeholder="${k === 'depart' ? 'Adresse, lieu, hôtel…' : 'Où allez-vous ?'}" autocomplete="off" maxlength="200" enterkeyhint="search"></label>
+      <button type="button" class="btn-icone" data-chercher="${k}" aria-label="Chercher ${k === 'depart' ? 'le départ' : 'la destination'}">${ICO.recherche}</button></div>
+    <div id="res-${k}" class="sugg" aria-live="polite"></div>
+    <div class="puces pt-rac">${k === 'depart' ? `<button type="button" data-mapos="1">${ICO.localiser}Ma position</button>` : ''}<button type="button" data-aero="${k}">${ICO.avion}Aéroport</button><span class="favs" data-pour="${k}"></span></div>`;
+  const pasOuvert = (k, titre, texte) => `<div class="mode-p" id="mode-${k}" ${mode === k ? '' : 'hidden'}>
+      ${k === 'entraide' ? `<div class="bandeau ok">${ICO.bouclier}<span><b>Gratuit, entre voisins.</b> Aucune somme ne pourra être demandée ni versée, même un pourboire.</span></div>` : ''}
+      <div class="vide-etat"><span class="ico">${k === 'entraide' ? ICO.gens : ICO.taxi}</span><h3>${titre}</h3><p class="muted">${texte}</p>
+        <div class="actions" style="justify-content:center">${univers(k) ? `<button type="button" class="btn btn-sec" data-alerte="${k}">Me prévenir à l’ouverture</button>` : ''}<button type="button" class="btn btn-p" data-mode="taxi">Voir Taxi/VTC</button></div></div></div>`;
+  vue(`<div class="wrap page-bouger"><h1>Bouger</h1>
+    <div class="bouger-g"><div class="bouger-col">
+    <form class="f trajet-f" id="fRes">
+      <div class="trajet-c">${champ('depart')}${champ('arrivee')}
+        <div class="opts-t"><div class="seg" role="group" aria-label="Quand"><button type="button" data-quand="" aria-pressed="true">Maintenant</button><button type="button" data-quand="plus" aria-pressed="false">Programmer</button></div>
+          <div class="stepper" role="group" aria-label="Passagers"><button type="button" data-pass="-1" aria-label="Un passager de moins">−</button><output id="nbPass" aria-live="polite">1 passager</output><button type="button" data-pass="1" aria-label="Un passager de plus">+</button></div></div>
+        <input type="hidden" name="quand" value=""><input type="hidden" name="passagers" value="1"><div id="heure"></div></div>
+      <div class="seg seg-lagon modes" role="group" aria-label="Mode de déplacement">${MODES.map(([k, t]) => `<button type="button" data-mode="${k}" aria-pressed="${k === mode}">${t}</button>`).join('')}</div>
+      <div class="mode-p" id="mode-taxi" ${mode === 'taxi' ? '' : 'hidden'}>
+        <p class="muted petit" id="resume" aria-live="polite">Choisissez le départ et la destination : le prix s’affiche pour chaque catégorie.</p>
+        <div class="cats-l" role="radiogroup" aria-label="Catégorie de véhicule">${Object.entries(CATS).map(([k, [, t, d]]) => `<label class="cat-l"><input type="radio" name="cat" value="${k}" ${k === cat ? 'checked' : ''}>
+          <span><b>${t}</b><small>${d}<span id="dispo-${k}"></span></small></span><b class="cat-px" id="px-${k}">—</b></label>`).join('')}</div>
+        ${telConnu ? '' : `<label>Téléphone <span class="aide">(le chauffeur vous appelle à ce numéro)</span><input name="telephone" type="tel" required pattern="[0-9 +]{6,20}" autocomplete="tel"></label>`}
+        <details class="plus-options"><summary>Bagages, message${telConnu ? ', téléphone' : ''}, territoire</summary>
+          <label>Bagages<input name="bagages" type="number" min="0" max="10" value="0"></label>
           <label>Un mot pour le chauffeur<input name="note" maxlength="300" placeholder="Siège enfant, n° de vol, portail bleu…"></label>
           ${telConnu ? `<label>Téléphone<input name="telephone" type="tel" required pattern="[0-9 +]{6,20}" value="${esc(contact.telephone)}" autocomplete="tel"></label>` : ''}
           <label>Territoire<select name="territoire" id="terr">${optsTerritoires(terr).replace(/<option[^>]*>Autre pays<\/option>/, '')}</select></label></details>
-        <div id="total"></div><button class="btn btn-p" id="reserver">Réserver</button>
-        <p class="muted petit" style="margin:0">Chauffeurs VTC et taxis vérifiés. Prix estimé selon la distance, réglé directement au chauffeur (péages, longue attente ou détour en plus).</p></form></aside></div></div>`);
+        <button class="btn btn-p btn-g btn-plein" id="reserver">Commander</button>
+        <p class="muted petit" style="margin:0">Prix estimé par Woulib selon la distance, réglé directement au chauffeur (péages, longue attente ou détour en plus). Chauffeurs professionnels vérifiés : carte VTC ou licence de taxi.</p></div>
+      ${pasOuvert('covoiturage', 'Le covoiturage n’est pas encore ouvert', 'Rejoindre un conducteur qui fait déjà ce trajet pour lui, en partageant seulement les frais.')}
+      ${pasOuvert('entraide', 'L’entraide n’est pas encore ouverte', 'Un coup de main gratuit entre voisins, avec des conducteurs vérifiés un par un.')}
+    </form>
+    <div class="liste-g bouger-plus">${[...universOuvert('express', terr) ? [['#/express', ICO.colis, 'Envoyer un colis', 'Un livreur vérifié le récupère et le remet']] : [], ['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents, routes coupées']]
+      .map(([h, i, t, d]) => `<a class="menu-l" href="${h}"><span class="ico-l">${i}</span><div><b>${t}</b><small>${d}</small></div>${ICO.droite}</a>`).join('')}</div>
+    </div><div class="bouger-carte" id="zoneCarte"><div id="carte" class="carte-move" role="img" aria-label="Carte du trajet"></div></div></div></div>`);
 
   const majTotal = () => {
-    Object.keys(CATS).forEach(k => { $('#px-' + k).textContent = estim[k] ? eur(estim[k].prix) : '—'; document.querySelector(`[data-cat="${k}"]`).style.borderColor = k === cat ? 'var(--rose)' : ''; });
-    $('#total').innerHTML = estim[cat] ? `<div style="font:700 26px var(--titres)">${eur(estim[cat].prix)} <span class="muted petit" style="font:600 14px var(--texte)">· ${estim[cat].distance_km} km environ</span></div>` : '';
+    Object.keys(CATS).forEach(k => {
+      $('#px-' + k).textContent = estim[k] ? eur(estim[k].prix) : '—';
+      const n = dispo?.[k]; $('#dispo-' + k).textContent = dispo ? ` · ${n ? `${n} disponible${n > 1 ? 's' : ''}` : 'aucun disponible'}` : '';
+    });
+    const e = estim[cat], n = dispo?.[cat];
+    $('#resume').textContent = e ? `${String(e.distance_km).replace('.', ',')} km environ${dispo ? ` · ${n ? `${n} chauffeur${n > 1 ? 's' : ''} disponible${n > 1 ? 's' : ''}` : 'aucun chauffeur disponible pour l’instant : votre demande les attend'}` : ''}`
+      : 'Choisissez le départ et la destination : le prix s’affiche pour chaque catégorie.';
+    $('#reserver').textContent = quand ? 'Programmer la course' : e ? `Commander · ${eur(e.prix)}` : 'Commander';
   };
   const estimer = async () => {
     estim = {}; majTotal();
@@ -53,70 +87,107 @@ APP.pages.move = async () => {
       try { const r = await q(sb.rpc('estimer_course', { terr, cat: k, dlat: pts.depart.lat, dlng: pts.depart.lng, alat: pts.arrivee.lat, alng: pts.arrivee.lng })); estim[k] = r[0]; }
       catch (err) { if (k === cat) toast(erreur(err), true); }
     }));
-    majTotal();
+    if ($('#resume')) majTotal();
   };
+  const chargerDispo = async () => { dispo = await q(sb.rpc('chauffeurs_disponibles', { terr })).catch(() => null); if ($('#resume')) majTotal(); };
+  // carte : seulement quand elle aide (sur téléphone, dès qu'un point est choisi ; sur ordinateur, à droite)
   const dessinerCarte = () => {
     if (!L) return;
     calques.clearLayers();
-    const m = ['depart', 'arrivee'].filter(k => pts[k]).map(k => L.circleMarker([pts[k].lat, pts[k].lng], { radius: 11, color: '#fff', weight: 3, fillColor: k === 'depart' ? '#2BB673' : '#0B2545', fillOpacity: 1 }).bindTooltip(k === 'depart' ? 'Départ' : 'Arrivée').addTo(calques));
-    if (pts.depart && pts.arrivee) { L.polyline([[pts.depart.lat, pts.depart.lng], [pts.arrivee.lat, pts.arrivee.lng]], { color: '#2563EB', weight: 4, dashArray: '8 8' }).addTo(calques); carte.fitBounds(L.featureGroup(m).getBounds().pad(0.3)); }
+    const m = ['depart', 'arrivee'].filter(k => pts[k]).map(k => L.circleMarker([pts[k].lat, pts[k].lng], { radius: 10, color: k === 'depart' ? '#2563EB' : '#3A1408', weight: 4, fillColor: '#fff', fillOpacity: 1 }).bindTooltip(k === 'depart' ? 'Départ' : 'Destination').addTo(calques));
+    if (pts.depart && pts.arrivee) { L.polyline([[pts.depart.lat, pts.depart.lng], [pts.arrivee.lat, pts.arrivee.lng]], { color: '#2563EB', weight: 5, dashArray: '8 8' }).addTo(calques); carte.fitBounds(L.featureGroup(m).getBounds().pad(0.3)); }
     else if (m.length) carte.setView(m[0].getLatLng(), 14);
     else { const c = CENTRES[terr] || CENTRES.Martinique; carte.setView([c[0], c[1]], c[2]); }
   };
-  // adresses favorites (maison, travail…) gardées sur cet appareil
-  const lireFav = () => { try { return JSON.parse(localStorage.getItem('kvAdresses')) || []; } catch (e) { return []; } };
-  const ecrireFav = l => { try { localStorage.setItem('kvAdresses', JSON.stringify(l.slice(0, 8))); } catch (e) { /* stockage indisponible */ } };
-  const majFav = () => { document.querySelectorAll('.favs').forEach(z => { z.innerHTML = lireFav().filter(f => f.terr === terr).map((f, i) => `<a href="#" data-fav="${i}" data-pour="${z.dataset.pour}">${esc(f.icone)} ${esc(f.titre)}</a>`).join(''); }); };
-  const choisir = (k, p) => { pts[k] = p; $('#' + k).value = p.nom.split(',').slice(0, 3).join(','); $('#res-' + k).innerHTML = `<button type="button" class="lien petit" data-enreg="${k}">☆ Enregistrer ce lieu</button>`; dessinerCarte(); estimer(); };
+  const montrerCarte = () => { const z = $('#zoneCarte'); if (z && !z.classList.contains('vue')) { z.classList.add('vue'); setTimeout(() => carte?.invalidateSize(), 60); } };
+  const majFav = () => document.querySelectorAll('.favs').forEach(z => {
+    z.innerHTML = lieux.map((f, i) => [f, i]).filter(([f]) => !f.terr || f.terr === terr).map(([f, i]) => `<button type="button" data-fav="${i}" data-pour="${z.dataset.pour}">${esc(f.icone)} ${esc(f.titre)}</button>`).join('');
+  });
+  const choisir = (k, pt) => {
+    pts[k] = pt; $('#' + k).value = pt.nom.split(',').slice(0, 3).join(',');
+    $('#res-' + k).innerHTML = `<button type="button" class="lien petit" data-enreg="${k}">Enregistrer ce lieu</button>`;
+    montrerCarte(); dessinerCarte(); estimer();
+  };
   const chercher = async k => {
     const t = $('#' + k).value.trim(); if (t.length < 3) return toast('Écrivez au moins 3 lettres.', true);
     $('#res-' + k).textContent = 'Recherche…';
     try {
       const l = await geocoder(t, terr);
-      $('#res-' + k).innerHTML = l.length ? l.map((x, i) => `<button type="button" class="lien" data-res="${k}" data-i="${i}" style="display:block;text-align:left;margin:4px 0">📍 ${esc(x.nom)}</button>`).join('') : 'Aucun lieu trouvé : précisez la ville.';
+      $('#res-' + k).innerHTML = l.length ? `<div class="liste-g">${l.map((x, i) => `<button type="button" class="sugg-l" data-res="${k}" data-i="${i}">${ICO.pin}<span>${esc(x.nom)}</span></button>`).join('')}</div>` : 'Aucun lieu trouvé : précisez la ville.';
       $('#res-' + k).onclick = ev => { const b = ev.target.closest('[data-res]'); if (b) choisir(k, l[b.dataset.i]); };
     } catch (err) { $('#res-' + k).textContent = 'Recherche indisponible, réessayez.'; }
   };
+  const changerMode = k => {
+    mode = k; document.querySelectorAll('.modes [data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === k));
+    MODES.forEach(([m]) => { $('#mode-' + m).hidden = m !== k; });
+    try { history.replaceState(history.state, '', '#/bouger' + (k === 'taxi' ? '' : '?mode=' + k)); } catch (e) { /* facultatif */ }
+  };
   ['depart', 'arrivee'].forEach(k => $('#' + k).addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); chercher(k); } }));
-  $('#fRes').addEventListener('click', ev => {
-    const c = ev.target.closest('[data-chercher]'), a = ev.target.closest('[data-aero]'), g = ev.target.closest('[data-mapos]'), ct = ev.target.closest('[data-cat]');
+  $('#fRes').addEventListener('change', ev => { if (ev.target.name === 'cat') { cat = ev.target.value; majTotal(); } });
+  $('#fRes').addEventListener('click', async ev => {
+    const t = ev.target, c = t.closest('[data-chercher]'), a = t.closest('[data-aero]'), g = t.closest('[data-mapos]'), md = t.closest('[data-mode]'), qd = t.closest('[data-quand]'), ps = t.closest('[data-pass]'), al = t.closest('[data-alerte]');
     if (c) chercher(c.dataset.chercher);
-    if (a) { ev.preventDefault(); const x = AEROPORTS[terr]; if (!x) return toast('Pas d’aéroport enregistré pour ce territoire.', true); choisir(a.dataset.aero, { nom: x[0], lat: x[1], lng: x[2] }); }
-    if (g) {
-      ev.preventDefault(); if (!navigator.geolocation) return toast('Localisation indisponible sur cet appareil.', true);
-      toast('Localisation…');
-      navigator.geolocation.getCurrentPosition(p => choisir('depart', { nom: 'Ma position', lat: p.coords.latitude, lng: p.coords.longitude }), () => toast('Autorisez la localisation ou écrivez l’adresse.', true), { enableHighAccuracy: true, timeout: 12000 });
+    if (md) changerMode(md.dataset.mode);
+    if (qd) {
+      quand = qd.dataset.quand; $('#fRes').quand.value = quand; document.querySelectorAll('[data-quand]').forEach(b => b.setAttribute('aria-pressed', b === qd));
+      $('#heure').innerHTML = quand ? `<label>Date et heure <span class="aide">(heure de ${esc(terr)})</span><input name="heure" type="datetime-local" required min="${utcVersLocal(new Date().toISOString(), fuseauDe(terr))}"></label>` : '';
+      majTotal();
     }
-    if (ct) { cat = ct.dataset.cat; majTotal(); }
-    const fv = ev.target.closest('[data-fav]'), en = ev.target.closest('[data-enreg]');
-    if (fv) { ev.preventDefault(); const f = lireFav().filter(x => x.terr === terr)[fv.dataset.fav]; if (f) choisir(fv.dataset.pour, { nom: f.nom, lat: f.lat, lng: f.lng }); }
+    if (ps) { nbPass = Math.max(1, Math.min(8, nbPass + Number(ps.dataset.pass))); $('#fRes').passagers.value = nbPass; $('#nbPass').textContent = `${nbPass} passager${nbPass > 1 ? 's' : ''}`; }
+    if (al) {
+      if (!exigeCompte()) return;
+      try { await q(sb.from('alertes_univers').insert({ univers: al.dataset.alerte })); al.textContent = '✓ Vous serez prévenu'; al.disabled = true; toast('C’est noté : nous vous préviendrons à l’ouverture.'); }
+      catch (err) { if (/duplicate|déjà|unique/i.test(err.message || '')) { al.textContent = '✓ Vous serez prévenu'; al.disabled = true; } else toast(erreur(err), true); }
+    }
+    if (a) { const x = AEROPORTS[terr]; if (!x) return toast('Pas d’aéroport enregistré pour ce territoire.', true); choisir(a.dataset.aero, { nom: x[0], lat: x[1], lng: x[2] }); }
+    if (g) {
+      if (!navigator.geolocation) return toast('Localisation indisponible sur cet appareil.', true);
+      toast('Localisation…');
+      navigator.geolocation.getCurrentPosition(pos => choisir('depart', { nom: 'Ma position', lat: pos.coords.latitude, lng: pos.coords.longitude }), () => toast('Autorisez la localisation ou écrivez l’adresse.', true), { enableHighAccuracy: true, timeout: 12000 });
+    }
+    const fv = t.closest('[data-fav]'), en = t.closest('[data-enreg]');
+    if (fv) { const f = lieux[fv.dataset.fav]; if (f) choisir(fv.dataset.pour, { nom: f.nom, lat: f.lat, lng: f.lng }); }
     if (en) {
-      const p = pts[en.dataset.enreg]; if (!p) return;
-      const titre = prompt('Nom de ce lieu (ex. Maison, Travail, Maman) :', ''); if (!titre) return;
-      const icone = /maison|chez/i.test(titre) ? '🏠' : /travail|bureau|boulot/i.test(titre) ? '💼' : '⭐';
-      ecrireFav([{ titre: titre.slice(0, 20), icone, nom: p.nom, lat: p.lat, lng: p.lng, terr }, ...lireFav().filter(x => x.titre !== titre.slice(0, 20))]); majFav(); toast('Lieu enregistré sur cet appareil.');
+      const pt = pts[en.dataset.enreg]; if (!pt) return;
+      const titre = (prompt('Nom de ce lieu (ex. Maison, Travail, Maman) :', '') || '').trim().slice(0, 20); if (!titre) return;
+      const icone = iconeLieu(titre);
+      // « Ma position » s'enregistre sous sa vraie adresse (sinon sous ses coordonnées)
+      if (pt.nom === 'Ma position') pt.nom = (await adresseDe(pt.lat, pt.lng)) || `Position ${pt.lat.toFixed(4)}, ${pt.lng.toFixed(4)}`;
+      if (auCompte) {
+        const v = { titre, icone, adresse: pt.nom.slice(0, 300), lat: pt.lat, lng: pt.lng, territoire: terr }, deja = lieux.find(x => x.titre.toLowerCase() === titre.toLowerCase());
+        try { await q(deja ? sb.from('adresses').update(v).eq('id', deja.id) : sb.from('adresses').insert(v)); lieux = await lieuxDuCompte() || lieux; toast('Lieu enregistré dans votre compte.'); }
+        catch (err) { return toast(erreur(err).replace(/^[A-Z_]{4,}\s+/, ''), true); }
+      } else { ecrireLieuxLocaux([{ titre, icone, nom: pt.nom, lat: pt.lat, lng: pt.lng, terr }, ...lieuxLocaux().filter(x => x.titre !== titre)]); lieux = lieuxLocaux(); toast('Lieu enregistré sur cet appareil.'); }
+      majFav();
     }
   });
-  majFav();
-  $('#terr').addEventListener('change', e => { terr = e.target.value; terrPrefere(terr); pts.depart = pts.arrivee = null; $('#depart').value = $('#arrivee').value = ''; dessinerCarte(); estimer(); majFav(); });
-  $('#fRes').quand.addEventListener('change', e => {
-    $('#heure').innerHTML = e.target.value ? `<label>Date et heure <span class="aide">(heure de ${esc(terr)})</span><input name="heure" type="datetime-local" required min="${utcVersLocal(new Date().toISOString(), fuseauDe(terr))}"></label>` : '';
+  $('#terr').addEventListener('change', e => {
+    terr = e.target.value; terrPrefere(terr); APP.apresNav?.(); pts.depart = pts.arrivee = null; $('#depart').value = $('#arrivee').value = '';
+    dessinerCarte(); estimer(); majFav(); chargerDispo();
   });
   $('#fRes').addEventListener('submit', async ev => {
-    ev.preventDefault(); if (!exigeCompte()) return;
-    if (!pts.depart || !pts.arrivee) return toast('Choisissez le départ et l’arrivée (bouton 🔎).', true);
-    const d = Object.fromEntries(new FormData(ev.target)), b = $('#reserver'); b.disabled = true;
+    ev.preventDefault(); if (mode !== 'taxi') return;
+    if (!exigeCompte()) return;
+    if (!pts.depart || !pts.arrivee) return toast('Choisissez le départ et la destination (bouton loupe).', true);
+    const d = Object.fromEntries(new FormData(ev.target)), b = $('#reserver'); b.disabled = true; b.setAttribute('aria-busy', 'true');
     try {
       const c = await q(sb.rpc('demander_course', { terr, cat, depart: $('#depart').value.trim().slice(0, 200), dlat: pts.depart.lat, dlng: pts.depart.lng, arrivee: $('#arrivee').value.trim().slice(0, 200), alat: pts.arrivee.lat, alng: pts.arrivee.lng,
-        nb_passagers: +d.passagers || 1, nb_bagages: +d.bagages || 0, telephone_cl: d.telephone.trim(), heure_souhaitee: d.heure ? localVersUTC(d.heure, fuseauDe(terr)) : null, note_cl: d.note || null }));
-      toast('🚗 Demande envoyée aux chauffeurs !'); aller('#/course/' + c.id);
-    } catch (err) { toast(erreur(err), true); b.disabled = false; }
+        nb_passagers: nbPass, nb_bagages: +d.bagages || 0, telephone_cl: (d.telephone || '').trim(), heure_souhaitee: d.heure ? localVersUTC(d.heure, fuseauDe(terr)) : null, note_cl: d.note || null }));
+      toast('Demande envoyée aux chauffeurs. Vous serez prévenu dès qu’un chauffeur accepte.'); aller('#/course/' + c.id);
+    } catch (err) { toast(erreur(err), true); b.disabled = false; b.removeAttribute('aria-busy'); }
   });
-  let dest = null; try { dest = sessionStorage.getItem('wlDest'); sessionStorage.removeItem('wlDest'); } catch (e) { /* facultatif */ }
-  if (dest) { $('#arrivee').value = dest; chercher('arrivee'); }   // destination tapée sur l'accueil
-  try { L = await chargerCarte(); const c = CENTRES[terr] || CENTRES.Martinique; carte = fondCarte(L, $('#carte'), [c[0], c[1]], c[2]); calques = L.layerGroup().addTo(carte); }
-  catch (e) { $('#carte').innerHTML = '<p class="muted" style="padding:20px">Carte indisponible.</p>'; }
+  // destination tapée dans la recherche (#/bouger?vers=…) ou sur l'ancien accueil
+  let dest = p.vers || null; try { dest = dest || sessionStorage.getItem('wlDest'); sessionStorage.removeItem('wlDest'); } catch (e) { /* facultatif */ }
+  if (dest) { $('#arrivee').value = dest; chercher('arrivee'); }
+  const [lc] = await Promise.all([lieuxDuCompte(), chargerDispo()]);
+  auCompte = !!lc; lieux = lc || lieuxLocaux(); if ($('#fRes')) majFav();
+  try {
+    L = await chargerCarte(); if (!$('#carte')) return;
+    const c = CENTRES[terr] || CENTRES.Martinique; carte = fondCarte(L, $('#carte'), [c[0], c[1]], c[2]); calques = L.layerGroup().addTo(carte); dessinerCarte();
+  } catch (e) { if ($('#carte')) $('#carte').innerHTML = '<p class="muted" style="padding:20px">Carte indisponible.</p>'; }
 };
+// anciennes adresses : #/move et #/woulib mènent à Bouger (sans laisser d'étape dans l'historique)
+APP.pages.move = () => rediriger('#/bouger' + (location.hash.includes('?') ? '?' + location.hash.split('?')[1] : ''));
 
 // ---------------------------------------------------------------- suivi d'une course (client et chauffeur)
 APP.pages.course = async id => {
@@ -408,4 +479,4 @@ APP.pages.partage = async jeton => {
   clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/partage/') && !document.hidden) dessiner().catch(() => {}); }, 10000);
 };
 
-APP.pages.woulib = APP.pages.move;   // anciens liens #/woulib
+APP.pages.woulib = APP.pages.move;   // anciens liens #/woulib (redirigés vers #/bouger)

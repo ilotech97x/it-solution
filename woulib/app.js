@@ -34,23 +34,40 @@ function universFerme(code, terr) {
     <p class="muted">Demandez à être prévenu depuis l’accueil : vous recevrez une alerte à l’ouverture.</p><a class="btn btn-p" href="#/">Retour à l’accueil</a></div>`);
 }
 
-// icônes de l'interface (navigation) : un seul dessin au trait, la couleur suit le texte. Tracés Lucide (lucide.dev, licence ISC).
-const svg = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
-const ICO = {
-  accueil: svg('<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
-  manger: svg('<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>'),
-  trajets: svg('<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>'),
-  activite: svg('<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/>'),
-  compte: svg('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
-  cloche: svg('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'),
-  retour: svg('<path d="m15 18-6-6 6-6"/>')
-};
+// icônes de l'interface : un seul dessin au trait (24 px, épaisseur 2), la couleur suit le texte. Mêmes tracés que les maquettes ;
+// les emoji restent réservés au contenu (cuisines, rayons, lieux enregistrés).
+const svg = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+const ICO = Object.fromEntries(Object.entries({
+  accueil: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z', manger: 'M7 3v8M4 3v5a3 3 0 0 0 6 0V3M7 11v10M17 3c-2 1.5-3 4-3 7h3v11',
+  bouger: 'M3 11 21 3l-8 18-2-8z', activite: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6', compte: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
+  cloche: 'M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 21h4', retour: 'M15 6l-6 6 6 6', droite: 'M9 6l6 6-6 6', bas: 'M6 9l6 6 6-6', croix: 'M6 6l12 12M18 6L6 18', plus: 'M12 5v14M5 12h14',
+  recherche: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4', commerce: 'M4 9h16l-1-5H5zM5 9v11h14V9M9 20v-6h6v6', colis: 'M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10',
+  horloge: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2', pin: 'M12 21s-7-6-7-11a7 7 0 1 1 14 0c0 5-7 11-7 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  coeur: 'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z', carte: 'M3 6h18v12H3zM3 10h18', bouclier: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4',
+  donnees: 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3', aide: 'M4 5h16v11H8l-4 4z',
+  pro: 'M4 8h16v12H4zM9 8V5h6v3', gens: 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M21 20a6 6 0 0 0-4-5.6', taxi: 'M5 17h14v-5l-2-5H7l-2 5zM5 17v2M19 17v2M5 12h14',
+  gps: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM15.5 8.5l-2 5-5 2 2-5z', calendrier: 'M4 5h16v16H4zM4 10h16M9 3v4M15 3v4', billet: 'M4 6h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4zM14 6v12',
+  maison: 'M3 10.5 12 3l9 7.5M5 9v12h14V9M10 21v-6h4v6', drapeau: 'M5 21V4h11l-2 4 2 4H5', etoile: 'M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z',
+  coche: 'M5 12l4 4 10-10', document: 'M6 3h9l4 4v14H6zM14 3v5h5', sortie: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10', telephone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z',
+  localiser: 'M12 2v3M12 19v3M2 12h3M19 12h3M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', avion: 'M3 13l7-2 4-7h2l-1 7 6 2v2l-6-1-2 5h-2l1-5-7 1z', poubelle: 'M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14',
+  partage: 'M12 3v12M7 8l5-5 5 5M5 14v6h14v-6', info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v6M12 7.5v.5'
+}).map(([k, d]) => [k, svg(d)]));
+ICO.trajets = ICO.bouger;
+// territoire que l'appli montre : celui choisi sur cet appareil, sinon celui du profil, sinon la Martinique
+const territoireActif = () => { const t = terrPrefere() || profil?.territoire || 'Martinique'; return TERRITOIRES[t] && t !== 'Autre pays' ? t : 'Martinique'; };
 const APP = {
   nom: 'Woulib', titre: 'Woulib — repas livrés, VTC, taxis et GPS', accueilConnecte: '#/', apresInscription: '#/bienvenue', pourTel: 'que le restaurant, le chauffeur ou le livreur puisse vous joindre',
-  menu: () => [['#/manger', '🍛 Food'], ['#/move', '🚗 Move'], ['#/gps', '🧭 GPS'], ...(moi ? [['#/activite', '🧾 Activité'], ['#/compte', 'Mon compte']] : [['#/pros', 'Professionnels']]), ...(profil?.role === 'admin' ? [['#/admin', 'Admin']] : [])],
-  menuBas: () => [['#/', ICO.accueil, 'Accueil'], ['#/manger', ICO.manger, 'Manger'], ['#/move', ICO.trajets, 'Trajets'], ['#/activite', ICO.activite, 'Activité'], [moi ? '#/compte' : '#/connexion', ICO.compte, moi ? 'Compte' : 'Connexion']],
+  menu: () => [],
+  menuBas: () => [['#/', ICO.accueil, 'Accueil'], ['#/manger', ICO.manger, 'Manger'], ['#/bouger', ICO.bouger, 'Bouger'], ['#/activite', ICO.activite, 'Activité'], [moi ? '#/compte' : '#/connexion', ICO.compte, moi ? 'Compte' : 'Connexion']],
+  // ordinateur : le rail latéral porte aussi le logo et l'espace pro (ce ne sont pas des onglets du téléphone)
+  enteteRail: () => '<a class="rail-logo" href="#/" aria-label="Woulib, accueil">Woulib</a>',
+  menuRail: () => [['#/espace-pro', ICO.pro, 'Espace pro']],
+  apresNav: () => {
+    const b = $('#terrApp'); if (!b) return;
+    const t = territoireActif(); b.innerHTML = `${ICO.pin}<span>${esc(t)}</span>${ICO.bas}`; b.setAttribute('aria-label', `Choisir le territoire, actuellement ${t}`);
+  },
   icones: () => ICO,
-  differes: { gps: 'gps.js?v=4', projets: 'projets.js?v=2', projet: 'projets.js?v=2', assistance: 'compte.js?v=1' },   // chargés à la première ouverture
+  differes: { gps: 'gps.js?v=5', projets: 'projets.js?v=3', projet: 'projets.js?v=3', assistance: 'compte.js?v=2', recherche: 'recherche.js?v=1' },   // chargés à la première ouverture
   // bouton retour d'une page ouverte directement (lien partagé) : l'accueil de son univers
   parent: h => Object.values(MODULES).find(m => m.routes.test(h.split('?')[0]))?.accueil || '#/',
   // à chaque changement de page : arrêter les rafraîchissements, couper le GPS hors des pages qui guident, couleurs de l'univers visité
@@ -79,112 +96,154 @@ async function blocCommission() {
     ${c.lignes.map(x => `<div class="ligne-panier"><span>${SOURCES_CM[x.source] || x.source} · ${esc(jourHeure(x.created_at))}<small>${eur(x.base)} × ${Number(x.taux)} %</small></span><b style="${x.statut === 'annulee' ? 'text-decoration:line-through;opacity:.5' : ''}">${eur(x.montant)}${x.statut === 'payee' ? ' ✓' : ''}</b></div>`).join('')}</details>`;
 }
 
-// taux de commission affichés aux pros (réglés dans l'administration ; repli : taux de départ)
-const tauxPro = code => Number(univers(code)?.parametres?.commission_pct ?? { food: 10, move: 10, living: 8, events: 5 }[code] ?? 0);
-const POURQUOI = [['💸', 'Plus juste pour les pros', 'Commission de 5 à 10 %, quand les grandes plateformes prennent souvent 25 à 30 %.'],
-  ['🤝', 'Vous payez directement', 'Espèces ou carte, au restaurant, au chauffeur ou au livreur. Personne ne garde votre argent.'],
-  ['🌴', 'D’ici, pour ici', 'Restaurants, chauffeurs et livreurs de votre île, vérifiés un par un.'],
-  ['🛡️', 'Sécurité', 'Code de remise à la livraison, trajet partagé en direct avec un proche, bouton d’urgence.']];
+// taux de commission affichés aux pros (réglés dans l'administration ; repli : taux de départ). Commerces : taux à part (commissions.sql)
+const tauxPro = (code, cle = 'commission_pct') => Number(univers(code)?.parametres?.[cle] ?? ({ commission_commerces_pct: { food: 5 } }[cle] || { food: 10, move: 10, living: 8, events: 5 })[code] ?? 0);
+const POURQUOI = [['Plus juste pour les pros', 'Commission de 5 à 10 %, quand les grandes plateformes prennent souvent 25 à 30 %.'],
+  ['Vous payez directement', 'Espèces ou carte, au restaurant, au chauffeur ou au livreur. Personne ne garde votre argent.'],
+  ['D’ici, pour ici', 'Restaurants, chauffeurs et livreurs de votre île, vérifiés un par un.'],
+  ['Sécurité', 'Code de remise à la livraison, trajet partagé en direct avec un proche, bouton d’urgence.']];
+// covoiturage et entraide : présentés dans Bouger seulement (ouverture après avis juridique, AUDIT partie 13)
+const DANS_BOUGER = ['covoiturage', 'entraide'];
+// autres applis et services de l'écosystème : une icône au trait par univers
+const ICO_UNIVERS = { events: 'billet', living: 'maison', services: 'pro', experiences: 'etoile', express: 'colis', market: 'commerce', daily: 'commerce', rental: 'taxi', pay: 'carte', ai: 'aide' };
+// univers tenus par une autre appli de l'écosystème : un nom clair et l'appli où l'on arrive
+const EXTERNES = { events: ['Événements et billets', 'EventPass'], experiences: ['Excursions et activités', 'EventPass'], living: ['Logements', 'Kaz An Nou'], services: ['Services à domicile', 'Kaz An Nou'] };
 
-// accueil : une recherche, quatre grandes actions, ce qui est en cours, les cuisines, les restaurants ouverts
+// territoire : feuille du bas ouverte depuis la barre du haut ; le choix est gardé sur l'appareil
+function choisirTerritoire() {
+  const d = document.createElement('dialog'), t = territoireActif(); d.className = 'feuille'; d.setAttribute('aria-labelledby', 'tTerr');
+  d.innerHTML = `<h2 id="tTerr">Où êtes-vous ?</h2><p class="muted petit">Woulib vous montre les restaurants, les commerces et les chauffeurs de ce territoire.</p>
+    <div class="choix-l">${NOMS_TERRITOIRES.filter(x => x !== 'Autre pays').map(x => `<button type="button" data-terr="${esc(x)}" aria-pressed="${x === t}">${ICO.pin}<span>${esc(x)}</span>${x === t ? ICO.coche : ''}</button>`).join('')}</div>
+    <button type="button" class="btn btn-plein" data-fermer style="margin-top:14px">Fermer</button>`;
+  document.body.append(d); d.showModal();
+  d.addEventListener('click', e => {
+    const b = e.target.closest('[data-terr]');
+    if (b) { terrPrefere(b.dataset.terr); oublier(''); d.close(); toast(`Territoire : ${b.dataset.terr}`); rendre(); }
+    else if (e.target.closest('[data-fermer]') || e.target === d) d.close();
+  });
+  d.addEventListener('close', () => d.remove());
+}
+document.addEventListener('click', e => { if (e.target.closest('#terrApp')) choisirTerritoire(); });
+
+// une petite carte de restaurant ou de commerce pour les rangées qui défilent (accueil)
+const carteRangee = (x, n) => { const e = etatOuverture(x); return `<a class="carte-r" href="#/resto/${x.id}"><span class="cr-img ${estBoutique(x) ? 't-com' : 't-food'}">${x.photo ? `<img src="${esc(photo(x.photo))}" alt="" loading="lazy">` : `<span aria-hidden="true">${CUISINES[x.cuisine]?.[0] || '🍽️'}</span>`}</span>
+  <span class="cr-corps"><b>${esc(x.nom)}</b><small>${esc(CUISINES[x.cuisine]?.[1] || '')} · ${x.delai_min} min${n ? ` · ★ ${String(n.moyenne).replace('.', ',')}` : ''}</small>${e.ouvert ? '' : `<small class="att">${esc(e.texte ? e.texte[0].toUpperCase() + e.texte.slice(1) : 'Fermé')}</small>`}</span></a>`; };
+
+// accueil : bonjour, une recherche, quatre raccourcis, ce qui est en cours, puis des rangées faites de vraies données
 APP.pages[''] = async () => {
-  const reg = await chargerRegistre(), terr = terrPrefere();
-  const bientot = reg.filter(u => !(u.statut === 'actif' && MODULES[u.code]) && u.statut !== 'masque');
-  const ouvert = c => universOuvert(c);
-  vue(`<section class="accueil"><div class="wrap">
-    <div class="acc-tete"><div><h1>${moi && profil?.prenom ? `Bonjour ${esc(profil.prenom)} 👋` : 'Woulib, <em>tout le quotidien</em>'}</h1><p class="muted">Qu’est-ce qu’on fait aujourd’hui ?</p></div>
-      <a class="chip-terr" href="#/manger" title="Territoire">📍 ${esc(terr || 'Martinique')}</a></div>
+  const reg = await chargerRegistre(), terr = territoireActif();
+  const ouvert = c => universOuvert(c, terr);
+  const bientot = reg.filter(u => u.statut === 'bientot' && !DANS_BOUGER.includes(u.code));
+  const externes = reg.filter(u => u.statut === 'externe' && u.lien);
+  // 3ᵉ et 4ᵉ raccourcis : Commerces et Colis quand ils sont ouverts, sinon le GPS et « Organiser »
+  const avecCom = ouvert('food') && BOUTIQUES, avecColis = ouvert('express');
+  const R = [ouvert('food') && ['#/manger', ICO.manger, 'Commander à manger', 't-food'], ouvert('move') && ['#/bouger', ICO.bouger, 'Se déplacer', 't-move'],
+    avecCom ? ['#/manger?vue=commerces', ICO.commerce, 'Commerces', 't-com'] : ['#/gps', ICO.gps, 'GPS et alertes route', 't-com'],
+    avecColis ? ['#/express', ICO.colis, 'Envoyer un colis', 't-colis'] : ['#/projets', ICO.calendrier, 'Organiser un événement', 't-colis']].filter(Boolean);
+  const services = [...(avecCom ? [['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents et routes coupées']] : []),
+    ...(avecColis ? [['#/projets', ICO.calendrier, 'Organiser un événement', 'Anniversaire, mariage, séjour : la liste et le budget']] : []),
+    ...externes.map(u => [u.lien, ICO[ICO_UNIVERS[u.code]] || ICO.droite, EXTERNES[u.code]?.[0] || u.nom.replace('Woulib ', ''), u.description + (EXTERNES[u.code] ? ` · sur ${EXTERNES[u.code][1]}, même compte` : '')])];
+  vue(`<div class="wrap accueil">
+    <div class="bonjour"><h1>${moi && profil?.prenom ? `Bonjour ${esc(profil.prenom)}` : 'Woulib, tout le quotidien'}</h1><p class="muted">Que voulez-vous faire aujourd’hui ?</p></div>
+    <a class="rch-lien" href="#/recherche">${ICO.recherche}<span>Pizza, épicerie, aller au Lamentin…</span></a>
+    <nav class="raccourcis" aria-label="Raccourcis">${R.map(([h, i, t, c]) => `<a class="raccourci ${c}" href="${h}">${i}<b>${t}</b></a>`).join('')}</nav>
     ${blocInstallation()}
-    <form class="recherche-unique" id="fCherche"><div class="seg"><button type="button" class="on" data-seg="manger">🍛 Manger</button><button type="button" data-seg="trajet">🚗 Trajet</button></div>
-      <div class="rch"><span aria-hidden="true">🔎</span><input name="q" placeholder="Un plat, un restaurant, une envie…" aria-label="Rechercher" autocomplete="off"><button class="btn btn-p">Go</button></div></form>
-    <div class="grandes">
-      ${ouvert('food') ? '<a class="grande g-food" href="#/manger"><span>🍛</span><b>Manger</b><small>Livré ou à emporter</small></a>' : ''}
-      ${ouvert('move') ? '<a class="grande g-move" href="#/move"><span>🚗</span><b>Se déplacer</b><small>VTC et taxis</small></a>' : ''}
-      ${ouvert('express') ? '<a class="grande g-express" href="#/express"><span>📦</span><b>Envoyer un colis</b><small>Livré par un livreur vérifié</small></a>' : ''}
-      <a class="grande g-projet" href="#/projets"><span>🗂️</span><b>Organiser</b><small>Anniversaire, mariage, séjour…</small></a>
-      <a class="grande g-gps" href="#/gps"><span>🧭</span><b>GPS</b><small>Alertes route</small></a>
-      <a class="grande g-pro" href="#/pros"><span>💼</span><b>Gagner avec Woulib</b><small>Resto, chauffeur, livreur…</small></a></div>
     <div id="enCours"></div>
-    <section class="section" id="boutiqueAcc" hidden></section>
-    ${ouvert('food') ? `<section class="section"><h2>Envie de…</h2><div class="defile cuisines">${cuisinesVisibles().filter(([k]) => k !== 'autre').map(([k, [i, t]]) => `<a class="cuisine" href="#/manger?cuisine=${k}"><span>${i}</span>${esc(t)}</a>`).join('')}</div></section>` : ''}
+    <section class="section" id="restosAccueil" hidden><div class="titre-s"><h2>Restaurants ouverts</h2><a href="#/manger">Tout voir</a></div><div class="defile rangee" id="restosListe"></div></section>
     <section class="section" id="platsAcc" hidden></section>
-    <section class="section" id="restosAccueil" hidden><div class="titre-s"><h2>Ouverts maintenant</h2><a href="#/manger">Tout voir →</a></div><div class="defile" id="restosListe"></div></section>
-    <section class="section"><h2>Pourquoi Woulib ?</h2><div class="pourquoi">${POURQUOI.map(([i, t, d]) => `<div><span>${i}</span><b>${t}</b><small>${d}</small></div>`).join('')}</div></section>
-    <section class="section"><h2>Tout l’écosystème</h2><div class="defile" id="univers">${bientot.map(u => u.statut === 'externe'
-        ? `<a class="pastille-u" href="${esc(u.lien)}"><span>${u.icone}</span><b>${esc(u.nom.replace('Woulib ', ''))}</b><small>Ouvert</small></a>`
-        : `<button class="pastille-u" data-alerte="${u.code}" title="${esc(u.description)}"><span>${u.icone}</span><b>${esc(u.nom.replace('Woulib ', ''))}</b><small>🔔 Me prévenir</small></button>`).join('')}</div></section></div></section>`);
-  let seg = 'manger';
-  $('#fCherche').addEventListener('click', e => { const b = e.target.closest('[data-seg]'); if (!b) return; seg = b.dataset.seg;
-    document.querySelectorAll('[data-seg]').forEach(x => x.classList.toggle('on', x === b)); $('#fCherche').q.placeholder = seg === 'manger' ? 'Un plat, un restaurant, une envie…' : 'Où allez-vous ?'; $('#fCherche').q.focus(); });
-  $('#fCherche').addEventListener('submit', e => { e.preventDefault(); const t = e.target.q.value.trim();
-    if (seg === 'trajet') { try { sessionStorage.setItem('wlDest', t); } catch (x) { /* facultatif */ } return aller('#/move'); }
-    aller('#/manger' + (t ? '?' + new URLSearchParams({ q: t }) : '')); });
-  $('#univers').onclick = async e => {
+    <section class="section" id="boutiqueAcc" hidden></section>
+    <section class="section" id="commercesAcc" hidden></section>
+    ${services.length ? `<section class="section"><h2>Autres services</h2><div class="liste-g">${services.map(([h, i, t, d]) => `<a class="menu-l" href="${esc(h)}"><span class="ico-l">${i}</span><div><b>${esc(t)}</b><small>${esc(d)}</small></div>${ICO.droite}</a>`).join('')}</div></section>` : ''}
+    <a class="banniere-pro" href="#/pros"><span class="ico-l">${ICO.pro}</span><span><b>Gagner avec Woulib</b><small>Restaurant, commerce, chauffeur, livreur : inscription gratuite</small></span>${ICO.droite}</a>
+    ${moi ? '' : `<section class="section"><h2>Pourquoi Woulib ?</h2><div class="pourquoi">${POURQUOI.map(([t, d]) => `<div><b>${t}</b><small>${d}</small></div>`).join('')}</div></section>`}
+    ${bientot.length ? `<section class="section"><h2>Bientôt sur Woulib</h2><div class="defile" id="univers">${bientot.map(u => `<button type="button" class="pastille-u" data-alerte="${u.code}" title="${esc(u.description)}"><span class="ico-l">${ICO[ICO_UNIVERS[u.code]] || ICO.etoile}</span><b>${esc(u.nom.replace('Woulib ', ''))}</b><small>Me prévenir</small></button>`).join('')}</div></section>` : ''}</div>`);
+  if ($('#univers')) $('#univers').onclick = async e => {
     const b = e.target.closest('[data-alerte]'); if (!b || !exigeCompte()) return;
     try { await q(sb.from('alertes_univers').insert({ univers: b.dataset.alerte })); b.querySelector('small').textContent = '✓ Prévenu'; b.disabled = true; toast('C’est noté : nous vous préviendrons à l’ouverture.'); } catch (err) { toast(erreur(err), true); }
   };
-  // ce qui est en cours : commande ou course, avec une barre d'avancement
+  // ce qui est en cours passe avant tout : commande, achat ou course, avec une barre d'avancement
   if (moi) {
     const [cmd, crs, deja] = await Promise.all([
-      q(sb.from('commandes').select('id, statut, restaurants(nom)').eq('client_id', moi.id).in('statut', ['envoyee', 'acceptee', 'en_preparation', 'prete', 'en_livraison']).order('created_at', { ascending: false }).limit(1)).catch(() => []),
+      q(sb.from('commandes').select('id, statut, restaurants(nom, genre)').eq('client_id', moi.id).in('statut', ['envoyee', 'acceptee', 'en_preparation', 'prete', 'en_livraison']).order('created_at', { ascending: false }).limit(2)).catch(() => []),
       q(sb.from('courses').select('id, statut, arrivee_txt').eq('client_id', moi.id).in('statut', ['demande', 'acceptee', 'en_route', 'arrivee', 'a_bord']).order('created_at', { ascending: false }).limit(1)).catch(() => []),
       q(sb.from('alertes_univers').select('univers')).catch(() => [])]);
     const pas = (l, st) => Math.max(1, l.findIndex(e => e[0] === st) + 1) / l.length * 100;
-    $('#enCours').innerHTML = [...cmd.map(c => `<a class="en-cours" href="#/suivi/${c.id}"><span>🛵</span><div><b>${esc(c.restaurants?.nom || 'Votre commande')}</b><small>${esc(ST_CMD[c.statut]?.[1] || '')}</small><i class="prog"><i style="width:${pas(ETAPES, c.statut)}%"></i></i></div><em>Suivre →</em></a>`),
-      ...crs.map(c => `<a class="en-cours g-move" href="#/course/${c.id}"><span>🚗</span><div><b>Vers ${esc(c.arrivee_txt)}</b><small>${esc(ST_COURSE[c.statut]?.[1] || '')}</small><i class="prog"><i style="width:${pas(ETAPES_C, c.statut)}%"></i></i></div><em>Suivre →</em></a>`)].join('');
+    const ec = (h, ico, c, t, s, p) => `<a class="en-cours" href="${h}"><span class="ico-t ${c}">${ico}</span><span class="ec-t"><b>${esc(t)}</b><small>${esc(s)}</small><i class="prog"><i style="width:${p}%"></i></i></span><em>Suivre</em></a>`;
+    if ($('#enCours')) $('#enCours').innerHTML = [...cmd.map(c => ec('#/suivi/' + c.id, estBoutique(c.restaurants) ? ICO.commerce : ICO.manger, estBoutique(c.restaurants) ? 't-com' : 't-food', c.restaurants?.nom || 'Votre commande', `${estBoutique(c.restaurants) ? 'Achat' : 'Repas'} · ${ST_CMD[c.statut]?.[1] || ''}`, pas(ETAPES, c.statut))),
+      ...crs.map(c => ec('#/course/' + c.id, ICO.taxi, 't-move', 'Vers ' + c.arrivee_txt, 'Taxi/VTC · ' + (ST_COURSE[c.statut]?.[1] || ''), pas(ETAPES_C, c.statut)))].join('');
     deja.forEach(a => { const b = document.querySelector(`[data-alerte="${a.univers}"]`); if (b) { b.querySelector('small').textContent = '✓ Prévenu'; b.disabled = true; } });
   }
   if (ouvert('food')) {
     const boutique = afficherBoutiqueAccueil(terr).catch(() => {});
-    let r = sb.from('restaurants').select('*').eq('statut', 'publie').eq('ouvert', true).order('created_at', { ascending: false }).limit(20);
-    if (terr) r = r.eq('territoire', terr);
-    const l = (await memo('acc-restos:' + terr, () => q(r)).catch(() => [])).filter(x => etatOuverture(x).ouvert).slice(0, 10);
+    const r = sb.from('restaurants').select('*').eq('statut', 'publie').eq('ouvert', true).eq('territoire', terr).order('created_at', { ascending: false }).limit(30);
+    const tous = (await memo('acc-restos:' + terr, () => q(r)).catch(() => [])).filter(x => etatOuverture(x).ouvert);
+    const l = tous.filter(x => !estBoutique(x)).slice(0, 10), com = tous.filter(estBoutique).slice(0, 6);
+    const notes = l.length ? Object.fromEntries((await memo('acc-notes:' + terr, () => q(sb.from('notes_resto').select('*').in('restaurant_id', l.map(x => x.id)))).catch(() => [])).map(x => [x.restaurant_id, x])) : {};
     await boutique;
-    if (l.length && $('#restosListe')) { $('#restosListe').innerHTML = l.map(x => carteResto(x)).join(''); $('#restosAccueil').hidden = false; }
-    await afficherPlatsAccueil(l.filter(x => !estBoutique(x))).catch(() => {});
+    if (l.length && $('#restosListe')) { $('#restosListe').innerHTML = l.map(x => carteRangee(x, notes[x.id])).join(''); $('#restosAccueil').hidden = false; }
+    if (com.length && $('#commercesAcc')) { $('#commercesAcc').innerHTML = `<div class="titre-s"><h2>Commerces ouverts</h2><a href="#/manger?vue=commerces">Tout voir</a></div><div class="pastilles-c">${com.map(x => `<a class="pastille-c" href="#/resto/${x.id}"><i aria-hidden="true"></i>${esc(x.nom)} · ${esc(x.commune)}</a>`).join('')}</div>`; $('#commercesAcc').hidden = false; }
+    await afficherPlatsAccueil(l).catch(() => {});
   }
 };
 
+// « Espace pro » du rail (ordinateur) : l'espace du compte, ou la page pour le devenir
+APP.pages['espace-pro'] = async () => {
+  if (!moi) return rediriger('#/pros');
+  const [r, ch] = await Promise.all([q(sb.from('restaurants').select('id').eq('owner', moi.id).limit(1)).catch(() => []), q(sb.from('chauffeurs').select('id').eq('id', moi.id)).catch(() => [])]);
+  rediriger(r.length ? '#/pro' : ch.length ? '#/chauffeur' : '#/pros');
+};
+
 // juste après l'inscription : choisir ce qu'on vient faire (chacun peut proposer ses services, vérifié avant publication)
-const PROFILS = () => [['🛍️', 'Commander et me déplacer', 'Repas, VTC, taxis, GPS. C’est gratuit.', '#/', null],
-  ['👩‍🍳', 'J’ai un restaurant, un snack, un traiteur', 'Votre carte en ligne, des livreurs sans en embaucher.', '#/pro/resto/nouveau', `Commission ${tauxPro('food')} % sur les repas`],
-  ...!BOUTIQUES ? [] : [['🛒', 'Je vends des boissons, de l’épicerie, du dépannage', 'Votre boutique en ligne : les clients remplissent leur panier, vous livrez ou ils passent prendre.', '#/pro/boutique/nouveau', `Commission ${tauxPro('food')} % sur les ventes`]],
-  ['🚗', 'Je suis chauffeur VTC ou taxi', 'Des courses près de chez vous, payées directement par le client.', '#/chauffeur', `Commission ${tauxPro('move')} % sur les courses`],
-  ['🛵', 'Je veux livrer (scooter, vélo, voiture)', 'Les frais de livraison et 100 % des pourboires pour vous.', '#/chauffeur', 'Commission 10 % sur les frais de livraison, 0 % sur les pourboires'],
-  ['🔧', 'Je propose mes services', 'Ménage, jardin, bricolage, informatique, conciergerie…', 'https://immo.ilo-tech.com/#/compte/partenaire', `Commission ${tauxPro('living')} % sur les prestations`],
-  ['🏡', 'Je loue un logement', 'Villa, gîte, appartement : vos réservations, vos règles.', 'https://immo.ilo-tech.com/#/compte/logements', `Commission ${tauxPro('living')} % sur les séjours`],
-  ['🎟️', 'J’organise des événements', 'Billets QR code, contrôle à l’entrée, liste des participants.', '../pass/#/orga', `Commission ${tauxPro('events')} % sur les billets payants, 0 % sur les gratuits`]];
-const cartesProfils = l => `<div class="profils">${l.map(([i, t, d, h, c]) => `<a class="profil-c" href="${h}"><span>${i}</span><div><b>${t}</b><small>${d}</small>${c ? `<em>${c} · inscription gratuite</em>` : ''}</div><i>›</i></a>`).join('')}</div>`;
+const PROFILS = () => [[ICO.accueil, 'Commander et me déplacer', 'Repas, courses, VTC, taxis, GPS. C’est gratuit.', '#/', null],
+  [ICO.manger, 'J’ai un restaurant, un snack, un traiteur', 'Votre carte en ligne, des livreurs sans en embaucher.', '#/pro/resto/nouveau', `Commission ${tauxPro('food')} % sur les repas`],
+  ...!BOUTIQUES ? [] : [[ICO.commerce, 'J’ai un commerce : boissons, épicerie, dépannage', 'Votre boutique en ligne : les clients remplissent leur panier, vous livrez ou ils passent prendre.', '#/pro/boutique/nouveau', `Commission ${tauxPro('food', 'commission_commerces_pct')} % sur les ventes`]],
+  [ICO.taxi, 'Je suis chauffeur VTC ou taxi', 'Des courses près de chez vous, payées directement par le client.', '#/chauffeur', `Commission ${tauxPro('move')} % sur les courses`],
+  [ICO.colis, 'Je veux livrer (scooter, vélo, voiture)', 'Les frais de livraison et 100 % des pourboires pour vous.', '#/chauffeur', 'Commission 10 % sur les frais de livraison, 0 % sur les pourboires'],
+  [ICO.pro, 'Je propose mes services', 'Ménage, jardin, bricolage, informatique, conciergerie…', 'https://immo.ilo-tech.com/#/compte/partenaire', `Commission ${tauxPro('living')} % sur les prestations`],
+  [ICO.maison, 'Je loue un logement', 'Villa, gîte, appartement : vos réservations, vos règles.', 'https://immo.ilo-tech.com/#/compte/logements', `Commission ${tauxPro('living')} % sur les séjours`],
+  [ICO.billet, 'J’organise des événements', 'Billets QR code, contrôle à l’entrée, liste des participants.', '../pass/#/orga', `Commission ${tauxPro('events')} % sur les billets payants, 0 % sur les gratuits`]];
+const cartesProfils = l => `<div class="profils liste-g">${l.map(([i, t, d, h, c]) => `<a class="profil-c" href="${h}"><span class="ico-t">${i}</span><div><b>${t}</b><small>${d}</small>${c ? `<em>${c} · inscription gratuite</em>` : ''}</div>${ICO.droite}</a>`).join('')}</div>`;
 APP.pages.bienvenue = async () => {
   await chargerRegistre();
-  vue(`<div class="wrap bienvenue"><h1>Bienvenue${profil?.prenom ? ' ' + esc(profil.prenom) : ''} ! 🎉</h1><p class="muted">Que voulez-vous faire avec Woulib ? Tout se fait avec le même compte, et vous pourrez en faire plusieurs.</p>${cartesProfils(PROFILS())}</div>`);
+  vue(`<div class="wrap bienvenue"><h1>Bienvenue${profil?.prenom ? ' ' + esc(profil.prenom) : ''} !</h1><p class="muted">Que voulez-vous faire avec Woulib ? Tout se fait avec le même compte, et vous pourrez en faire plusieurs.</p>${cartesProfils(PROFILS())}</div>`);
 };
 APP.pages.pros = async () => {
   await chargerRegistre();
   vue(`<div class="wrap bienvenue"><h1>Gagnez avec Woulib</h1><p class="muted">Inscription gratuite. Vos clients vous paient directement ; Woulib prend seulement une petite commission sur ce que vous vendez, réglée une fois par mois. Chaque pro est vérifié avant sa mise en ligne.</p>
     ${cartesProfils(PROFILS().slice(1))}
-    <section class="section"><h2>Pourquoi les pros choisissent Woulib</h2><div class="pourquoi">${[['💸', 'Une commission juste', 'De 5 à 10 % selon l’activité, contre souvent 25 à 30 % sur les grandes plateformes. Pas d’abonnement, pas de frais d’inscription.'],
-      ['💶', 'Votre argent tout de suite', 'Le client vous paie directement. Vous réglez la commission une fois par mois.'],
-      ['📱', 'Tout depuis le téléphone', 'Commandes et courses en direct, carte, horaires, codes promo, chiffres du mois.'],
-      ['🏝️', 'Local et proche', 'Une équipe en Martinique, joignable sur WhatsApp.']].map(([i, t, d]) => `<div><span>${i}</span><b>${t}</b><small>${d}</small></div>`).join('')}</div></section></div>`);
+    <section class="section"><h2>Pourquoi les pros choisissent Woulib</h2><div class="pourquoi">${[['Une commission juste', 'De 5 à 10 % selon l’activité, contre souvent 25 à 30 % sur les grandes plateformes. Pas d’abonnement, pas de frais d’inscription.'],
+      ['Votre argent tout de suite', 'Le client vous paie directement. Vous réglez la commission une fois par mois.'],
+      ['Tout depuis le téléphone', 'Commandes et courses en direct, carte, horaires, codes promo, chiffres du mois.'],
+      ['Local et proche', 'Une équipe en Martinique, joignable sur WhatsApp.']].map(([t, d]) => `<div><b>${t}</b><small>${d}</small></div>`).join('')}</div></section></div>`);
 };
 
 // profil, sécurité, confidentialité, assistance, signaler : compte.js, chargé à la première ouverture
 const chargerCompte = () => chargerScript(APP.differes.assistance);
+// compte : qui je suis, puis des groupes courts (maquette « Compte ») ; l'espace pro n'apparaît que si le compte en a un
+const emailMasque = e => String(e || '').replace(/^(.)[^@]*(@.*)$/, '$1•••$2');
 APP.pages.compte = async sous => {
   if (!exigeCompte()) return;
   if (sous) { await chargerCompte(); return APP.sousCompte(sous); }
-  if (profil?.role !== 'admin') mesModerations = (await q(sb.from('moderateurs_univers').select('univers').eq('user_id', moi.id)).catch(() => [])).map(x => x.univers);
-  const ligne = ([h, i, t, d]) => `<a class="menu-l" href="${h}"><span>${i}</span><div><b>${t}</b>${d ? `<small>${d}</small>` : ''}</div><i>›</i></a>`;
-  vue(`<div class="wrap compte-app"><div class="moi-c"><span class="avatar">${esc((profil?.prenom || moi.email || '?')[0].toUpperCase())}</span><div><h1>${esc(profil?.prenom || '')} ${esc(profil?.nom || '')}</h1><span class="muted">${esc(moi.email)}</span></div></div>
+  const [mods, resto, ch] = await Promise.all([profil?.role === 'admin' ? [] : q(sb.from('moderateurs_univers').select('univers').eq('user_id', moi.id)).catch(() => []),
+    memo('mon-resto:' + moi.id, () => q(sb.from('restaurants').select('id, genre').eq('owner', moi.id).limit(1))).catch(() => []),
+    memo('mon-chauffeur:' + moi.id, () => q(sb.from('chauffeurs').select('id, type').eq('id', moi.id))).catch(() => [])]);
+  mesModerations = mods.map(x => x.univers);
+  const ligne = ([h, i, t, d, c]) => `<a class="menu-l ${c || ''}" href="${esc(h)}"><span class="ico-l">${i}</span><div><b>${t}</b>${d ? `<small>${d}</small>` : ''}</div>${ICO.droite}</a>`;
+  const groupe = (t, l) => `<section class="groupe-c" aria-label="${t}"><h2>${t}</h2><div class="menu-g">${l.map(ligne).join('')}</div></section>`;
+  const bq = resto[0]?.genre === 'boutique';
+  vue(`<div class="wrap compte-app">
+    <div class="moi-c"><span class="avatar" aria-hidden="true">${esc((profil?.prenom || moi.email || '?')[0].toUpperCase())}</span><div><h1>${esc(profil?.prenom || '')} ${esc(profil?.nom || '')}</h1><span class="muted petit">${esc(emailMasque(moi.email))} · ${esc(territoireActif())}</span></div>
+      <a class="btn btn-s" href="#/compte/profil" aria-label="Modifier mon profil : nom, téléphone, territoire">Modifier</a></div>
     ${blocInstallation()}
-    <h2>Mes activités</h2><div class="menu-g">${[['#/activite', '🧾', 'Tout ce qui est en cours', 'Commandes, trajets, colis, en un seul endroit'], ['#/activite?f=repas', '🍛', 'Mes commandes', ''], ['#/activite?f=trajets', '🚗', 'Mes trajets', ''], ['#/activite?f=colis', '📦', 'Mes colis', ''], ['#/projets', '🗂️', 'Mes projets', 'Anniversaire, mariage, séjour…']].map(ligne).join('')}</div>
-    <h2>Gagner avec Woulib</h2><div class="menu-g">${[['#/pro', '👩‍🍳', 'Mon restaurant ou ma boutique', 'Carte, articles, stock, commandes en direct'], ['#/chauffeur', '🧑‍✈️', 'Espace chauffeur et livreur', 'Courses, livraisons, colis, gains'], ['#/pros', '💼', 'Toutes les façons de gagner', '']].map(ligne).join('')}</div>
-    <h2>Réglages</h2><div class="menu-g">${[['#/compte/profil', '🙂', 'Mon profil', 'Nom, téléphone, territoire'], ['#/notifs', '🔔', 'Notifications', ''], ['#/compte/securite', '🔒', 'Sécurité', 'Mot de passe, appareils connectés'],
-      ['#/compte/confidentialite', '🛡️', 'Confidentialité', 'Télécharger mes données, supprimer mon compte']].map(ligne).join('')}</div>
-    <h2>Aide</h2><div class="menu-g">${[['#/assistance', '💬', 'Assistance', 'Une question, un problème, mes signalements'], [wa(WA, 'Bonjour, j’ai une question sur Woulib.'), '📱', 'Aide sur WhatsApp', ''],
-      ['cgu.html', '📄', 'Conditions d’utilisation', ''], ['confidentialite.html', '📄', 'Politique de confidentialité', '']].map(ligne).join('')}
-      ${profil?.role === 'admin' || mesModerations.length ? ligne(['#/admin', '🛡️', 'Administration', '']) : ''}<a class="menu-l ko" href="#/deconnexion"><span>🚪</span><div><b>Se déconnecter</b></div><i>›</i></a></div></div>`);
+    ${groupe('Mon compte', [['#/compte/adresses', ICO.pin, 'Adresses', 'Maison, travail : pour vos courses et vos livraisons'], ['#/compte/favoris', ICO.coeur, 'Favoris', 'Restaurants et commerces'],
+      ['#/compte/paiement', ICO.carte, 'Moyens de paiement', 'Pour l’instant : payé au livreur, au chauffeur ou au commerçant'], ['#/activite', ICO.activite, 'Mon activité', 'Commandes, achats, trajets, colis'], ['#/projets', ICO.calendrier, 'Mes projets', 'Anniversaire, mariage, séjour…']])}
+    ${groupe('Réglages', [['#/notifs', ICO.cloche, 'Notifications', 'Commandes, trajets, réponses de l’équipe'], ['#/compte/securite', ICO.bouclier, 'Sécurité', 'Mot de passe, appareils connectés'],
+      ['#/compte/confidentialite', ICO.donnees, 'Confidentialité', 'Télécharger mes données, supprimer mon compte']])}
+    ${groupe('Espace pro', [...resto.length ? [['#/pro', bq ? ICO.commerce : ICO.manger, bq ? 'Ma boutique' : 'Mon restaurant', 'Carte, articles, stock, commandes en direct']] : [],
+      ...ch.length ? [['#/chauffeur', ch[0].type === 'livreur' ? ICO.colis : ICO.taxi, 'Espace chauffeur et livreur', 'Courses, livraisons, colis, gains']] : [], ['#/pros', ICO.pro, 'Devenir partenaire', 'Restaurant, commerce, chauffeur, livreur']])}
+    ${groupe('Aide', [['#/assistance', ICO.aide, 'Assistance', 'Une question, un problème, mes signalements'], [wa(WA, 'Bonjour, j’ai une question sur Woulib.'), ICO.telephone, 'Aide sur WhatsApp', '0696 48 26 78'],
+      ['cgu.html', ICO.document, 'Conditions d’utilisation', ''], ['confidentialite.html', ICO.document, 'Politique de confidentialité', ''],
+      ...profil?.role === 'admin' || mesModerations.length ? [['#/admin', ICO.bouclier, 'Administration', '']] : [], ['#/deconnexion', ICO.sortie, 'Se déconnecter', '', 'ko']])}</div>`);
 };
 // bouton « Signaler » d'un restaurant, d'une commande, d'une course… (data-signaler = type, data-id, data-univers, data-nom)
 document.addEventListener('click', async e => {
@@ -203,21 +262,26 @@ APP.pages.activite = async () => {
     BASE_V2 ? q(sb.rpc('mes_colis')).catch(() => []) : []]);
   const ACT_CMD = ['envoyee', 'acceptee', 'en_preparation', 'prete', 'en_livraison'], ACT_CRS = ['demande', 'acceptee', 'en_route', 'arrivee', 'a_bord'], ACT_COLIS = ['recherche', 'acceptee', 'recupere'];
   const f = param().f || '';
-  const l = [...cmd.map(c => ({ type: 'repas', ico: c.restaurants?.genre === 'boutique' ? '🛒' : '🍛', titre: c.restaurants?.nom || 'Commande', sous: `${eur(c.total)} · ${c.mode === 'livraison' ? '🛵 livraison' : '🛍️ à retirer'}`, st: ST_CMD[c.statut], quand: c.created_at, lien: '#/suivi/' + c.id, actif: ACT_CMD.includes(c.statut),
-      encore: ['livree', 'retiree'].includes(c.statut) ? [c.id, c.restaurant_id] : null })),
-    ...crs.map(c => ({ type: 'trajets', ico: '🚗', titre: `${c.depart_txt} → ${c.arrivee_txt}`, sous: eur(c.prix_estime), st: ST_COURSE[c.statut], quand: c.created_at, lien: '#/course/' + c.id, actif: ACT_CRS.includes(c.statut) })),
-    ...cls.map(c => ({ type: 'colis', ico: '📦', titre: c.role === 'livreur' ? `Colis à livrer · ${c.depot_txt}` : `Colis pour ${c.depot_nom}`, sous: eur(c.prix), st: ST_COLIS[c.statut], quand: c.created_at, lien: '#/colis/' + c.id, actif: ACT_COLIS.includes(c.statut) }))]
+  // chaque domaine garde son icône, sa couleur et ses propres statuts (Activité, maquette)
+  const TYPES = { repas: [ICO.manger, 't-food', 'Repas'], achats: [ICO.commerce, 't-com', 'Achat'], colis: [ICO.colis, 't-colis', 'Colis'], trajets: [ICO.taxi, 't-move', 'Taxi/VTC'] };
+  const jour = d => fmt(d, { weekday: 'short', day: 'numeric', month: 'short' });
+  const l = [...cmd.map(c => { const t = estBoutique(c.restaurants) ? 'achats' : 'repas'; return { type: t, titre: c.restaurants?.nom || 'Commande', sous: `${TYPES[t][2]} · ${jour(c.created_at)} · ${eur(c.total)}${c.mode === 'livraison' ? ' · livraison' : ' · à retirer'}`,
+      st: ST_CMD[c.statut], quand: c.created_at, lien: '#/suivi/' + c.id, actif: ACT_CMD.includes(c.statut), encore: ['livree', 'retiree'].includes(c.statut) ? [c.id, c.restaurant_id] : null }; }),
+    ...crs.map(c => ({ type: 'trajets', titre: `${c.depart_txt} → ${c.arrivee_txt}`, sous: `Taxi/VTC · ${jour(c.created_at)} · ${eur(c.prix_estime)}`, st: ST_COURSE[c.statut], quand: c.created_at, lien: '#/course/' + c.id, actif: ACT_CRS.includes(c.statut) })),
+    ...cls.map(c => ({ type: 'colis', titre: c.role === 'livreur' ? `Colis à livrer · ${c.depot_txt}` : `Colis pour ${c.depot_nom}`, sous: `Colis · ${jour(c.created_at)} · ${eur(c.prix)}`, st: ST_COLIS[c.statut], quand: c.created_at, lien: '#/colis/' + c.id, actif: ACT_COLIS.includes(c.statut) }))]
     .filter(x => !f || x.type === f).sort((a, b) => b.quand.localeCompare(a.quand));
-  const carte = x => `<div class="act-l"><a class="act ${x.actif ? 'actif' : ''}" href="${x.lien}"><span>${x.ico}</span><div><b>${esc(x.titre)}</b><small>${esc(jourHeure(x.quand))} · ${esc(x.sous)}</small></div>${x.st ? tag(x.st) : ''}</a>
-    ${x.encore ? `<button class="btn btn-s" data-encore="${x.encore[0]}" data-resto="${x.encore[1]}" aria-label="Recommander">🔁</button>` : ''}</div>`;
+  const ico = x => `<span class="ico-t ${TYPES[x.type][1]}">${TYPES[x.type][0]}</span>`;
+  const carte = x => `<div class="act-l"><a class="act actif" href="${x.lien}">${ico(x)}<span class="act-t"><b>${esc(x.titre)}</b><small>${esc(x.sous)}</small>${x.st ? tag(x.st) : ''}</span><em class="act-b">Suivre</em></a></div>`;
+  const ligne = x => `<div class="act-l"><a class="act" href="${x.lien}">${ico(x)}<span class="act-t"><b>${esc(x.titre)}</b><small>${esc(x.sous)}</small></span>${x.st ? `<span class="act-st ${x.st[0]}">${esc(x.st[1])}</span>` : ''}</a>
+    ${x.encore ? `<button type="button" class="btn btn-s" data-encore="${x.encore[0]}" data-resto="${x.encore[1]}">Recommander</button>` : ''}</div>`;
   const enCours = l.filter(x => x.actif), passe = l.filter(x => !x.actif);
-  const FILTRES = [['', 'Tout'], ['repas', '🍛 Repas'], ['trajets', '🚗 Trajets'], ['colis', '📦 Colis']];
-  vue(`<div class="wrap activite"><h1>Activité</h1><div class="puces">${FILTRES.map(([k, t]) => `<a href="#/activite${k ? '?f=' + k : ''}" class="${f === k ? 'on' : ''}">${t}</a>`).join('')}</div>
+  const FILTRES = [['', 'Tout'], ['repas', 'Repas'], ...BOUTIQUES ? [['achats', 'Achats']] : [], ['colis', 'Colis'], ['trajets', 'Taxi/VTC']];
+  vue(`<div class="wrap activite"><h1>Activité</h1><div class="puces" role="group" aria-label="Filtrer">${FILTRES.map(([k, t]) => `<a href="#/activite${k ? '?f=' + k : ''}" class="${f === k ? 'on' : ''}" ${f === k ? 'aria-current="true"' : ''}>${t}</a>`).join('')}</div>
     ${enCours.length ? `<h2>En cours</h2><div class="acts">${enCours.map(carte).join('')}</div>` : ''}
-    ${passe.length ? `<h2>Historique</h2><div class="acts">${passe.map(carte).join('')}</div>` : ''}
-    ${l.length ? '' : `<div class="vide-etat"><div class="ico">🧾</div><h3>Rien pour l’instant</h3><p class="muted">Vos commandes, vos trajets et vos colis apparaîtront ici.</p>
-      <a class="btn btn-p" href="${{ trajets: '#/move', colis: '#/express' }[f] || '#/manger'}">${{ trajets: 'Réserver un trajet', colis: 'Envoyer un colis' }[f] || 'Commander à manger'}</a></div>`}
-    <p class="muted petit" style="margin-top:18px"><a href="#/projets">🗂️ Mes projets</a> · <a href="#/notifs">🔔 Notifications</a></p></div>`);
+    ${passe.length ? `<h2>Historique</h2><div class="acts histo">${passe.map(ligne).join('')}</div>` : ''}
+    ${l.length ? '' : `<div class="vide-etat"><span class="ico">${ICO.activite}</span><h3>Rien ici pour l’instant</h3><p class="muted">${f ? 'Ce que vous ferez dans cette rubrique apparaîtra ici.' : 'Vos commandes, vos achats, vos trajets et vos colis apparaîtront ici.'}</p>
+      <a class="btn btn-p" href="${{ trajets: '#/bouger', colis: '#/express', achats: '#/manger?vue=commerces' }[f] || '#/manger'}">${{ trajets: 'Réserver un trajet', colis: 'Envoyer un colis', achats: 'Voir les commerces' }[f] || 'Commander à manger'}</a></div>`}
+    <p class="muted petit" style="margin-top:18px"><a href="#/projets">Mes projets</a> · <a href="#/notifs">Notifications</a></p></div>`);
   $('#app').onclick = e => { const b = e.target.closest('[data-encore]'); if (b) recommander(b.dataset.encore, b.dataset.resto); };
 };
 

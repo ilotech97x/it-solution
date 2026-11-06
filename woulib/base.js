@@ -58,6 +58,10 @@ async function geocoder(texte, territoire) {
   const r = await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=fr&q=' + encodeURIComponent([texte, t].filter(Boolean).join(', ')))).json();
   return r.map(x => ({ nom: x.display_name, lat: Number(x.lat), lng: Number(x.lon) }));
 }
+// position → adresse (OpenStreetMap), quand on enregistre « Ma position » ; rien si le service ne répond pas
+async function adresseDe(lat, lng) {
+  try { const r = await (await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&accept-language=fr&zoom=18&lat=${lat}&lon=${lng}`)).json(); return r && !Array.isArray(r) && r.display_name || null; } catch (e) { return null; }
+}
 // carte Leaflet hébergée sur le site (nom différent de « leaflet », que la bibliothèque crée elle-même)
 function chargerCarte() {
   if (window.L) return Promise.resolve(window.L);
@@ -125,9 +129,11 @@ function pageInscription() {
 async function pageNotifs() {
   if (!exigeCompte()) return;
   const n = await q(sb.from('notifs').select('*').order('created_at', { ascending: false }).limit(50));
-  vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><h1>Notifications</h1>
-    ${n.length ? n.map(x => `<a class="ligne-l" style="grid-template-columns:40px 1fr;text-decoration:none;color:inherit;${x.lu ? 'opacity:.6' : ''}" href="${esc(x.lien && x.lien.startsWith('#/') ? x.lien : '#/')}"><span style="font-size:26px">${x.lu ? '📭' : '📬'}</span>
-      <div>${esc(x.texte)}<div class="muted petit">${esc(jourHeure(x.created_at))}</div></div></a>`).join('') : '<div class="vide-etat"><div class="ico">🔔</div><h3>Aucune notification</h3></div>'}</div>`);
+  const ico = APP.icones?.().cloche || '';
+  vue(`<div class="wrap notifs-p"><h1>Notifications</h1>
+    ${n.length ? `<div class="liste-g">${n.map(x => `<a class="notif-l ${x.lu ? 'lue' : ''}" href="${esc(x.lien && x.lien.startsWith('#/') ? x.lien : '#/')}"><span class="notif-pt" aria-hidden="true"></span>
+      <span><span class="notif-t">${esc(x.texte)}</span><small class="muted">${esc(jourHeure(x.created_at))}${x.lu ? '' : ' · nouvelle'}</small></span></a>`).join('')}</div>`
+      : `<div class="vide-etat"><span class="ico">${ico}</span><h3>Aucune notification</h3><p class="muted">Les nouvelles de vos commandes, de vos trajets et de vos demandes arriveront ici.</p></div>`}</div>`);
   const nonLues = n.filter(x => !x.lu).map(x => x.id);
   if (nonLues.length) { await sb.from('notifs').update({ lu: true }).in('id', nonLues); nbNotifs = 0; nav(); }
 }
@@ -136,9 +142,14 @@ function nav() {
   const b = n => n ? `<span class="badge">${n}</span>` : '';
   const c = $('#clocheApp'); if (c) { c.hidden = !moi; c.innerHTML = (APP.icones?.().cloche || '🔔') + b(nbNotifs); }
   const r = $('#retourApp'); if (r && APP.icones && !r.querySelector('svg')) r.innerHTML = APP.icones().retour;
-  $('#nav').innerHTML = APP.menu().map(([href, t]) => `<a href="${href}" class="${on(href)}">${t}</a>`).join('') +
+  const menu = APP.menu();
+  if (menu.length) $('#nav').innerHTML = menu.map(([href, t]) => `<a href="${href}" class="${on(href)}">${t}</a>`).join('') +
     (moi ? `<a class="cloche" href="#/notifs" aria-label="Notifications">🔔${b(nbNotifs)}</a><a href="#/deconnexion">Déconnexion</a>` : `<a href="#/connexion" class="${on('#/connexion')}">Connexion</a><a class="btn btn-p btn-s" href="#/inscription">Commencer</a>`);
-  $('#bas').innerHTML = APP.menuBas().map(([href, i, t, n]) => `<a href="${href}" class="${on(href)}"><span>${i}</span>${t}${b(n)}</a>`).join('');
+  // barre d'onglets (téléphone) ou rail latéral (ordinateur) : les mêmes liens ; le rail ajoute le logo et ses liens à lui
+  const lien = cls => ([href, i, t, n]) => `<a href="${href}" class="${cls} ${on(href)}" ${on(href) ? 'aria-current="page"' : ''}><span>${i}</span>${t}${b(n)}</a>`;
+  $('#bas').innerHTML = (APP.enteteRail ? APP.enteteRail() : '') + APP.menuBas().map(lien('')).join('') + (APP.menuRail ? APP.menuRail().map(lien('rail-seul')).join('') : '');
+  if (c) c.setAttribute('aria-label', nbNotifs ? `Notifications, ${nbNotifs} nouvelle${nbNotifs > 1 ? 's' : ''}` : 'Notifications');
+  if (APP.apresNav) APP.apresNav();
 }
 // ---------------------------------------------------------------- navigation façon appli
 // Chaque entrée de l'historique porte son rang : en avançant, la page arrive de la droite ; en revenant, elle repart vers la droite
@@ -259,8 +270,9 @@ function blocInstallation() {
   let refuse = false; try { refuse = localStorage.getItem('ilInstallNon') === '1'; } catch (e) { /* stockage indisponible */ }
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !/crios|fxios/i.test(navigator.userAgent);
   if (installee() || refuse || !matchMedia('(max-width: 900px)').matches) return '';
-  return `<div class="installer" id="blocInstall"><span>📲</span><div><b>Installez ${esc(APP.nom)}</b><small>${ios ? 'Touchez <b>Partager</b> ⬆️ puis <b>« Sur l’écran d’accueil »</b>.' : 'Plein écran, une icône sur votre téléphone.'}</small></div>
-    ${ios ? '' : `<button class="btn btn-s btn-p" data-installer ${invitationInstall ? '' : 'hidden'}>Installer</button>`}<button class="fermer-i" data-install-non aria-label="Plus tard">✕</button></div>`;
+  const I = APP.icones ? APP.icones() : {};
+  return `<div class="installer" id="blocInstall"><span class="ico-l">${I.partage || ''}</span><div><b>Installez ${esc(APP.nom)}</b><small>${ios ? 'Touchez <b>Partager</b> puis <b>« Sur l’écran d’accueil »</b>.' : 'Plein écran, une icône sur votre téléphone.'}</small></div>
+    ${ios ? '' : `<button class="btn btn-s btn-p" data-installer ${invitationInstall ? '' : 'hidden'}>Installer</button>`}<button class="fermer-i" data-install-non aria-label="Plus tard">${I.croix || '✕'}</button></div>`;
 }
 document.addEventListener('click', async e => {
   if (e.target.closest('[data-install-non]')) { try { localStorage.setItem('ilInstallNon', '1'); } catch (x) { /* stockage indisponible */ } $('#blocInstall')?.remove(); }

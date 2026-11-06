@@ -2,7 +2,7 @@
    de l'écosystème (repas, transport, lieu, prestataires, invitations, excursions), avec budget et avancement. Données : projets.sql. */
 'use strict';
 // où trouver chaque type d'étape dans l'écosystème
-const OU = { food: ['🍛', 'Repas et traiteur', '#/manger'], move: ['🚗', 'Transport', '#/move'], express: ['📦', 'Livraison', '#/express'],
+const OU = { food: ['🍛', 'Repas et traiteur', '#/manger'], move: ['🚗', 'Transport', '#/bouger'], express: ['📦', 'Livraison', '#/express'],
   events: ['🎟️', 'Invitations QR code (EventPass)', '../pass/#/orga'], experiences: ['🌴', 'Activités et excursions', '../pass/#/?genre=experience'],
   living: ['🏡', 'Lieu ou logement (Kaz An Nou)', 'https://immo.ilo-tech.com/'], services: ['🔧', 'Prestataires (Kaz An Nou)', 'https://immo.ilo-tech.com/#/services'],
   rental: ['🚙', 'Location de matériel', null], autre: ['✅', 'À faire', null] };
