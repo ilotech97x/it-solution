@@ -626,21 +626,6 @@ async function pageCommandesPro() {
 }
 
 // ---------------------------------------------------------------- administration
-async function adminResto() {
-  if (!exigeCompte()) return;
-  if (profil?.role !== 'admin' && !mesModerations.includes('food')) return vue('<div class="wrap"><p>Réservé à l’administration.</p></div>');
-  const l = await q(sb.from('restaurants').select('*').eq('statut', 'en_attente').order('created_at'));
-  const ct = l.length ? await q(sb.from('contacts').select('*').in('id', [...new Set(l.map(x => x.owner))])) : [];
-  vue(`<div class="wrap" style="padding-top:22px">${ongletsAdmin('resto')}<h2>Restaurants à valider (${l.length})</h2>
-    ${l.map(x => { const c = ct.find(y => y.id === x.owner); return `<div class="ligne-l">${x.photo ? `<img class="mini" src="${esc(photo(x.photo))}" alt="">` : '<div class="mini"></div>'}<div><b><a href="#/resto/${x.id}">${esc(x.nom)}</a></b> · ${esc(CUISINES[x.cuisine]?.[1])}
-      <div class="muted petit">${esc(x.commune)}, ${esc(x.territoire)} · ${esc(c?.email || '')} ${c?.telephone ? '· ' + esc(c.telephone) : ''}</div><div class="petit">${esc(x.description.slice(0, 200))}</div></div>
-      <div class="actions"><button class="btn btn-s btn-ok" data-r="${x.id}" data-v="publie">Publier</button><button class="btn btn-s btn-ko" data-r="${x.id}" data-v="refuse">Refuser</button></div></div>`; }).join('') || '<p class="muted">Aucun.</p>'}</div>`);
-  $('#app').onclick = async ev => {
-    const b = ev.target.closest('[data-r]'); if (!b) return;
-    const motif = b.dataset.v === 'refuse' ? prompt('Motif du refus :', '') : null; if (b.dataset.v === 'refuse' && motif === null) return;
-    try { await q(sb.from('restaurants').update({ statut: b.dataset.v, motif_refus: motif }).eq('id', b.dataset.r)); toast('C’est fait.'); adminResto(); } catch (err) { toast(erreur(err), true); }
-  };
-};
 
 
 async function pageCodes(rid) {

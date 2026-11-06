@@ -1,5 +1,5 @@
-/* Woulib — compte et droits, chargé à la première ouverture : profil, sécurité, confidentialité (télécharger mes données,
-   supprimer mon compte), assistance, bouton « Signaler », et leur suivi dans l'administration.
+/* Woulib — compte et droits, chargé à la première ouverture : profil, adresses, favoris, paiement, sécurité, confidentialité
+   (télécharger mes données, supprimer mon compte), assistance, bouton « Signaler ». Leur suivi : ILO CONTROL (control/control.js).
    Base : commun/compte.sql, commun/signalements.sql, commun/assistance.sql. Tant qu'ils ne sont pas installés,
    les demandes passent par l'email ou WhatsApp. */
 'use strict';
@@ -231,56 +231,4 @@ APP.signaler = async d => {
       g.close(); toast('Merci : le signalement est envoyé. La décision arrivera dans vos notifications.');
     } catch (err) { toast(erreur(err), true); b.disabled = false; }
   });
-};
-
-// ---------------------------------------------------------------- administration : signalements, assistance, suppressions
-const LIENS_OBJET = { restaurant: '#/resto/', commande: '#/suivi/', course: '#/course/', colis: '#/colis/', livraison: '#/livraison/' };
-APP.adminSuivi = async sous => {
-  attente();
-  if (!(await droitsInstalles())) return vue(`<div class="wrap">${ongletsAdmin(sous)}<div class="vide-etat"><p>Collez d’abord <b>INSTALLER-SUPABASE.sql</b> dans Supabase.</p></div></div>`);
-  if (sous === 'suppressions' && profil?.role !== 'admin') return aller('#/admin');
-  const table = { signalements: 'signalements', assistance: 'assistance', suppressions: 'suppressions' }[sous];
-  const l = await q(sb.from(table).select('*').order(sous === 'suppressions' ? 'demandee_at' : 'created_at', { ascending: false }).limit(150));
-  const ouverts = x => ['ouvert', 'en_cours', 'ouverte', 'a_finaliser'].includes(x.statut);
-  const tri = [...l.filter(ouverts), ...l.filter(x => !ouverts(x))];
-  const ids = [...new Set(l.map(x => x.auteur || x.user_id).filter(Boolean))];
-  const noms = ids.length ? Object.fromEntries((await q(sb.from('profiles').select('id, prenom, nom').in('id', ids)).catch(() => [])).map(p => [p.id, `${p.prenom} ${p.nom}`.trim()])) : {};
-  const qui = id => esc(noms[id] || 'un utilisateur');
-  const objet = (t, id) => id ? (LIENS_OBJET[t] ? `<a href="${LIENS_OBJET[t]}${id}">${esc(t)} ${esc(id.slice(0, 6).toUpperCase())}</a>` : `${esc(t)} ${esc(id.slice(0, 6).toUpperCase())}`) : esc(t);
-  const carte = {
-    signalements: x => `<div class="panneau aide-l"><div class="aide-t"><b>${esc((MOTIFS.find(([k]) => k === x.motif) || [, x.motif])[1])}</b>${tag(ST_SIGNAL[x.statut])}</div>
-      <p class="muted petit" style="margin:2px 0 6px">${esc(x.univers)} · ${objet(x.objet_type, x.objet_id)} · par ${qui(x.auteur)} · ${esc(jourHeure(x.created_at))}</p>
-      ${x.details ? `<p style="white-space:pre-line;margin:0">${esc(x.details)}</p>` : ''}
-      ${x.decision ? `<div class="reponse"><b>Décision</b><p style="margin:4px 0 0">${esc(x.decision)}</p></div>` : ''}
-      ${ouverts(x) ? `<form class="f" data-signal="${x.id}" style="margin-top:10px"><label>Décision motivée <span class="aide">(envoyée à la personne qui a signalé)</span><textarea name="motivation" maxlength="1000" style="min-height:60px"></textarea></label>
-        <div class="actions">${x.statut === 'ouvert' ? '<button class="btn btn-s" value="en_cours">Je m’en occupe</button>' : ''}<button class="btn btn-s btn-p" value="traite">Mesure prise</button><button class="btn btn-s" value="rejete">Sans suite</button></div></form>` : ''}</div>`,
-    assistance: x => `<div class="panneau aide-l"><div class="aide-t"><b>${esc(SUJETS[x.sujet] || x.sujet)}</b>${tag(ST_AIDE[x.statut])}</div>
-      <p class="muted petit" style="margin:2px 0 6px">${x.objet_id ? objet(x.sujet, x.objet_id) + ' · ' : ''}par ${qui(x.auteur)} · ${esc(jourHeure(x.created_at))}</p>
-      <p style="white-space:pre-line;margin:0">${esc(x.message)}</p>
-      ${x.reponse ? `<div class="reponse"><b>Réponse</b><p style="white-space:pre-line;margin:4px 0 0">${esc(x.reponse)}</p></div>` : ''}
-      ${x.statut !== 'close' ? `<form class="f" data-aide="${x.id}" style="margin-top:10px"><label>Réponse<textarea name="reponse" required maxlength="2000" style="min-height:60px"></textarea></label>
-        <div class="actions"><button class="btn btn-s btn-p" value="repondre">Répondre</button><button class="btn btn-s" value="clore">Répondre et clore</button></div></form>` : ''}</div>`,
-    suppressions: x => `<div class="panneau aide-l"><div class="aide-t"><b>Compte ${esc(x.user_id.slice(0, 8))}</b>${tag(x.statut === 'faite' ? ['ok', 'Faite'] : ['att', 'À finaliser'])}</div>
-      <p class="muted petit" style="margin:2px 0 6px">Demandée ${esc(jourHeure(x.demandee_at))}${x.faite_at ? ' · faite ' + esc(jourHeure(x.faite_at)) : ''}</p>${x.motif ? `<p style="margin:0">${esc(x.motif)}</p>` : ''}
-      ${x.statut === 'a_finaliser' ? `<div class="actions" style="margin-top:8px"><button class="btn btn-s btn-p" data-finaliser="${x.user_id}">Effacer ses identifiants</button></div>` : ''}</div>`
-  }[sous];
-  const intro = { signalements: 'Chaque décision est motivée et envoyée à la personne qui a signalé (DSA). À traiter vite, surtout en cas de danger.',
-    assistance: 'Demandes envoyées depuis l’appli. La réponse arrive dans les notifications de la personne.',
-    suppressions: 'Comptes anonymisés à la demande de leur titulaire. Ne supprimez jamais un utilisateur dans Supabase : la cascade effacerait aussi son historique.' }[sous];
-  vue(`<div class="wrap">${ongletsAdmin(sous)}<p class="muted">${intro}</p>${tri.length ? `<div class="acts">${tri.map(carte).join('')}</div>` : '<div class="vide-etat"><p>Rien à traiter.</p></div>'}</div>`);
-  $('#app').onclick = async e => {
-    const f = e.target.closest('[data-finaliser]'); if (!f) return;
-    f.disabled = true;
-    try { await q(sb.rpc('finaliser_suppression', { cible: f.dataset.finaliser })); toast('Identifiants effacés.'); APP.adminSuivi(sous); } catch (err) { toast(erreur(err), true); f.disabled = false; }
-  };
-  $('#app').onsubmit = async e => {
-    const f = e.target.closest('form[data-signal], form[data-aide]'); if (!f) return;
-    e.preventDefault(); const choix = e.submitter?.value, d = Object.fromEntries(new FormData(f));
-    f.querySelectorAll('button').forEach(b => { b.disabled = true; });
-    try {
-      if (f.dataset.signal) await q(sb.rpc('traiter_signalement', { sid: f.dataset.signal, nouveau: choix, motivation: (d.motivation || '').trim() || null }));
-      else await q(sb.rpc('repondre_aide', { aid: f.dataset.aide, texte: (d.reponse || '').trim(), cloturer: choix === 'clore' }));
-      toast('Enregistré.'); APP.adminSuivi(sous);
-    } catch (err) { toast(erreur(err), true); f.querySelectorAll('button').forEach(b => { b.disabled = false; }); }
-  };
 };

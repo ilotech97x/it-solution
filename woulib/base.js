@@ -95,9 +95,9 @@ const exigeCompte = () => { if (moi) return true; aller('#/connexion?retour=' + 
 
 function pageConnexion() {
   if (moi) return aller(APP.accueilConnecte);
-  vue(`<div class="wrap"><div class="carte-f"><h1>Connexion</h1><p class="muted">Un seul compte pour ${esc(APP.nom)}, EventPass et Kaz An Nou.</p>
+  vue(`<div class="wrap"><div class="carte-f"><h1>Connexion</h1><p class="muted">${APP.texteConnexion ? esc(APP.texteConnexion) : `Un seul compte pour ${esc(APP.nom)}, EventPass et Kaz An Nou.`}</p>
     <form class="f" id="fCo"><label>Email<input type="email" name="email" required autocomplete="email"></label><label>Mot de passe<input type="password" name="mdp" required autocomplete="current-password"></label><button class="btn btn-p">Se connecter</button></form>
-    <p><button class="lien" id="oubli">Mot de passe oublié ?</button></p><p class="muted">Pas de compte ? <a href="#/inscription">Créer un compte</a></p></div></div>`);
+    <p><button class="lien" id="oubli">Mot de passe oublié ?</button></p>${APP.sansInscription ? '' : '<p class="muted">Pas de compte ? <a href="#/inscription">Créer un compte</a></p>'}</div></div>`);
   $('#fCo').addEventListener('submit', async e => {
     e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)), b = e.target.querySelector('button'); b.disabled = true;
     try { await q(sb.auth.signInWithPassword({ email: d.email.trim(), password: d.mdp })); await chargerMoi(); toast('Bienvenue ' + (profil?.prenom || '') + ' !'); aller(decodeURIComponent(param().retour || '') || APP.accueilConnecte); }
@@ -110,6 +110,7 @@ function pageConnexion() {
 }
 function pageInscription() {
   if (moi) return aller(APP.accueilConnecte);
+  if (APP.sansInscription) return rediriger('#/connexion');   // outil interne (ILO CONTROL) : pas d'inscription
   vue(`<div class="wrap"><div class="carte-f"><h1>Créer un compte</h1><p class="muted">Un seul compte pour ${esc(APP.nom)}, EventPass et Kaz An Nou.</p>
     <form class="f" id="fIns"><div class="ligne2"><label>Prénom<input name="prenom" required maxlength="60" autocomplete="given-name"></label><label>Nom<input name="nom" maxlength="60" autocomplete="family-name"></label></div>
       <label>Email<input type="email" name="email" required autocomplete="email"></label>

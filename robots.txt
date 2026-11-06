@@ -2,5 +2,6 @@ User-agent: *
 Disallow: /gestion.html
 Disallow: /prospection.html
 Disallow: /visibilite.html
+Disallow: /control/
 
 Sitemap: https://ilo-tech.com/sitemap.xml

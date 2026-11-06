@@ -9,7 +9,7 @@ const MODULES = {};
 function declarerUnivers(code, m) { MODULES[code] = m; }
 // registre lu dans la base (statut, ouverture par territoire) ; repli si la base ne répond pas.
 // BASE_V2 : la base a reçu univers.sql, move.sql et food.sql à jour (sinon les fonctions qui en dépendent restent masquées)
-let REGISTRE = null, BASE_V2 = false, BOUTIQUES = false, PILOTAGE = false;   // BOUTIQUES : boutique.sql installé ; PILOTAGE : commun/pilotage.sql
+let REGISTRE = null, BASE_V2 = false, BOUTIQUES = false;   // BOUTIQUES : boutique.sql installé
 const REPLI = [['food', '🍛', 'Woulib Food', 'actif'], ['move', '🚗', 'Woulib Move', 'actif'], ['express', '📦', 'Woulib Express', 'actif'], ['market', '🛍️', 'Woulib Market', 'bientot'],
   ['daily', '🧺', 'Woulib Daily', 'bientot'], ['services', '🔧', 'Woulib Services', 'externe', 'https://immo.ilo-tech.com/#/services'], ['experiences', '🌴', 'Woulib Experiences', 'externe', '../pass/#/?genre=experience'], ['events', '🎟️', 'Woulib Events', 'externe', '../pass/'],
   ['rental', '🚙', 'Woulib Rental', 'bientot'], ['living', '🏡', 'Woulib Living', 'externe', 'https://immo.ilo-tech.com/'], ['ai', '🤖', 'Woulib AI', 'bientot']]
@@ -20,7 +20,6 @@ async function chargerRegistre() {
     const [u, t] = await Promise.all([q(sb.from('univers').select('*').order('ordre')), q(sb.from('univers_territoires').select('univers, territoire, actif'))]);
     REGISTRE = u.map(x => ({ ...x, fermes: t.filter(y => y.univers === x.code && !y.actif).map(y => y.territoire) })); BASE_V2 = true;
     BOUTIQUES = await q(sb.from('restaurants').select('genre').limit(1)).then(() => true, () => false);
-    if (profil?.role === 'admin') PILOTAGE = await q(sb.rpc('tableau_de_bord', { jours: 7 })).then(() => true, e => !/function|fonction|does not exist|404/i.test(e.message || ''));
   } catch (e) { REGISTRE = REPLI; }
   return REGISTRE;
 }
@@ -67,7 +66,7 @@ const APP = {
     const t = territoireActif(); b.innerHTML = `${ICO.pin}<span>${esc(t)}</span>${ICO.bas}`; b.setAttribute('aria-label', `Choisir le territoire, actuellement ${t}`);
   },
   icones: () => ICO,
-  differes: { gps: 'gps.js?v=5', projets: 'projets.js?v=3', projet: 'projets.js?v=3', assistance: 'compte.js?v=2', recherche: 'recherche.js?v=1' },   // chargés à la première ouverture
+  differes: { gps: 'gps.js?v=5', projets: 'projets.js?v=3', projet: 'projets.js?v=3', assistance: 'compte.js?v=3', recherche: 'recherche.js?v=1' },   // chargés à la première ouverture
   // bouton retour d'une page ouverte directement (lien partagé) : l'accueil de son univers
   parent: h => Object.values(MODULES).find(m => m.routes.test(h.split('?')[0]))?.accueil || '#/',
   // à chaque changement de page : arrêter les rafraîchissements, couper le GPS hors des pages qui guident, couleurs de l'univers visité
@@ -243,7 +242,7 @@ APP.pages.compte = async sous => {
       ...ch.length ? [['#/chauffeur', ch[0].type === 'livreur' ? ICO.colis : ICO.taxi, 'Espace chauffeur et livreur', 'Courses, livraisons, colis, gains']] : [], ['#/pros', ICO.pro, 'Devenir partenaire', 'Restaurant, commerce, chauffeur, livreur']])}
     ${groupe('Aide', [['#/assistance', ICO.aide, 'Assistance', 'Une question, un problème, mes signalements'], [wa(WA, 'Bonjour, j’ai une question sur Woulib.'), ICO.telephone, 'Aide sur WhatsApp', '0696 48 26 78'],
       ['cgu.html', ICO.document, 'Conditions d’utilisation', ''], ['confidentialite.html', ICO.document, 'Politique de confidentialité', ''],
-      ...profil?.role === 'admin' || mesModerations.length ? [['#/admin', ICO.bouclier, 'Administration', '']] : [], ['#/deconnexion', ICO.sortie, 'Se déconnecter', '', 'ko']])}</div>`);
+      ...profil?.role === 'admin' || mesModerations.length ? [['../control/', ICO.bouclier, 'Administration (ILO CONTROL)', 'Validations, modération, assistance, chiffres']] : [], ['#/deconnexion', ICO.sortie, 'Se déconnecter', '', 'ko']])}</div>`);
 };
 // bouton « Signaler » d'un restaurant, d'une commande, d'une course… (data-signaler = type, data-id, data-univers, data-nom)
 document.addEventListener('click', async e => {
@@ -285,128 +284,12 @@ APP.pages.activite = async () => {
   $('#app').onclick = e => { const b = e.target.closest('[data-encore]'); if (b) recommander(b.dataset.encore, b.dataset.resto); };
 };
 
-// ---------------------------------------------------------------- administration : chaque univers a son onglet ; les modérateurs ne voient que le leur
-const ongletsAdmin = actif => `<h1>Administration</h1><div class="puces">${[...(PILOTAGE && profil?.role === 'admin' ? [['tableau', '#/admin/tableau', '📊 Tableau de bord', null]] : []), ['resto', '#/admin/food', '🍛 Food : restaurants', 'food'], ['woulib', '#/admin/woulib', '🚗 Move : chauffeurs et tarifs', 'move'], ...(BASE_V2 ? [['univers', '#/admin/univers', '🧩 Univers et territoires', null]] : [])]
-  .concat(BASE_V2 && profil?.role === 'admin' ? [['commissions', '#/admin/commissions', '💶 Commissions', null]] : [])
-  .concat([['signalements', '#/admin/signalements', '🚩 Signalements', '*'], ['assistance', '#/admin/assistance', '💬 Assistance', '*'], ['suppressions', '#/admin/suppressions', '🗑️ Comptes supprimés', null]])
-  .filter(([, , , u]) => profil?.role === 'admin' || (u === '*' ? mesModerations.length > 0 : u && mesModerations.includes(u))).map(([k, h, t]) => `<a href="${h}" class="${actif === k ? 'on' : ''}">${t}</a>`).join('')}</div>`;
+// ---------------------------------------------------------------- administration : dans ILO CONTROL (../control/), l'administration centrale de l'écosystème
+// les anciennes adresses #/admin/... y mènent, sur le bon module
 let mesModerations = [];
-APP.pages.admin = async sous => {
-  if (!exigeCompte()) return;
-  await chargerRegistre();
-  mesModerations = (await q(sb.from('moderateurs_univers').select('univers').eq('user_id', moi.id)).catch(() => [])).map(x => x.univers);
-  if (['signalements', 'assistance', 'suppressions'].includes(sous)) { await chargerCompte(); return APP.adminSuivi(sous); }
-  if (sous === 'univers') return adminUnivers();
-  if (profil?.role === 'admin' && PILOTAGE && (sous === 'tableau' || !sous)) return adminTableau();
-  if (sous === 'commissions') return adminCommissions();
-  if (sous === 'woulib' || (profil?.role !== 'admin' && !mesModerations.includes('food') && mesModerations.includes('move'))) return adminWoulib();
-  return adminResto();
-};
-// ---------------------------------------------------------------- tableau de bord : chiffres de tout l'écosystème (commun/pilotage.sql)
-// petite courbe d'une série (un seul tracé, une seule échelle) : aire légère, trait de 2 px, dernière valeur écrite, survol = jour et valeur
-function courbe(series, cle, titre, format, couleur) {
-  const v = series.map(x => Number(x[cle]) || 0), max = Math.max(1, ...v), L = 600, H = 150, h = 120, pas = v.length > 1 ? L / (v.length - 1) : L;
-  const pts = v.map((y, i) => [Math.round(i * pas * 10) / 10, Math.round((h - y / max * (h - 12)) * 10) / 10]);
-  const ligne = pts.map(([x, y], i) => (i ? 'L' : 'M') + x + ' ' + y).join(' '), total = v.reduce((t, x) => t + x, 0);
-  const jour = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-  return `<figure class="courbe" style="--c:${couleur}" data-valeurs="${esc(JSON.stringify(series.map((x, i) => [jour(x.d), format(v[i])])))}" data-pas="${pas}" data-l="${L}">
-    <figcaption><b>${esc(titre)}</b><span>${format(total)} sur la période</span></figcaption>
-    <div class="courbe-zone"><svg viewBox="0 0 ${L} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(titre)} : ${format(total)} au total, ${format(v.at(-1) || 0)} le dernier jour">
-      <line x1="0" y1="${h}" x2="${L}" y2="${h}" class="axe"/><path d="${ligne} L ${L} ${h} L 0 ${h} Z" class="aire"/><path d="${ligne}" class="trait"/>
-      <line class="repere" x1="0" y1="0" x2="0" y2="${h}" hidden/></svg>
-      <span class="max">${format(max)}</span><span class="pt" hidden></span><div class="bulle" hidden></div></div>
-    <div class="axe-x"><span>${jour(series[0].d)}</span><span>${jour(series.at(-1).d)}</span></div></figure>`;
-}
-const eurRond = n => Math.round(Number(n)).toLocaleString('fr-FR') + ' €', nbFr = n => Number(n).toLocaleString('fr-FR');
-async function adminTableau() {
-  const jours = Number(param().jours) || 30;
-  attente();
-  const t = await q(sb.rpc('tableau_de_bord', { jours }));
-  const tuile = (titre, valeur, sous) => `<div class="kpi-t"><span>${titre}</span><b>${valeur}</b>${sous ? `<small>${sous}</small>` : ''}</div>`;
-  const app = (ico, nom, lien, lignes) => `<a class="app-t" href="${lien}"><b>${ico} ${nom}</b>${lignes.map(([k, v]) => `<span><em>${v}</em> ${k}</span>`).join('')}</a>`;
-  const av = t.a_valider, nbValider = Object.values(av).reduce((s, x) => s + Number(x), 0), V = t.volume_apps || {};
-  vue(`<div class="wrap tableau" style="padding-top:22px">${ongletsAdmin('tableau')}
-    <div class="puces">${[7, 30, 90, 365].map(j => `<a href="#/admin/tableau?jours=${j}" class="${j === jours ? 'on' : ''}">${j === 365 ? '1 an' : j + ' jours'}</a>`).join('')}</div>
-    <div class="kpis-t">${tuile('Volume d’affaires', eurRond(t.volume), 'ventes réalisées, toutes applis')}${tuile('Commissions', eurRond(t.commissions.periode), `${eurRond(t.commissions.dues)} à encaisser auprès des pros`)}
-      ${tuile('Nouveaux comptes', nbFr(t.comptes.periode), `${nbFr(t.comptes.total)} comptes en tout`)}${tuile('Demandes des clients', nbFr(t.activite), 'commandes, trajets, colis, billets, séjours, prestations')}</div>
-    ${nbValider ? `<div class="a-valider"><b>⏳ À valider (${nbValider})</b>${[['restaurants', 'restaurant(s) et boutique(s)', '#/admin/food'], ['chauffeurs', 'chauffeur(s) ou livreur(s)', '#/admin/woulib'], ['evenements', 'événement(s)', '../pass/#/admin'], ['logements', 'logement(s)', 'https://immo.ilo-tech.com/#/admin'], ['prestations', 'prestation(s)', 'https://immo.ilo-tech.com/#/admin']]
-      .filter(([k]) => Number(av[k])).map(([k, t, h]) => `<a class="btn btn-s" href="${h}">${av[k]} ${t}</a>`).join('')}</div>` : ''}
-    <div class="courbes">${courbe(t.series, 'volume', 'Volume d’affaires par jour', eurRond, '#C9401F')}${courbe(t.series, 'activite', 'Demandes des clients par jour', nbFr, '#2563EB')}${courbe(t.series, 'comptes', 'Nouveaux comptes par jour', nbFr, '#2563EB')}</div>
-    <h2>Par appli</h2><div class="apps-t">
-      ${app('🍛', 'Woulib Food', '#/admin/food', [['commandes', nbFr(t.food.commandes)], ['de ventes', eurRond(V.food || 0)], ['panier moyen', eurRond(t.food.panier_moyen)], ['annulées ou refusées', nbFr(t.food.annulees)], ['restaurants · ' + t.food.boutiques + ' boutique(s)', nbFr(t.food.restaurants)]])}
-      ${app('🚗', 'Woulib Move', '#/admin/woulib', [['courses', nbFr(t.move.courses)], ['terminées', nbFr(t.move.terminees)], ['de ventes', eurRond(V.move || 0)], ['chauffeurs · ' + t.move.livreurs + ' livreur(s)', nbFr(t.move.chauffeurs)], ['livraisons faites', nbFr(t.move.livraisons)]])}
-      ${app('📦', 'Woulib Express', '#/admin/univers', [['colis', nbFr(t.express.colis)], ['livrés', nbFr(t.express.livres)], ['de ventes', eurRond(V.express || 0)], ['projets créés', nbFr(t.projets)]])}
-      ${app('🎟️', 'EventPass', '../pass/', [['événements à venir', nbFr(t.eventpass.a_venir)], ['billets', nbFr(t.eventpass.billets)], ['entrées contrôlées', nbFr(t.eventpass.utilises)], ['de billets payés', eurRond(V.eventpass || 0)]])}
-      ${app('🏡', 'Kaz An Nou', 'https://immo.ilo-tech.com/', [['logements en ligne', nbFr(t.kaz.logements)], ['réservations', nbFr(t.kaz.reservations)], ['acceptées', nbFr(t.kaz.acceptees)], ['de séjours', eurRond(V.kaz || 0)], ['prestations · ' + t.kaz.faites + ' faites', nbFr(t.kaz.prestations)]])}
-      ${app('📊', 'NEXORA', '../nexora/', [['entreprises', nbFr(t.nexora.entreprises)], ['nouvelles', nbFr(t.nexora.nouvelles)], ['factures émises', nbFr(t.nexora.factures)]])}
-      ${app('🛠️', 'IloTech (dépannage, devis)', 'https://ilo-tech.com/gestion.html', [['demandes, devis et clients', 'Espace de gestion'], ['', '<a href="https://ilo-tech.com/prospection.html">Prospection</a> · <a href="https://ilo-tech.com/visibilite.html">Visibilité</a>']])}</div>
-    ${t.territoires.length ? `<h2>Repas par territoire</h2><div class="tab-t"><table><thead><tr><th>Territoire</th><th class="num">Commandes</th><th class="num">Ventes</th></tr></thead><tbody>${t.territoires.map(x => `<tr><td>${esc(x.territoire)}</td><td class="num">${nbFr(x.commandes)}</td><td class="num">${eurRond(x.ventes)}</td></tr>`).join('')}</tbody></table></div>` : ''}
-    <details class="tab-t"><summary>Voir les chiffres jour par jour</summary><table><thead><tr><th>Jour</th><th class="num">Volume d’affaires</th><th class="num">Demandes</th><th class="num">Nouveaux comptes</th></tr></thead>
-      <tbody>${t.series.slice().reverse().map(x => `<tr><td>${esc(new Date(x.d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }))}</td><td class="num">${eurRond(x.volume)}</td><td class="num">${nbFr(x.activite)}</td><td class="num">${nbFr(x.comptes)}</td></tr>`).join('')}</tbody></table></details>
-    <p class="muted petit">Volume d’affaires : repas livrés ou retirés, courses terminées, colis livrés, billets payés, séjours acceptés, prestations faites. Les visites des sites se suivent dans Google Search Console (A-FAIRE).</p></div>`);
-  // survol ou toucher d'une courbe : repère vertical, point et bulle « jour : valeur »
-  const survol = e => {
-    const fig = e.target.closest('.courbe'); if (!fig) return;
-    const zone = fig.querySelector('.courbe-zone'), r = zone.getBoundingClientRect(), val = JSON.parse(fig.dataset.valeurs), n = val.length;
-    const i = Math.max(0, Math.min(n - 1, Math.round((e.clientX - r.left) / r.width * (n - 1))));
-    const x = n > 1 ? i / (n - 1) : 0, svgEl = zone.querySelector('svg'), trait = svgEl.querySelector('.trait').getAttribute('d').split(/[ML]/).filter(Boolean)[i].trim().split(' ');
-    const rep = svgEl.querySelector('.repere'); rep.hidden = false; rep.setAttribute('x1', trait[0]); rep.setAttribute('x2', trait[0]);
-    const pt = zone.querySelector('.pt'); pt.hidden = false; pt.style.left = x * 100 + '%'; pt.style.top = (Number(trait[1]) / 150 * 100) + '%';
-    const b = zone.querySelector('.bulle'); b.hidden = false; b.textContent = `${val[i][0]} : ${val[i][1]}`; b.style.left = Math.min(Math.max(x * 100, 12), 88) + '%';
-  };
-  $('#app').onpointermove = survol; $('#app').onpointerdown = survol;
-  $('#app').onpointerleave = () => document.querySelectorAll('.courbe .repere,.courbe .pt,.courbe .bulle').forEach(el => { el.hidden = true; });
-}
-
-// ce que chaque pro doit à la plateforme ; « Réglé » quand il a payé (il est prévenu)
-async function adminCommissions() {
-  if (profil?.role !== 'admin') return vue('<div class="wrap"><p>Réservé à l’administration.</p></div>');
-  const l = await q(sb.rpc('commissions_a_regler'));
-  vue(`<div class="wrap" style="padding-top:22px">${ongletsAdmin('commissions')}<h2>À régler par les pros (${eur(l.reduce((t, x) => t + Number(x.montant), 0))})</h2>
-    ${l.map(x => `<div class="ligne-l" style="grid-template-columns:minmax(0,1fr) auto"><div><b>${esc(x.prenom)} ${esc(x.nom)}</b> · ${x.univers.map(u => esc(univers(u)?.nom || u)).join(', ')}
-      <div class="muted petit">${x.nb} vente${x.nb > 1 ? 's' : ''} · ${esc(x.email || '')}${x.telephone ? ' · ' + esc(x.telephone) : ''}</div></div>
-      <div class="actions"><b style="font-size:18px">${eur(x.montant)}</b>${x.telephone ? `<a class="btn btn-s btn-wa" target="_blank" rel="noopener" href="${wa(x.telephone, `Bonjour ${x.prenom}, voici votre relevé Woulib : ${eur(x.montant)} de commission pour ${x.nb} vente(s). Merci !`)}">Relevé WhatsApp</a>` : ''}
-        <button class="btn btn-s btn-ok" data-regle="${x.pro_id}" data-montant="${x.montant}">Réglé</button></div></div>`).join('') || '<p class="muted">Rien à régler pour l’instant.</p>'}</div>`);
-  $('#app').onclick = async e => {
-    const b = e.target.closest('[data-regle]'); if (!b || !confirm(`Confirmer le règlement de ${eur(b.dataset.montant)} ?`)) return;
-    try { await q(sb.rpc('regler_commissions', { pro: b.dataset.regle })); toast('Règlement enregistré, le pro est prévenu.'); adminCommissions(); } catch (err) { toast(erreur(err), true); }
-  };
-}
-async function adminUnivers() {
-  if (profil?.role !== 'admin') return vue('<div class="wrap"><p>Réservé à l’administration.</p></div>');
-  REGISTRE = null; const reg = await chargerRegistre();
-  const mods = await q(sb.from('moderateurs_univers').select('user_id, univers')).catch(() => []);
-  const noms = mods.length ? await q(sb.from('contacts').select('id, email').in('id', mods.map(m => m.user_id))).catch(() => []) : [];
-  vue(`<div class="wrap" style="padding-top:22px">${ongletsAdmin('univers')}
-    <p class="muted">Ouvrez un univers quand il est prêt (les personnes inscrites à l’alerte sont prévenues), fermez-le sur un territoire, réglez ses paramètres, nommez ses modérateurs.</p>
-    ${reg.map(u => `<div class="panneau" style="margin-bottom:14px;padding:16px" data-u="${u.code}"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
-      <b style="font-size:18px">${u.icone} ${esc(u.nom)}</b><select data-statut aria-label="Statut de ${esc(u.nom)}">${[['actif', 'Ouvert'], ['bientot', 'Bientôt'], ['externe', 'Autre appli'], ['masque', 'Masqué']].map(([k, t]) => `<option value="${k}" ${u.statut === k ? 'selected' : ''} ${k === 'externe' && !u.lien ? 'disabled' : ''}>${t}</option>`).join('')}</select></div>
-      <div class="muted petit">${esc(u.description)}${MODULES[u.code] ? '' : u.statut === 'externe' ? '' : ' · écrans pas encore construits : laissez « Bientôt »'}</div>
-      ${u.statut === 'actif' ? `<details style="margin-top:8px"><summary class="petit"><b>Territoires</b> (${u.fermes.length ? 'fermé : ' + esc(u.fermes.join(', ')) : 'ouvert partout'})</summary><div class="actions" style="margin-top:8px">
-        ${NOMS_TERRITOIRES.map(t => `<label class="petit" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-terr="${esc(t)}" ${u.fermes.includes(t) ? '' : 'checked'} style="width:auto"> ${esc(t)}</label>`).join('')}</div></details>` : ''}
-      ${Object.keys(u.parametres || {}).length ? `<details style="margin-top:8px"><summary class="petit"><b>Réglages</b></summary><div class="ligne3" style="margin-top:8px">${Object.entries(u.parametres).map(([k, v]) => `<label class="petit">${esc(k.replace(/_/g, ' '))}<input data-param="${esc(k)}" type="number" value="${esc(v)}"></label>`).join('')}</div></details>` : ''}
-      <div class="petit" style="margin-top:8px"><b>Modérateurs :</b> ${mods.filter(m => m.univers === u.code).map(m => `${esc(noms.find(n => n.id === m.user_id)?.email || m.user_id.slice(0, 8))} <button class="lien" data-retirer="${m.user_id}">retirer</button>`).join(', ') || 'aucun'}
-        <button class="btn btn-s" data-mod>+ Nommer</button></div></div>`).join('')}</div>`);
-  const maj = async (code, champs) => { try { await q(sb.from('univers').update(champs).eq('code', code)); toast('Enregistré.'); } catch (err) { toast(erreur(err), true); } adminUnivers(); };
-  $('#app').onchange = async e => {
-    const bloc = e.target.closest('[data-u]'); if (!bloc) return; const code = bloc.dataset.u, u = reg.find(x => x.code === code);
-    if (e.target.matches('[data-statut]')) {
-      if (e.target.value === 'actif' && !MODULES[code] && !confirm('Les écrans de cet univers ne sont pas encore construits. L’ouvrir quand même ?')) return adminUnivers();
-      return maj(code, { statut: e.target.value });
-    }
-    if (e.target.matches('[data-param]')) return maj(code, { parametres: { ...u.parametres, [e.target.dataset.param]: Number(e.target.value) } });
-    if (e.target.matches('[data-terr]')) {
-      try { await q(sb.from('univers_territoires').upsert({ univers: code, territoire: e.target.dataset.terr, actif: e.target.checked })); toast(e.target.checked ? 'Ouvert sur ce territoire.' : 'Fermé sur ce territoire.'); } catch (err) { toast(erreur(err), true); }
-      REGISTRE = null; adminUnivers();
-    }
-  };
-  $('#app').onclick = async e => {
-    const bloc = e.target.closest('[data-u]'); if (!bloc) return; const code = bloc.dataset.u;
-    if (e.target.closest('[data-mod]')) { const m = prompt('Email du compte à nommer modérateur :'); if (!m) return; try { await q(sb.rpc('ajouter_moderateur', { email_m: m, u: code })); toast('Modérateur nommé.'); adminUnivers(); } catch (err) { toast(erreur(err), true); } }
-    const r = e.target.closest('[data-retirer]');
-    if (r && confirm('Retirer ce modérateur ?')) { try { await q(sb.from('moderateurs_univers').delete().eq('user_id', r.dataset.retirer).eq('univers', code)); adminUnivers(); } catch (err) { toast(erreur(err), true); } }
-  };
-}
+const ADMIN_VERS = { '': '', tableau: '', food: 'partenaires?type=restaurant', woulib: 'partenaires?type=chauffeur', univers: 'applications', commissions: 'commissions',
+  signalements: 'moderation', assistance: 'assistance', suppressions: 'securite' };
+APP.pages.admin = sous => { location.replace('../control/#/' + (ADMIN_VERS[sous || ''] ?? '')); };
 
 // les pages des univers sont déclarées par food.js, move.js et gps.js, chargés après ce fichier
 document.addEventListener('DOMContentLoaded', demarrer);

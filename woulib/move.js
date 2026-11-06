@@ -422,37 +422,6 @@ function formChauffeur(ch) {
 }
 
 // ---------------------------------------------------------------- administration
-async function adminWoulib() {
-  if (!exigeCompte()) return;
-  if (profil?.role !== 'admin' && !mesModerations.includes('move')) return vue('<div class="wrap"><p>Réservé à l’administration.</p></div>');
-  const [chs, tarifs] = await Promise.all([q(sb.from('chauffeurs').select('*').order('created_at', { ascending: false }).limit(100)), q(sb.from('tarifs_move').select('*').order('territoire').order('categorie'))]);
-  const ids = [...new Set(chs.map(x => x.id))];
-  const [pr, ct] = ids.length ? await Promise.all([q(sb.from('profiles').select('id, prenom, nom').in('id', ids)), q(sb.from('contacts').select('*').in('id', ids))]) : [[], []];
-  const terrA = param().t || 'Martinique';
-  vue(`<div class="wrap" style="padding-top:22px">${ongletsAdmin('woulib')}<h2>Chauffeurs (${chs.length})</h2>
-    ${chs.map(x => { const p = pr.find(y => y.id === x.id), c = ct.find(y => y.id === x.id); return `<div class="ligne-l" style="grid-template-columns:minmax(0,1fr) auto"><div><b>${esc(p?.prenom)} ${esc(p?.nom)}</b> ${tag(ST_CH[x.statut])} <span class="tag">${x.type.toUpperCase()}</span>
-      <div class="muted petit">${x.numero_carte ? 'Carte ' + esc(x.numero_carte) : 'Livreur'}${x.livraisons && x.type !== 'livreur' ? ' · livre aussi' : ''}${x.siret ? ' · SIRET ' + esc(x.siret) : ''} · ${esc(x.vehicule)} ${esc(x.couleur || '')} · ${esc(x.immatriculation || '')} · ${x.type === 'livreur' ? 'livraisons' : CATS[x.categorie][1]} · ${esc(x.territoire)}</div>
-      <div class="petit">${esc(c?.email || '')} ${c?.telephone ? `· <a href="${wa(c.telephone, 'Bonjour, ici Woulib (IloTech) pour la vérification de votre compte chauffeur.')}" target="_blank" rel="noopener">${esc(c.telephone)}</a>` : ''}</div></div>
-      <div class="actions">${x.statut !== 'valide' ? `<button class="btn btn-s btn-ok" data-ch="${x.id}" data-v="valide">Valider</button>` : `<button class="btn btn-s btn-ko" data-ch="${x.id}" data-v="suspendu">Suspendre</button>`}${x.statut === 'demande' ? `<button class="btn btn-s btn-ko" data-ch="${x.id}" data-v="refuse">Refuser</button>` : ''}</div></div>`; }).join('') || '<p class="muted">Aucun chauffeur inscrit.</p>'}
-    <h2 style="margin-top:26px">Tarifs</h2><p class="muted petit">Prix = prise en charge + km × prix au km, jamais moins que le minimum. Distance = vol d’oiseau × 1,35.</p>
-    <div class="puces">${NOMS_TERRITOIRES.map(t => `<a href="#/admin/woulib?t=${encodeURIComponent(t)}" class="${t === terrA ? 'on' : ''}">${esc(t)}</a>`).join('')}</div>
-    <form class="f" id="fT">${tarifs.filter(t => t.territoire === terrA).map(t => `<div class="ligne3" data-cat="${t.categorie}"><b style="align-self:center">${CATS[t.categorie][0]} ${CATS[t.categorie][1]}</b>
-      <label>Prise en charge (€)<input name="p" type="number" step="0.1" min="0" value="${t.prise_en_charge}"></label><label>Prix / km (€)<input name="k" type="number" step="0.01" min="0" value="${t.prix_km}"></label><label>Minimum (€)<input name="m" type="number" step="0.5" min="0" value="${t.minimum}"></label></div>`).join('')}
-      <button class="btn btn-p">Enregistrer les tarifs ${esc(terrA)}</button></form></div>`);
-  $('#app').onclick = async ev => {
-    const b = ev.target.closest('[data-ch]'); if (!b) return;
-    try { await q(sb.from('chauffeurs').update({ statut: b.dataset.v }).eq('id', b.dataset.ch)); toast('C’est fait.'); adminWoulib(); } catch (err) { toast(erreur(err), true); }
-  };
-  $('#fT').addEventListener('submit', async ev => {
-    ev.preventDefault();
-    try {
-      for (const r of ev.target.querySelectorAll('[data-cat]')) {
-        await q(sb.from('tarifs_move').update({ prise_en_charge: +r.querySelector('[name=p]').value, prix_km: +r.querySelector('[name=k]').value, minimum: +r.querySelector('[name=m]').value }).eq('territoire', terrA).eq('categorie', r.dataset.cat));
-      }
-      toast('Tarifs enregistrés.');
-    } catch (err) { toast(erreur(err), true); }
-  });
-};
 
 
 // ---------------------------------------------------------------- suivi partagé (sans compte) : un proche suit le trajet en direct
