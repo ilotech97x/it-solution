@@ -51,7 +51,7 @@ NX.publiques.connexion = async () => {
   });
   $('#oubli').onclick = async () => {
     const email = $('#fCo').email.value.trim(); if (!email) return toast('Écrivez d’abord votre email.', true);
-    try { await q(sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://immo.ilo-tech.com/?nouveau-mdp=1' })); toast('Si un compte existe, un email est envoyé.'); } catch (err) { toast(erreur(err), true); }
+    try { await q(lienMdp(email)); toast('Si un compte existe, un email est envoyé.'); } catch (err) { toast(erreur(err), true); }
   };
 };
 NX.publiques.inscription = async () => {

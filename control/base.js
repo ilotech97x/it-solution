@@ -6,6 +6,10 @@ if (window.top !== window.self) { try { window.top.location = window.location.hr
 const CFG = window.KAZ_CONFIG || {};
 const PRET = !!(CFG.url && CFG.cle && window.supabase);
 const sb = PRET ? window.supabase.createClient(CFG.url, CFG.cle, { auth: { flowType: 'pkce', persistSession: true, detectSessionInUrl: true } }) : null;
+// « Mot de passe oublié » : lien en flux implicite (les jetons voyagent dans le lien). Avec le flux PKCE de `sb`, il faudrait ouvrir l'email dans le
+// navigateur et sur le site qui ont fait la demande : depuis Gmail sur un autre appareil, ou vers Kaz An Nou qui reçoit les liens de toutes les applis, il échoue.
+const lienMdp = (email, retour = 'https://immo.ilo-tech.com/?nouveau-mdp=1') => window.supabase.createClient(CFG.url, CFG.cle, { auth: { flowType: 'implicit',
+  persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'ilotech-lien-mdp' } }).auth.resetPasswordForEmail(email, { redirectTo: retour });
 const WA = '596696482678';
 
 const $ = s => document.querySelector(s);
@@ -105,7 +109,7 @@ function pageConnexion() {
   });
   $('#oubli').addEventListener('click', async () => {
     const email = $('#fCo').email.value.trim(); if (!email) return toast('Écrivez d’abord votre email.', true);
-    try { await q(sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://immo.ilo-tech.com/?nouveau-mdp=1' })); toast('Si un compte existe, un email est envoyé.'); } catch (err) { toast(erreur(err), true); }
+    try { await q(lienMdp(email)); toast('Si un compte existe, un email est envoyé.'); } catch (err) { toast(erreur(err), true); }
   });
 }
 function pageInscription() {
