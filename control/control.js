@@ -55,6 +55,14 @@ const INSTALLER = '<div class="bandeau att"><span><b>La base n’est pas encore 
 const ligneJournal = (x, noms = {}) => `<div class="ctl-j"><b>${esc(jourHeure(x.created_at))}</b> · ${esc(noms[x.acteur] || ROLES[x.role] || x.role)} · ${esc(x.action)}${x.details?.motif ? ` <span class="muted">(motif : ${esc(x.details.motif)})</span>` : ''}</div>`;
 const tableApps = l => `<div class="tableau"><table class="t ctl-t"><thead><tr><th scope="col">Application</th><th scope="col">Activité</th><th scope="col" class="num">Volume</th><th scope="col" class="num">Commission</th></tr></thead>
   <tbody>${l.map(x => `<tr><th scope="row">${esc(x.app)}</th><td>${esc(x.activite)}</td><td class="num">${eurC(x.volume)}</td><td class="num">${eurC(x.commission)}</td></tr>`).join('')}</tbody></table></div>`;
+// table centrale d'activité (commun/activite.sql) : toutes les applis, Sousou compris, sans donnée personnelle
+const NOMS_APPS = { woulib_food: 'Woulib Food', woulib_commerces: 'Woulib Commerces', woulib_vtc: 'Woulib Taxi/VTC', woulib_livraisons: 'Livraisons Woulib',
+  woulib_express: 'Woulib Express', eventpass: 'EventPass', kaz_sejours: 'Kaz An Nou : séjours', kaz_services: 'Kaz An Nou : services', nexora: 'NEXORA (entreprises)',
+  comptes: 'Comptes créés', sousou: 'Sousou (tontines)' };
+const tableActivite = m => `<div class="tableau"><table class="t ctl-t"><thead><tr><th scope="col">Application</th><th scope="col" class="num">Opérations</th><th scope="col" class="num">Volume réel</th><th scope="col" class="num">Commission</th></tr></thead>
+  <tbody>${m.apps.map(x => `<tr><th scope="row">${esc(NOMS_APPS[x.app] || x.app)}${x.demo ? ` <span class="tag gris">dont ${nbFr(x.demo)} en démonstration</span>` : ''}</th><td class="num">${nbFr(x.operations)}</td><td class="num">${eurC(x.volume)}</td><td class="num">${eurC(x.commission)}</td></tr>`).join('')
+    || '<tr><td colspan="4" class="muted">Aucune opération sur la période.</td></tr>'}</tbody>
+  <tfoot><tr><th scope="row">Total</th><td class="num">${nbFr(m.total.operations)}</td><td class="num">${eurC(m.total.volume)}</td><td class="num">${eurC(m.total.commission)}</td></tr></tfoot></table></div>`;
 const majCompteurs = c => { Object.assign(compteurs, c); nav(); };
 
 // accès : connecté, administrateur ou modérateur, double authentification si le compte l'a activée
@@ -116,14 +124,16 @@ APP.pages[''] = async () => {
   attente();
   const jours = Number(param().jours) || 30, admin = estAdmin();
   if (admin) sb.rpc('purger_donnees').then(() => {}, () => {});   // durées de conservation : au plus une fois par jour, décidé par la base
-  const [t, apps, file, sig, aide, journal] = await Promise.all([
+  const [t, apps, file, sig, aide, journal, eco] = await Promise.all([
     admin ? q(sb.rpc('tableau_de_bord', { jours })).catch(() => null) : null,
     admin ? q(sb.rpc('controle_apps', { jours })).catch(() => null) : null,
     q(sb.rpc('file_validation')).catch(() => null),
     q(sb.from('signalements').select('*').in('statut', ['ouvert', 'en_cours']).order('created_at', { ascending: false }).limit(50)).catch(() => []),
     q(sb.from('assistance').select('id').eq('statut', 'ouverte').limit(200)).catch(() => []),
-    admin ? q(sb.from('journal_admin').select('*').order('created_at', { ascending: false }).limit(8)).catch(() => []) : []]);
+    admin ? q(sb.from('journal_admin').select('*').order('created_at', { ascending: false }).limit(8)).catch(() => []) : [],
+    admin ? q(sb.rpc('metriques_ecosysteme', { jours })).catch(() => null) : null]);
   majCompteurs({ partenaires: file?.length || 0, moderation: sig.length, assistance: aide.length });
+  const periode = jours === 365 ? '12 derniers mois' : jours + ' derniers jours';
   const kpi = (titre, v, s) => `<div class="ctl-kpi"><span>${titre}</span><b>${v}</b><small>${s}</small></div>`;
   vue(page('Vue générale', `${file === null ? INSTALLER : ''}
     ${t ? `<div class="ctl-kpis">${kpi('Volume d’affaires', eurC(t.volume), 'commandes, courses, colis, billets, séjours')}${kpi('Commissions', eurC(t.commissions.periode), `dont ${eurC(t.commissions.dues)} à encaisser`)}
@@ -132,8 +142,9 @@ APP.pages[''] = async () => {
         <a class="btn btn-p btn-s" href="#/partenaires?type=${x.type}">Examiner</a></div>`).join('')}</div>` : '<p class="muted">Rien à valider.</p>')}
       ${carte(`Signalements ouverts · ${sig.length}`, (sig.length ? `<div class="ctl-liste">${sig.slice(0, 5).map(x => `<div class="ctl-ligne"><span><b>${esc(MOTIFS[x.motif] || x.motif)}</b><small>${esc(x.univers)} · ${esc(x.objet_type)} · ${ilYa(x.created_at)}</small></span>
         <a class="btn btn-s" href="#/moderation">Traiter</a></div>`).join('')}</div>` : '<p class="muted">Aucun signalement ouvert.</p>') + '<p class="petit muted">Chaque décision est motivée et envoyée à la personne concernée (règlement européen sur les services numériques).</p>')}</div>
-    ${apps ? carte(`Par application · ${jours === 365 ? '12 derniers mois' : jours + ' derniers jours'}`, tableApps(apps) + '<p class="petit muted">NEXORA : des nombres seulement. ILO CONTROL ne lit aucune donnée des entreprises.</p>') : ''}
-    ${t ? `<div class="courbes">${courbe(t.series, 'volume', 'Volume d’affaires par jour', eurC, '#0E7490')}${courbe(t.series, 'activite', 'Demandes des clients par jour', nbFr, '#0E7490')}${courbe(t.series, 'comptes', 'Nouveaux comptes par jour', nbFr, '#0E7490')}</div>` : ''}
+    ${eco ? carte(`Toutes les applis · ${periode}`, tableActivite(eco) + '<p class="petit muted">Une seule table réunit l’activité de toutes les applis, Sousou compris, sans nom ni adresse. L’argent de démonstration (paiements simulés de Sousou) n’entre jamais dans le volume. NEXORA : des nombres seulement.</p>')
+      : apps ? carte(`Par application · ${periode}`, tableApps(apps) + '<p class="petit muted">NEXORA : des nombres seulement. ILO CONTROL ne lit aucune donnée des entreprises.</p>') : ''}
+    ${t || eco ? `<div class="courbes">${t ? courbe(t.series, 'volume', 'Volume d’affaires par jour', eurC, '#0E7490') + courbe(t.series, 'activite', 'Demandes des clients par jour', nbFr, '#0E7490') + courbe(t.series, 'comptes', 'Nouveaux comptes par jour', nbFr, '#0E7490') : ''}${eco?.serie?.length ? courbe(eco.serie.map(x => ({ d: x.jour, operations: x.operations })), 'operations', 'Opérations, toutes applis', nbFr, '#0E7490') : ''}</div>` : ''}
     ${journal.length ? carte('Journal de l’administration', `<div class="ctl-journal">${journal.map(x => ligneJournal(x)).join('')}</div><p class="petit"><a href="#/securite">Tout le journal</a></p>`) : ''}`,
     admin ? periodes(jours, '#/') : ''));
   brancherCourbes();
