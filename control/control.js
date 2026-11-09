@@ -56,13 +56,25 @@ const ligneJournal = (x, noms = {}) => `<div class="ctl-j"><b>${esc(jourHeure(x.
 const tableApps = l => `<div class="tableau"><table class="t ctl-t"><thead><tr><th scope="col">Application</th><th scope="col">Activité</th><th scope="col" class="num">Volume</th><th scope="col" class="num">Commission</th></tr></thead>
   <tbody>${l.map(x => `<tr><th scope="row">${esc(x.app)}</th><td>${esc(x.activite)}</td><td class="num">${eurC(x.volume)}</td><td class="num">${eurC(x.commission)}</td></tr>`).join('')}</tbody></table></div>`;
 // table centrale d'activité (commun/activite.sql) : toutes les applis, Sousou compris, sans donnée personnelle
-const NOMS_APPS = { woulib_food: 'Woulib Food', woulib_commerces: 'Woulib Commerces', woulib_vtc: 'Woulib Taxi/VTC', woulib_livraisons: 'Livraisons Woulib',
-  woulib_express: 'Woulib Express', eventpass: 'EventPass', kaz_sejours: 'Kaz An Nou : séjours', kaz_services: 'Kaz An Nou : services', nexora: 'NEXORA (entreprises)',
-  comptes: 'Comptes créés', sousou: 'Sousou (tontines)' };
 const tableActivite = m => `<div class="tableau"><table class="t ctl-t"><thead><tr><th scope="col">Application</th><th scope="col" class="num">Opérations</th><th scope="col" class="num">Volume réel</th><th scope="col" class="num">Commission</th></tr></thead>
-  <tbody>${m.apps.map(x => `<tr><th scope="row">${esc(NOMS_APPS[x.app] || x.app)}${x.demo ? ` <span class="tag gris">dont ${nbFr(x.demo)} en démonstration</span>` : ''}</th><td class="num">${nbFr(x.operations)}</td><td class="num">${eurC(x.volume)}</td><td class="num">${eurC(x.commission)}</td></tr>`).join('')
+  <tbody>${m.apps.map(x => `<tr><th scope="row">${esc(x.nom || x.app)}${x.demo ? ` <span class="tag gris">dont ${nbFr(x.demo)} en démonstration</span>` : ''}</th><td class="num">${nbFr(x.operations)}</td><td class="num">${eurC(x.volume)}</td><td class="num">${eurC(x.commission)}</td></tr>`).join('')
     || '<tr><td colspan="4" class="muted">Aucune opération sur la période.</td></tr>'}</tbody>
   <tfoot><tr><th scope="row">Total</th><td class="num">${nbFr(m.total.operations)}</td><td class="num">${eurC(m.total.volume)}</td><td class="num">${eurC(m.total.commission)}</td></tr></tfoot></table></div>`;
+// registre des applications (table `applications`), regroupé par marque : Woulib = 5 services, une adresse
+const ETATS_APP = { en_ligne: ['En ligne', 'ok'], en_test: ['En test', 'att'], en_projet: ['En projet', 'gris'], en_pause: ['En pause', 'ko'] };
+const listeApplications = registre => {
+  const marques = [];
+  for (const a of registre) {
+    let m = marques.find(x => x.marque === a.marque);
+    if (!m) marques.push(m = { marque: a.marque, services: [], etat: a.etat, adresse: a.adresse });
+    m.services.push(a.nom);
+    if (a.etat === 'en_ligne') m.etat = 'en_ligne';
+    m.adresse = m.adresse || a.adresse;
+  }
+  return `<div class="ctl-liste">${marques.map(m => { const [libelle, ton] = ETATS_APP[m.etat] || [m.etat, 'gris'];
+    return `<div class="ctl-ligne"><span><b>${esc(m.marque)}</b>${m.services.length > 1 ? `<small>${esc(m.services.join(' · '))}</small>` : ''}</span>
+      <span><span class="tag ${ton}">${esc(libelle)}</span>${m.adresse ? ` <a class="btn btn-s" href="${esc(m.adresse)}" target="_blank" rel="noopener">Ouvrir</a>` : ''}</span></div>`; }).join('')}</div>`;
+};
 const majCompteurs = c => { Object.assign(compteurs, c); nav(); };
 
 // accès : connecté, administrateur ou modérateur, double authentification si le compte l'a activée
@@ -142,7 +154,7 @@ APP.pages[''] = async () => {
         <a class="btn btn-p btn-s" href="#/partenaires?type=${x.type}">Examiner</a></div>`).join('')}</div>` : '<p class="muted">Rien à valider.</p>')}
       ${carte(`Signalements ouverts · ${sig.length}`, (sig.length ? `<div class="ctl-liste">${sig.slice(0, 5).map(x => `<div class="ctl-ligne"><span><b>${esc(MOTIFS[x.motif] || x.motif)}</b><small>${esc(x.univers)} · ${esc(x.objet_type)} · ${ilYa(x.created_at)}</small></span>
         <a class="btn btn-s" href="#/moderation">Traiter</a></div>`).join('')}</div>` : '<p class="muted">Aucun signalement ouvert.</p>') + '<p class="petit muted">Chaque décision est motivée et envoyée à la personne concernée (règlement européen sur les services numériques).</p>')}</div>
-    ${eco ? carte(`Toutes les applis · ${periode}`, tableActivite(eco) + '<p class="petit muted">Une seule table réunit l’activité de toutes les applis, Sousou compris, sans nom ni adresse. L’argent de démonstration (paiements simulés de Sousou) n’entre jamais dans le volume. NEXORA : des nombres seulement.</p>')
+    ${eco ? carte(`Toutes les applis · ${periode}`, tableActivite(eco) + '<p class="petit muted">Une seule table réunit l’activité de toutes les applis (Sousou dès qu’il y sera branché), sans nom ni adresse. L’argent de démonstration (paiements simulés de Sousou) n’entre jamais dans le volume. NEXORA : des nombres seulement.</p>')
       : apps ? carte(`Par application · ${periode}`, tableApps(apps) + '<p class="petit muted">NEXORA : des nombres seulement. ILO CONTROL ne lit aucune donnée des entreprises.</p>') : ''}
     ${t || eco ? `<div class="courbes">${t ? courbe(t.series, 'volume', 'Volume d’affaires par jour', eurC, '#0E7490') + courbe(t.series, 'activite', 'Demandes des clients par jour', nbFr, '#0E7490') + courbe(t.series, 'comptes', 'Nouveaux comptes par jour', nbFr, '#0E7490') : ''}${eco?.serie?.length ? courbe(eco.serie.map(x => ({ d: x.jour, operations: x.operations })), 'operations', 'Opérations, toutes applis', nbFr, '#0E7490') : ''}</div>` : ''}
     ${journal.length ? carte('Journal de l’administration', `<div class="ctl-journal">${journal.map(x => ligneJournal(x)).join('')}</div><p class="petit"><a href="#/securite">Tout le journal</a></p>`) : ''}`,
@@ -298,9 +310,11 @@ const chargerUnivers = async () => (registreC = await q(sb.from('univers').selec
 APP.pages.applications = async () => {
   if (!garde('applications')) return;
   attente();
-  const [reg, mods] = await Promise.all([chargerUnivers(), q(sb.from('moderateurs_univers').select('user_id, univers')).catch(() => [])]);
+  const [reg, mods, registre] = await Promise.all([chargerUnivers(), q(sb.from('moderateurs_univers').select('user_id, univers')).catch(() => []),
+    q(sb.from('applications').select('code,nom,marque,adresse,etat').order('ordre')).catch(() => [])]);
   const noms = mods.length ? await q(sb.from('contacts').select('id, email').in('id', mods.map(m => m.user_id))).catch(() => []) : [];
-  vue(page('Applications', `<p class="muted">Chaque univers de l’écosystème : ouvert, bientôt (les personnes inscrites à l’alerte sont prévenues à l’ouverture), tenu par une autre appli, ou masqué. Les modérateurs ne voient que leur univers.</p>
+  vue(page('Applications', `${registre.length ? carte('Applications de l’écosystème', listeApplications(registre) + '<p class="petit muted">Registre des applications, dans la base : une nouvelle appli y est ajoutée en une ligne, puis apparaît ici et dans les chiffres de la vue générale.</p>') : ''}
+    <h2>Univers</h2><p class="muted">Chaque univers de l’écosystème : ouvert, bientôt (les personnes inscrites à l’alerte sont prévenues à l’ouverture), tenu par une autre appli, ou masqué. Les modérateurs ne voient que leur univers.</p>
     <div class="ctl-file">${reg.map(u => `<article class="ctl-carte" data-u="${u.code}"><div class="ctl-ligne"><span><b>${esc(u.icone)} ${esc(u.nom)}</b><small>${esc(u.description)}</small></span>
       <label class="ctl-statut"><span class="cache-visuel">Statut de ${esc(u.nom)}</span><select data-statut class="champ">${[['actif', 'Ouvert'], ['bientot', 'Bientôt'], ['externe', 'Autre appli'], ['masque', 'Masqué']].map(([k, t]) => `<option value="${k}" ${u.statut === k ? 'selected' : ''} ${k === 'externe' && !u.lien ? 'disabled' : ''}>${t}</option>`).join('')}</select></label></div>
       <p class="petit"><b>Modérateurs :</b> ${mods.filter(m => m.univers === u.code).map(m => `${esc(noms.find(n => n.id === m.user_id)?.email || m.user_id.slice(0, 8))} <button type="button" class="lien" data-retirer="${m.user_id}">retirer</button>`).join(', ') || 'aucun'}
