@@ -62,17 +62,18 @@ let derniereRubrique = '#/manger';
 function rubriqueDe(h) {
   const p = h.split('?')[0], si = (re, o) => re.test(p) ? o : null;
   const o = si(/^#\/commerce\b/, '#/commerce') || (/^#\/manger\b/.test(p) && /vue=commerces/.test(h) ? '#/commerce' : null)
-    || si(/^#\/(express|colis|livraison)\b/, '#/express') || si(/^#\/(bouger|move|woulib|course|courses|chauffeur|partage|gps)\b/, '#/bouger')
+    || si(/^#\/(express|colis|livraison)\b/, '#/express') || (/^#\/chauffeur\b/.test(p) && /livreur/.test(h) ? '#/express' : null)
+    || si(/^#\/(bouger|move|woulib|course|courses|chauffeur|partage|gps)\b/, '#/bouger')
     || si(/^#\/(compte|connexion|inscription|activite|assistance|notifs|espace-pro|pros|pro|projets|projet|bienvenue|admin)\b/, moi ? '#/compte' : '#/connexion')
-    || si(/^#\/(manger|commandes)\b/, '#/manger') || (p === '#/' || p === '' ? '#/manger' : null);
+    || si(/^#\/(manger|commandes)\b/, '#/manger') || (p === '#/' || p === '' ? '#/bouger' : null);
   if (o === '#/manger' || o === '#/commerce') derniereRubrique = o;
   return o || (/^#\/(resto|suivi|recherche)\b/.test(p) ? derniereRubrique : null);
 }
 const APP = {
   nom: 'Woulib', titre: 'Woulib — repas livrés, VTC, taxis et GPS', accueilConnecte: '#/', apresInscription: '#/bienvenue', pourTel: 'que le restaurant, le chauffeur ou le livreur puisse vous joindre',
   menu: () => [],
-  // cinq rubriques, toujours les mêmes (vision Woulib du 09/11) : pas d'onglet « Accueil », l'écran d'entrée fait partie de Food
-  menuBas: () => [['#/manger', ICO.manger, 'Food'], ['#/commerce', ICO.commerce, 'Commerce'], ['#/express', ICO.colis, 'Delivery'], ['#/bouger', ICO.bouger, 'Mobility'], [moi ? '#/compte' : '#/connexion', ICO.compte, 'Profil']],
+  // cinq rubriques, toujours les mêmes (vision Woulib du 09/11), Mobility en premier (demande du soir) : pas d'onglet « Accueil », l'écran d'entrée fait partie de Mobility
+  menuBas: () => [['#/bouger', ICO.bouger, 'Mobility'], ['#/manger', ICO.manger, 'Food'], ['#/commerce', ICO.commerce, 'Commerce'], ['#/express', ICO.colis, 'Delivery'], [moi ? '#/compte' : '#/connexion', ICO.compte, 'Profil']],
   ongletDe: h => rubriqueDe(h), racines: ['#/'],
   // ordinateur : le rail latéral porte aussi le logo et l'espace pro (ce ne sont pas des onglets du téléphone)
   enteteRail: () => '<a class="rail-logo" href="#/" aria-label="Woulib, accueil">Woulib</a>',
@@ -152,8 +153,8 @@ APP.pages[''] = async () => {
   const externes = reg.filter(u => u.statut === 'externe' && u.lien);
   // 3ᵉ et 4ᵉ raccourcis : Commerces et Colis quand ils sont ouverts, sinon le GPS et « Organiser »
   // les quatre marchés, avec les mêmes noms que la barre du bas
-  const R = [ouvert('food') && ['#/manger', ICO.manger, 'Food', 't-food', 'Restaurants et plats'], ouvert('food') && BOUTIQUES && ['#/commerce', ICO.commerce, 'Commerce', 't-com', 'Boutiques et produits'],
-    ouvert('express') && ['#/express', ICO.colis, 'Delivery', 't-colis', 'Colis et coursiers'], ouvert('move') && ['#/bouger', ICO.bouger, 'Mobility', 't-move', 'Taxis, VTC et trajets']].filter(Boolean);
+  const R = [ouvert('move') && ['#/bouger', ICO.bouger, 'Mobility', 't-move', 'Où allez-vous ? Taxi, VTC, trajets'], ouvert('food') && ['#/manger', ICO.manger, 'Food', 't-food', 'Restaurants et plats'],
+    ouvert('food') && BOUTIQUES && ['#/commerce', ICO.commerce, 'Commerce', 't-com', 'Boutiques et produits'], ouvert('express') && ['#/express', ICO.colis, 'Delivery', 't-colis', 'Colis et coursiers']].filter(Boolean);
   const services = [['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents et routes coupées'],
     ['#/projets', ICO.calendrier, 'Organiser un événement', 'Anniversaire, mariage, séjour : la liste et le budget'],
     ...externes.map(u => [u.lien, ICO[ICO_UNIVERS[u.code]] || ICO.droite, EXTERNES[u.code]?.[0] || u.nom.replace('Woulib ', ''), u.description + (EXTERNES[u.code] ? ` · sur ${EXTERNES[u.code][1]}, même compte` : '')])];

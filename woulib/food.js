@@ -100,7 +100,12 @@ declarerUnivers('food', { routes: /^#\/(manger|commerce|resto|suivi|commandes|pr
 
 // ---------------------------------------------------------------- Manger : Restaurants | Commerces, des filtres, la liste
 // rayons d'un commerce qu'on peut filtrer (catégories de ses articles)
+const RAYON_ICO = { frais: '🥤', epicerie: '🛒', apero: '🍟', glace: '🧊', plat: '🍱', alcool: '🍺', maison: '🧻' };   // vitrine de Commerce : un pictogramme par rayon
 const RAYONS_FILTRE = [['frais', 'Boissons'], ['epicerie', 'Épicerie'], ['apero', 'Apéro'], ['glace', 'Glaces'], ['plat', 'Plats préparés'], ['alcool', 'Bières et alcools'], ['maison', 'Dépannage']];
+// vitrine de Food : des envies, chacune ouvre la recherche (restaurants et plats qui en proposent, jamais une offre inventée)
+const ENVIES = [['🥞', 'Crêpes', 'crêpe'], ['🥪', 'Bokits', 'bokit'], ['🍕', 'Pizzas', 'pizza'], ['🍔', 'Burgers', 'burger'], ['🍟', 'Chips et frites', 'frite'],
+  ['🍗', 'Poulet', 'poulet'], ['🐟', 'Poisson', 'poisson'], ['🧆', 'Accras', 'accras'], ['🍛', 'Colombo', 'colombo'], ['🍣', 'Sushis', 'sushi'], ['🥗', 'Salades', 'salade'],
+  ['🍦', 'Glaces', 'glace'], ['🍰', 'Desserts', 'dessert'], ['🥤', 'Jus locaux', 'jus']];
 const sansAccent = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 // Food (restaurants) et Commerce (boutiques) : deux rubriques de la barre du bas, la même page qui sait laquelle elle montre
 const pageMarche = async marche => {
@@ -110,11 +115,13 @@ const pageMarche = async marche => {
   const puce = (ch, t, on) => `<a href="${lienF(ch)}" class="${on ? 'on' : ''}" ${on ? 'aria-current="true"' : ''}>${t}</a>`;
   vue(`<div class="wrap page-manger ${com ? 'page-commerce' : ''}"><h1>${com ? 'Commerce' : 'Food'}</h1>
     <a class="rch-lien" href="#/recherche${p.q ? '?q=' + encodeURIComponent(p.q) : ''}">${ICO.recherche}<span>${p.q ? esc(p.q) : com ? 'Un produit, une boutique, un rayon…' : 'Un plat, un restaurant, une cuisine…'}</span></a>
+    ${com ? '' : `<nav class="envies defile" aria-label="Envie de…">${ENVIES.map(([e, t, m]) => `<a href="#/manger?q=${encodeURIComponent(m)}" ${sansAccent(p.q) === sansAccent(m) ? 'aria-current="true"' : ''}><span aria-hidden="true">${e}</span>${t}</a>`).join('')}</nav>`}
     <div class="puces" role="group" aria-label="Filtres">${puce({ ouvert: p.ouvert ? '' : '1' }, 'Ouvert maintenant', !!p.ouvert)}${puce({ mode: p.mode === 'livraison' ? '' : 'livraison' }, 'Livraison', p.mode === 'livraison')}${puce({ mode: p.mode === 'emporter' ? '' : 'emporter' }, 'À emporter', p.mode === 'emporter')}
       ${p.commune ? puce({ commune: '' }, `${esc(p.commune)} ✕`, true) : ''}</div>
-    ${com ? `<div class="puces puces-v" role="group" aria-label="Rayons">${RAYONS_FILTRE.map(([k, t]) => puce({ rayon: p.rayon === k ? '' : k }, t, p.rayon === k)).join('')}</div>`
+    ${com ? `<div class="puces puces-v" role="group" aria-label="Rayons">${RAYONS_FILTRE.map(([k, t]) => puce({ rayon: p.rayon === k ? '' : k }, `${RAYON_ICO[k] || ''} ${t}`, p.rayon === k)).join('')}</div>`
       : `<div class="puces" role="group" aria-label="Cuisines">${cuisinesVisibles().filter(([k]) => !TYPES_BOUTIQUE.includes(k)).map(([k, [i, t]]) => puce({ cuisine: p.cuisine === k ? '' : k }, `${i} ${esc(t)}`, p.cuisine === k)).join('')}</div>`}
     <div id="encore"></div><div id="favsM"></div>
+    ${com || p.q ? '' : '<section class="section" id="platsAcc" hidden></section>'}
     <h2 id="titreListe">${p.q ? `Résultats pour « ${esc(p.q)} »` : com ? 'Commerces' : 'Restaurants'}</h2>
     <div id="liste" class="chargement">Chargement…</div>
     ${com ? `<p class="petit muted" style="margin-top:12px">Alcool : vente réservée aux 18 ans et plus, âge vérifié à la remise.</p>` : ''}
@@ -154,6 +161,7 @@ const pageMarche = async marche => {
   const filtre = p.q || p.cuisine || p.mode || p.rayon || p.ouvert || p.commune;
   $('#liste').innerHTML = l.length ? l.map(x => carteResto(x, notes[x.id])).join('') : `<div class="vide-etat"><span class="ico">${com ? ICO.commerce : ICO.manger}</span><h3>${filtre ? (com ? 'Aucun commerce pour ces filtres' : 'Aucun restaurant pour ces filtres') : com ? `Pas encore de commerce en ${esc(terr)}` : `Les premiers restaurants arrivent en ${esc(terr)}`}</h3>
     <p class="muted">${filtre ? 'Essayez sans filtre, ou un autre mot.' : 'Nous vérifions chaque professionnel avant sa mise en ligne.'}</p>${filtre ? `<a class="btn btn-p" href="${com ? '#/commerce' : '#/manger'}">Tout afficher</a>` : `<a class="btn btn-p" href="#/pros">Inscrire mon ${com ? 'commerce' : 'restaurant'}</a>`}</div>`;
+  if (!com && !p.q) afficherPlatsAccueil(l.filter(x => etatOuverture(x).ouvert)).catch(() => {});   // plats des restaurants ouverts, en vitrine
 };
 APP.pages.manger = () => {   // anciennes adresses « #/manger?vue=commerces… » : la rubrique Commerce, sans étape dans l'historique
   const p = param(); if (p.vue !== 'commerces') return pageMarche('food');

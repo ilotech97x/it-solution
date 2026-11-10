@@ -36,7 +36,7 @@
     <section class="f-svc"><h3><span>Déplacement</span></h3><table>
       ${Object.entries(ZONES).map(([k, z]) => `<tr><td>${esc(z.nom)}<small>${COMMUNES.filter(c => c[1] === k).map(c => esc(c[0])).join(', ')}</small></td><td class="mono">${z.prix ? eur(z.prix) : 'Offert'}</td></tr>`).join('')}
       <tr><td>En agence ou à distance</td><td class="mono">Gratuit</td></tr></table>
-      <p class="f-note">Déplacement offert dès ${eur(CONFIG.deplacementOffertDes)} de prestation.</p></section>
+      ${CONFIG.deplacementOffertDes ? `<p class="f-note">Déplacement offert dès ${eur(CONFIG.deplacementOffertDes)} de prestation.</p>` : ''}</section>
     <section class="f-svc"><h3><span>Délai et créneau</span></h3><table>
       ${Object.values(DELAIS).map(x => `<tr><td>${esc(x.label)}<small>${esc(x.desc)}</small></td><td class="mono">${x.prix ? '+' + eur(x.prix) : 'Inclus'}</td></tr>`).join('')}
       ${Object.values(CRENEAUX).map(x => `<tr><td>${esc(x.label)}<small>${esc(x.heures)}</small></td><td class="mono">${x.prix ? '+' + eur(x.prix) : 'Inclus'}</td></tr>`).join('')}</table></section>

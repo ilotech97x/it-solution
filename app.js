@@ -199,7 +199,7 @@ function calc() {
   if (d.mode === 'site' && c) {
     depl = deplPlein = ZONES[c[1]].prix;
     deplLabel = c[1] === 'agence' ? 'Déplacement (commune d’agence)' : `Déplacement zone ${ZONES[c[1]].nom}`;
-    if (depl > 0 && presta >= CONFIG.deplacementOffertDes) { offert = true; depl = 0; }
+    if (depl > 0 && CONFIG.deplacementOffertDes && presta >= CONFIG.deplacementOffertDes) { offert = true; depl = 0; }
   } else if (d.mode === 'atelier') {
     deplLabel = `Dépôt en agence (${AGENCES[d.agence].nom})`;
   } else if (d.mode === 'distance') {
@@ -255,7 +255,7 @@ function renderSummary() {
   if (r.presta) {
     if (state.step >= 2 && d.mode === 'site' && c) meta.push(`Agence : <b>${AGENCES[c[2]].nom}</b>`);
     if (state.kind === 'rdv' && d.date) meta.push(`Rendez-vous : <b>${frDate(d.date)}${d.creneau ? ', ' + CRENEAUX[d.creneau].label.toLowerCase() : ''}</b>`);
-    if (state.step >= 2 && d.mode === 'site' && c && !r.offert && r.deplPlein > 0) {
+    if (CONFIG.deplacementOffertDes && state.step >= 2 && d.mode === 'site' && c && !r.offert && r.deplPlein > 0) {
       const pct = Math.min(100, (r.presta / CONFIG.deplacementOffertDes) * 100);
       meta.push(`Encore <b>${eur(CONFIG.deplacementOffertDes - r.presta)}</b> pour un déplacement offert<div class="progress"><span style="width:${pct}%"></span></div>`);
     }
@@ -632,7 +632,7 @@ function render() {
 }
 
 function renderStatic() {
-  $('offertZones').textContent = CONFIG.deplacementOffertDes;
+  if ($('offertZones')) $('offertZones').textContent = CONFIG.deplacementOffertDes;
   $('tarifs').innerHTML = Object.entries(ZONES).map(([k, z]) => `<tr><td><span class="dot" style="--z:var(--z-${k})"></span>${z.nom}</td><td>${z.prix ? z.prix + ' €' : 'Offert'}</td></tr>`).join('')
     + `<tr><td>En agence ou à distance</td><td>Gratuit</td></tr>`;
   $('zonesGrid').innerHTML = Object.entries(ZONES).map(([k, z]) => `<div class="zone" style="--z:var(--z-${k})">

@@ -25,7 +25,7 @@ const CONFIG = {
   partenaires: [],// lien « Laisser un avis » de votre fiche Google Business (affiché s'il est rempli)
   mentionPrix: 'TVA non applicable, art. 293 B du CGI',  // franchise en base de TVA (micro-entreprise) — affiché sur les devis et tarifs
   agenceDistance: 'ducos',   // agence qui traite les interventions à distance
-  deplacementOffertDes: 200, // déplacement offert à partir de ce montant de prestation (€)
+  deplacementOffertDes: 0,   // 0 : jamais offert, le déplacement suit la zone (comme sur les devis) ; sinon montant de prestation qui l'offre (€)
   margeHaute: 1,             // 1 = pas de fourchette : on affiche « à partir de » (les formules ont un prix fixe)
   validiteDevis: 30,         // jours
   paiement3fois: 500,        // paiement en 3 fois sans frais à partir de ce montant (sites, applications, installations)
@@ -83,7 +83,7 @@ const SERVICES = [
     compris: ['Diagnostic de la panne', 'Prix confirmé avant de réparer', 'Vos fichiers préservés'], pasCompris: ['Pièces à remplacer (prix annoncé avant)'],
     options: [['boot', 'Windows ne démarre plus', 35], ['bsod', 'Écran bleu, plantages', 35], ['screen', 'Écran noir au démarrage', 40], ['slow', 'PC très lent', 20], ['reinstall', 'Réinstallation de Windows', 45]] },
   { id: 'boost', icon: 'zap', nom: 'Accélérer Windows', desc: 'Nettoyage et optimisation', base: 49, modes: ['site', 'atelier', 'distance'], appareil: true,
-    options: [['startup', 'Démarrage rapide', 15], ['clean', 'Nettoyage Windows', 20], ['drivers', 'Pilotes / mises à jour', 15], ['bloat', 'Logiciels inutiles retirés', 15], ['gaming', 'Optimisation jeux', 30]] },
+    options: [['startup', 'Démarrage rapide', 12], ['clean', 'Nettoyage Windows', 15], ['drivers', 'Pilotes / mises à jour', 12], ['bloat', 'Logiciels inutiles retirés', 12], ['gaming', 'Optimisation jeux', 30]] },
   { id: 'hwfixe', icon: 'tower', nom: 'Réparation PC fixe', desc: 'Pièces, montage, upgrade', base: 49, modes: ['atelier', 'site'], appareil: true,
     note: 'Pièce en plus, prix confirmé avant la réparation. À titre indicatif : alimentation 50 à 90 €, 8 Go de mémoire 30 à 50 €.',
     options: [['psu', 'Alimentation en panne (hors pièce)', 35], ['gpu', 'Pose ou changement carte graphique', 30], ['ram', 'Ajout de mémoire (RAM)', 20],
@@ -114,7 +114,7 @@ const SERVICES = [
     options: [['wipe', 'Effacement sécurisé des données', 19], ['recycle', 'Récupération pour recyclage', 0, 'Gratuit']] },
   // --- Installation
   { id: 'install', icon: 'laptop', nom: 'PC neuf & logiciels', desc: 'Mise en service, Office', base: 49, modes: ['site', 'atelier', 'distance'], appareil: true,
-    options: [['newpc', 'Mise en service PC neuf', 39], ['transfer', 'Transfert depuis l’ancien PC', 49], ['office', 'Office / messagerie', 29], ['soft', 'Installation de logiciels', 19]] },
+    options: [['newpc', 'Mise en service PC neuf', 39], ['transfer', 'Transfert depuis l’ancien PC', 39], ['office', 'Office / messagerie', 29], ['soft', 'Installation de logiciels', 19]] },
   { id: 'printer', icon: 'printer', nom: 'Imprimante & scanner', desc: 'Installation et dépannage', base: 39, modes: ['site', 'distance'], appareil: true,
     options: [['wifi', 'Connexion Wi-Fi / réseau', 19], ['scan', 'Scanner et numérisation', 19], ['multi', 'Partage sur plusieurs PC', 29], ['panne', 'Dépannage (bourrage, pilote, erreur)', 35]] },
   { id: 'ups', icon: 'battery', nom: 'Onduleur', desc: 'Protection contre les coupures', base: 39, modes: ['site'], appareil: true,
@@ -169,17 +169,18 @@ const SERVICES = [
     options: [['tv', 'Installation et réglage TV connectée', 25], ['box', 'Box internet / TV et chaînes', 20], ['son', 'Barre de son / home cinéma', 35],
       ['proj', 'Vidéoprojecteur', 35], ['cast', 'Afficher le téléphone sur la TV', 15], ['mural', 'Fixation murale de la TV (hors support)', 39], ['support', 'Support mural fourni (jusqu’à 65 pouces)', 49]] },
   // --- Wi-Fi
-  { id: 'starlink', icon: 'satellite', nom: 'Installation Starlink', desc: 'Pose, raccordement et mise en service', base: 45, modes: ['site'],
+  { id: 'starlink', icon: 'satellite', nom: 'Installation Starlink', desc: 'Main-d’œuvre ; kit et matériel en plus', base: 45, modes: ['site'],
     baseNom: 'mise en service et tests', baseDetail: 'Configuration de la connexion et du Wi-Fi Starlink (25 €), tests de connexion et explications (20 €).',
     note: 'Vous avez déjà le kit ? Nous le posons. Sinon, deux choix : vous le commandez vous-même sur starlink.com et nous vous guidons, ou nous le fournissons, prêt à poser. L’abonnement mensuel se prend toujours chez Starlink, à votre nom. Starlink apporte internet, pas les chaînes : un abonnement TV séparé reste nécessaire.',
     compris: ['Mise en service du kit et réglage du Wi-Fi Starlink', 'Contrôle de l’accès internet et test de débit devant vous', 'Explications pour l’application Starlink'],
     pasCompris: ['Abonnement Starlink (à votre nom, payé à Starlink)', 'Abonnements TV (Molotov, CANAL+…) et boîtier TV', 'Gros travaux de maçonnerie, peinture ou reprise', 'Pose en hauteur au-delà d’un étage (sur devis)'],
-    travail: { q: 'Que faut-il faire ?', ids: ['pose', 'config'] },
+    travail: { q: 'Que faut-il faire ?', ids: ['pose', 'config', 'reprise'] },
     materiel: { q: 'Avez-vous déjà le kit Starlink ?', ids: ['deja', 'commande', 'kitstd', 'kitmini'], si: ['pose'] },
-    plus: { pose: ['toit', 'support', 'fixations', 'cable', 'wifiexist', 'tvweb', 'mesh', 'secours'], config: ['wifiexist', 'tvweb', 'mesh', 'secours'] },
+    plus: { pose: ['toit', 'support', 'fixations', 'cable', 'wifiexist', 'tvweb', 'mesh', 'secours'], config: ['wifiexist', 'tvweb', 'mesh', 'secours'], reprise: ['toit', 'support', 'fixations', 'cable', 'wifiexist'] },
     fourni: ['support', 'mat', 'fixations', 'cable45', 'mesh', 'onduleur'],
     options: [['pose', 'Installation complète : préparation, pose et raccordement', 65, '', 'Repérage de l’emplacement et vérification technique (20 €), câble acheminé et raccordé entre l’antenne et le routeur (45 €).'],
       ['config', 'Mise en service seule : l’antenne est déjà posée et raccordée', 0, 'Rien en plus'],
+      ['reprise', 'Dépannage ou déplacement d’une antenne déjà posée', 30, '', 'Diagnostic des coupures, nouvel emplacement sans obstacle si besoin, câble repris et testé.'],
       ['deja', 'J’ai déjà le kit Starlink', 0, 'Sans frais'], ['commande', 'Je le commande moi-même sur starlink.com, avec votre aide (prix Starlink du moment, payé à Starlink)', 0, 'Aide offerte'],
       ['kitstd', 'Kit Starlink Standard fourni : antenne et routeur Wi-Fi', 273.5, '', 'Antenne et équipement principal de réception internet par satellite.'],
       ['kitmini', 'Kit Starlink Mini fourni (bateau, véhicule, petit logement)', 399],
@@ -211,7 +212,7 @@ const SERVICES = [
   { id: 'mobile', icon: 'smartphone', nom: 'Smartphone & tablette', desc: 'Réparation, transfert, réglages', base: 39, modes: ['atelier', 'site'], appareil: true,
     note: 'Pièce en plus, prix confirmé avant la réparation selon le modèle. À titre indicatif : écran 60 à 250 €, batterie 40 à 90 €.',
     options: [['screen', 'Écran cassé (hors pièce)', 45], ['battery', 'Batterie qui ne tient plus (hors pièce)', 25], ['eau', 'Tombé dans l’eau : diagnostic', 25],
-      ['transfer', 'Transfert vers un nouveau téléphone', 20], ['backup', 'Sauvegarde des photos et contacts', 15], ['setup', 'Configuration et applications', 15],
+      ['transfer', 'Transfert vers un nouveau téléphone', 17], ['backup', 'Sauvegarde des photos et contacts', 10], ['setup', 'Configuration et applications', 10],
       ['parent', 'Contrôle parental', 15]] },
   // --- Web & apps (pro et particuliers)
   { id: 'siteweb', icon: 'globe', nom: 'Développement web', desc: 'Page unique, site vitrine ou boutique', base: 390, modes: ['distance', 'site', 'atelier'],
@@ -537,60 +538,60 @@ const APPAREILS = { fixe: 'PC fixe', portable: 'PC portable', aio: 'PC tout-en-u
 //   univers: le pôle où la formule est proposée
 const PACKS = [
   // Informatique
-  { id: 'boost',   univers: 'info', icon: 'zap',      pour: 'Ordinateur', populaire: true, promo: true, nom: 'Rendre mon PC rapide', prix: 69,
+  { id: 'boost',   univers: 'info', icon: 'zap',      pour: 'Ordinateur', populaire: true, promo: true, nom: 'Rendre mon PC rapide', prix: 79,
     inclus: ['Nettoyage de Windows', 'Démarrage plus rapide', 'Mises à jour et pilotes'], items: { boost: ['startup', 'clean', 'drivers', 'bloat'] } },
-  { id: 'virus',   univers: 'info', icon: 'shield',   pour: 'Sécurité', promo: true, nom: 'Supprimer un virus', prix: 59,
+  { id: 'virus',   univers: 'info', icon: 'shield',   pour: 'Sécurité', promo: true, nom: 'Supprimer un virus', prix: 79,
     inclus: ['Virus et pubs supprimés', 'Antivirus installé', 'Analyse complète du PC'], items: { antivirus: ['virus', 'install', 'scan'] } },
-  { id: 'donnees', univers: 'info', icon: 'database', pour: 'Fichiers', promo: true, nom: 'Récupérer mes fichiers', prix: 109,
+  { id: 'donnees', univers: 'info', icon: 'database', pour: 'Fichiers', promo: true, nom: 'Récupérer mes fichiers', prix: 119,
     inclus: ['Diagnostic du disque', 'Photos et fichiers sauvés', 'Copiés sur clé ou disque'], items: { recup: ['disk', 'deleted'] } },
-  { id: 'backup',  univers: 'info', icon: 'cloud',    pour: 'Fichiers', nom: 'Sauvegarder mes données', prix: 59,
+  { id: 'backup',  univers: 'info', icon: 'cloud',    pour: 'Fichiers', nom: 'Sauvegarder mes données', prix: 69,
     inclus: ['Sauvegarde automatique', 'Copie en ligne (cloud)', 'Restauration expliquée'], items: { sauvegarde: ['auto', 'cloud'] } },
-  { id: 'newpc',   univers: 'info', icon: 'laptop',   pour: 'Installation', promo: true, nom: 'Installer mon nouveau PC', prix: 109,
+  { id: 'newpc',   univers: 'info', icon: 'laptop',   pour: 'Installation', promo: true, nom: 'Installer mon nouveau PC', prix: 149,
     inclus: ['PC prêt à l’emploi', 'Fichiers transférés', 'Office, mails, imprimante'], items: { install: ['newpc', 'transfer', 'office'], printer: [] } },
-  { id: 'phone',   univers: 'info', icon: 'smartphone', pour: 'Mobile', promo: true, nom: 'Mon téléphone comme neuf', prix: 49,
+  { id: 'phone',   univers: 'info', icon: 'smartphone', pour: 'Mobile', promo: true, nom: 'Mon téléphone comme neuf', prix: 59,
     inclus: ['Transfert de l’ancien téléphone', 'Photos et contacts sauvegardés', 'Applications réglées'], items: { mobile: ['transfer', 'backup', 'setup'] } },
   // Maison connectée
-  { id: 'wifi',    univers: 'maison', icon: 'wifi',   pour: 'Maison', nom: 'Wi-Fi partout chez moi', prix: 329,
+  { id: 'wifi',    univers: 'maison', icon: 'wifi',   pour: 'Maison', nom: 'Wi-Fi partout chez moi', prix: 299,
     inclus: ['2 bornes Wi-Fi fournies', 'Signal mesuré partout', 'Box et appareils réglés'], items: { network: ['mesh2', 'audit', 'mesh', 'router'] } },
-  { id: 'video',   univers: 'maison', icon: 'camera', pour: 'Maison', nom: 'Surveiller ma maison', prix: 499,
+  { id: 'video',   univers: 'maison', icon: 'camera', pour: 'Maison', nom: 'Surveiller ma maison', prix: 459,
     inclus: ['2 caméras fournies et posées', 'Vision de nuit', 'Vue sur smartphone'], items: { camera: ['kit2', 'cam2', 'remote'] } },
-  { id: 'starlink', univers: 'maison', icon: 'satellite', pour: 'Starlink', populaire: true, nom: 'Starlink installé, Wi-Fi partout', prix: 379,
+  { id: 'starlink', univers: 'maison', icon: 'satellite', pour: 'Starlink', populaire: true, nom: 'Starlink installé, Wi-Fi partout', prix: 319,
     inclus: ['Antenne posée sur le toit', '2 bornes Wi-Fi fournies', 'Kit : le vôtre ou fourni (en plus)'], items: { starlink: ['pose', 'toit', 'mesh'] } },
-  { id: 'tv',      univers: 'maison', icon: 'tv',     pour: 'Maison', nom: 'Ma TV et ma box bien installées', prix: 59,
+  { id: 'tv',      univers: 'maison', icon: 'tv',     pour: 'Maison', nom: 'Ma TV et ma box bien installées', prix: 69,
     inclus: ['TV connectée réglée', 'Box et chaînes', 'Téléphone affiché sur la TV'], items: { multimedia: ['tv', 'box', 'cast'] } },
   // Web & marketing
   { id: 'lancer',  univers: 'web', icon: 'globe',     pour: 'Entreprise', nom: 'Lancer mon activité en ligne', prix: 890,
     inclus: ['Site vitrine 5 pages à votre nom', 'Fiche Google Maps optimisée', 'Référencement local'], items: { siteweb: ['pages', 'domain', 'seo'], marketing: ['google'] } },
-  { id: 'ia',      univers: 'web', icon: 'sparkles',  pour: 'IA', nom: 'Gagner du temps avec l’IA', prix: 349,
+  { id: 'ia',      univers: 'web', icon: 'sparkles',  pour: 'IA', nom: 'Gagner du temps avec l’IA', prix: 459,
     inclus: ['Formation de l’équipe (2 h)', 'Une tâche automatisée avec l’IA', 'Règles pour protéger vos données'], items: { iapro: ['auto', 'charte'] } },
-  { id: 'clients', univers: 'web', icon: 'megaphone', pour: 'Entreprise', nom: 'Trouver plus de clients', prix: 299,
+  { id: 'clients', univers: 'web', icon: 'megaphone', pour: 'Entreprise', nom: 'Trouver plus de clients', prix: 379,
     inclus: ['Bilan et plan d’action', 'Fiche Google optimisée', 'Publicité + 4 visuels'], items: { marketing: ['google', 'pub', 'contenu'] } },
   // Entreprises
-  { id: 'shop',    univers: 'pro', icon: 'receipt',   pour: 'Commerce', nom: 'Équiper mon commerce', prix: 1290,
+  { id: 'shop',    univers: 'pro', icon: 'receipt',   pour: 'Commerce', nom: 'Équiper mon commerce', prix: 1249,
     inclus: ['Kit caisse complet fourni', 'Installé et réglé', 'Terminal CB relié'], items: { pos: ['kitcaisse', 'touch', 'drawer', 'scanner', 'printer', 'tpe'], network: ['config', 'rien', 'router'] } },
   { id: 'bureau',  univers: 'pro', icon: 'briefcase', pour: 'Bureau', nom: 'Équiper mon bureau', prix: 349,
     inclus: ['Réseau et Wi-Fi pro', 'Emails à votre nom', 'Microsoft 365 ou Google'], items: { reseaupro: ['cablage', 'wifipro'], cloudpro: ['domaine', 'm365'] } },
-  { id: 'secupro', univers: 'pro', icon: 'shield',    pour: 'Entreprise', nom: 'Protéger mon entreprise', prix: 390,
+  { id: 'secupro', univers: 'pro', icon: 'shield',    pour: 'Entreprise', nom: 'Protéger mon entreprise', prix: 459,
     inclus: ['Audit des accès et emails', 'Sauvegarde automatique', 'Rapport clair'], items: { cyber: ['email', 'acces'], sauvegarde: ['auto', 'cloud'] } },
   // Drone & 3D
   { id: 'vendre',  univers: 'crea', icon: 'home', pour: 'Immobilier', nom: 'Vendre mon bien', prix: 399,
     inclus: ['15 photos + vue drone', 'Vidéo de visite', 'Page web du bien'], items: { immobilier: ['video', 'page'] } },
   { id: 'saison',  univers: 'crea', icon: 'lock', pour: 'Immobilier', nom: 'Louer en saisonnier', prix: 349,
     inclus: ['Photos + vue drone', 'Serrure connectée et Wi-Fi', 'Livret d’accueil QR code'], items: { immobilier: ['serrure', 'wifi', 'guide'] } },
-  { id: 'aerien',  univers: 'crea', icon: 'drone',    pour: 'Drone', nom: 'Vue aérienne de mon bien', prix: 229,
+  { id: 'aerien',  univers: 'crea', icon: 'drone',    pour: 'Drone', nom: 'Vue aérienne de mon bien', prix: 219,
     inclus: ['Photos aériennes HD', 'Vidéo montée', 'Idéal location, vente, commerce'], items: { drone: ['photo', 'video'] } },
   // Continuité et conformité (besoins forts des Antilles)
   { id: 'cyclonemaison', univers: 'maison', icon: 'battery', pour: 'Maison', nom: 'Ma maison prête pour les cyclones', prix: 199,
     inclus: ['Onduleur 600 VA fourni et réglé', 'Sauvegarde automatique', 'Copie en ligne de vos photos'], items: { ups: ['ups600', 'auto', 'box'], sauvegarde: ['auto', 'cloud'] } },
-  { id: 'cyclonepro', univers: 'pro', icon: 'battery', pour: 'Plan cyclone', nom: 'Entreprise prête pour les cyclones', prix: 290,
+  { id: 'cyclonepro', univers: 'pro', icon: 'battery', pour: 'Plan cyclone', nom: 'Entreprise prête pour les cyclones', prix: 279,
     inclus: ['Plan et procédure écrits', 'Internet de secours automatique', 'Sauvegarde hors de l’île', 'Matériel : le vôtre ou sur devis'], items: { cyclone: ['secours', 'cloud'] } },
-  { id: 'efacture', univers: 'pro', icon: 'doc', pour: 'Factures & gestion', nom: 'Facture électronique en règle', prix: 199,
+  { id: 'efacture', univers: 'pro', icon: 'doc', pour: 'Factures & gestion', nom: 'Facture électronique en règle', prix: 219,
     inclus: ['Plateforme agréée choisie et réglée', 'Clients et articles repris', '3 mois de suivi'], items: { efacture: ['reprise', 'suivi'] } },
-  { id: 'gitedistance', univers: 'crea', icon: 'lock', pour: 'Immobilier', nom: 'Gérer mon gîte à distance', prix: 299,
+  { id: 'gitedistance', univers: 'crea', icon: 'lock', pour: 'Immobilier', nom: 'Gérer mon gîte à distance', prix: 269,
     inclus: ['Serrure à code par séjour', 'Climatisation coupée à distance', 'Alerte fuite, fumée et bruit', 'Matériel : le vôtre ou sur devis'], items: { locsaison: ['serrure', 'clim', 'capteurs'] } },
-  { id: 'equipe', univers: 'pro', icon: 'shield', pour: 'Cybersécurité', nom: 'Équipe formée contre les arnaques', prix: 390,
+  { id: 'equipe', univers: 'pro', icon: 'shield', pour: 'Cybersécurité', nom: 'Équipe formée contre les arnaques', prix: 359,
     inclus: ['Demi-journée de formation', 'Faux email piégé et bilan', 'Fiche mémo pour chacun'], items: { formation: ['phishing'] } },
-  { id: 'plan', univers: 'pro', icon: 'briefcase', pour: 'Conseil & données', nom: 'Plan numérique + dossier d’aide', prix: 490,
+  { id: 'plan', univers: 'pro', icon: 'briefcase', pour: 'Conseil & données', nom: 'Plan numérique + dossier d’aide', prix: 469,
     inclus: ['Bilan et plan sur 12 mois', 'Dossier d’aide monté avec vous', 'Restitution avec le dirigeant'], items: { conseil: ['aides'] } }
 ];
 

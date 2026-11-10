@@ -61,7 +61,7 @@
   // 3. Questions fréquentes (aussi lues par Google : données structurées FAQPage)
   const z = ZONES, d = DELAIS;
   const faq = [
-    ['Intervenez-vous partout en Martinique ?', `Oui. Nos agences de Ducos et du Robert couvrent toute l’île. Le déplacement est offert dans les communes d’agence, puis coûte ${eur(z.centre.prix)} (Centre), ${eur(z.sud.prix)} (Sud) ou ${eur(z.nord.prix)} (Nord), et il est offert dès ${eur(CONFIG.deplacementOffertDes)} de prestation.`],
+    ['Intervenez-vous partout en Martinique ?', `Oui. Nos agences de Ducos et du Robert couvrent toute l’île. Le déplacement est offert dans les communes d’agence, puis coûte ${eur(z.centre.prix)} (Centre), ${eur(z.sud.prix)} (Sud) ou ${eur(z.nord.prix)} (Nord)${CONFIG.deplacementOffertDes ? `, et il est offert dès ${eur(CONFIG.deplacementOffertDes)} de prestation` : ''}.`],
     ['Combien coûte un dépannage ?', `Un dépannage d’ordinateur commence à ${eur(svc('repair').base)}, diagnostic compris. Le prix est confirmé avant de réparer, et les pièces éventuelles sont annoncées avant. En agence ou à distance, il n’y a pas de frais de déplacement.`],
     ['Puis-je payer en plusieurs fois ?', `Oui : à partir de ${eur(CONFIG.paiement3fois)} (site internet, application, installation de caméras ou de réseau), vous pouvez payer en 3 fois sans frais.`],
     ['Je ne sais pas par où commencer pour mon site ou ma sécurité.', `Commencez petit : un contrôle sécurité express à ${eur(svc('cyberexpress').base)}, ou un site d’une page à ${eur(svc('siteweb').base)} qui pourra grandir ensuite. Pour une application, une maquette à tester sur votre téléphone, déduite si vous continuez.`],
@@ -84,7 +84,7 @@
     `</tbody></table>`;
 
   h += `<h2>Zones d'intervention et déplacement</h2>
-    <p>Déplacement offert dès ${CONFIG.deplacementOffertDes} € de prestation. Gratuit en agence et à distance.</p>
+    <p>${CONFIG.deplacementOffertDes ? `Déplacement offert dès ${CONFIG.deplacementOffertDes} € de prestation. ` : 'Déplacement selon la commune (0 à 25 €). '}Gratuit en agence et à distance.</p>
     <table class="price-table"><thead><tr><th>Zone</th><th>Communes</th><th>Déplacement</th></tr></thead><tbody>` +
     Object.entries(ZONES).map(([k, z]) => `<tr><td><b>${esc(z.nom)}</b></td><td>${COMMUNES.filter(c => c[1] === k).map(c => esc(c[0])).join(', ')}</td><td class="mono">${z.prix ? eur(z.prix) : 'Offert'}</td></tr>`).join('') +
     `</tbody></table>`;

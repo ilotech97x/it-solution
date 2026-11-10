@@ -22,6 +22,11 @@ let minuterie = null, suiviGps = null;
 declarerUnivers('move', { routes: /^#\/(bouger|move|woulib|course|courses|chauffeur|livraison|partage|admin\/woulib|gps)\b/, zone: 'move', accueil: '#/bouger', appel: 'Réserver un trajet' });
 // quatre modes (vision du 09/11) ; seuls Taxi et VTC sont ouverts. « Je cherche un stop » et « Je prends en stop » relèvent de l'entraide
 // (gratuite), fermée comme le covoiturage jusqu'à l'avis juridique : leur onglet explique les règles prévues et propose une alerte.
+// alertes route (mêmes types que le GPS, gps.js) : montrées sur la carte de Mobility
+const ALERTES_ROUTE = { accident: ['💥', 'Accident'], bouchon: ['🚗', 'Bouchon'], travaux: ['🚧', 'Travaux'], danger: ['⚠️', 'Danger sur la route'],
+  inondation: ['🌊', 'Route inondée'], eboulement: ['🪨', 'Éboulement'], route_coupee: ['⛔', 'Route coupée'] };
+// les deux côtés d'un service : celui qui demande et celui qui réalise (chauffeur, livreur)
+const roles = (actif, liens) => `<div class="seg roles" role="group" aria-label="Je suis">${liens.map(([h, t], i) => `<a href="${h}" aria-pressed="${i === actif}">${t}</a>`).join('')}</div>`;
 const MODES = [['taxi', 'Taxi/VTC'], ['covoiturage', 'Covoiturage'], ['stop', 'Je cherche un stop'], ['prendre', 'Je prends en stop']];
 // lieux enregistrés : dans le compte (commun/adresses.sql) quand la base les accepte, sinon sur cet appareil comme avant
 const lieuxLocaux = () => { try { return JSON.parse(localStorage.getItem('kvAdresses')) || []; } catch (e) { return []; } };
@@ -47,6 +52,7 @@ APP.pages.bouger = async () => {
         <div class="actions" style="justify-content:center">${univers(code) ? `<button type="button" class="btn btn-sec" data-alerte="${code}">Me prévenir à l’ouverture</button>` : ''}<button type="button" class="btn btn-p" data-mode="taxi">Voir Taxi/VTC</button></div></div></div>`;
   vue(`<div class="wrap page-bouger"><h1>Mobility</h1>
     <div class="bouger-g"><div class="bouger-col">
+    ${roles(0, [['#/bouger', 'Je cherche un trajet'], ['#/chauffeur', 'Je conduis (chauffeur)']])}
     <form class="f trajet-f" id="fRes">
       <div class="trajet-c">${champ('depart')}${champ('arrivee')}
         <div class="opts-t"><div class="seg" role="group" aria-label="Quand"><button type="button" data-quand="" aria-pressed="true">Maintenant</button><button type="button" data-quand="plus" aria-pressed="false">Programmer</button></div>
@@ -71,7 +77,7 @@ APP.pages.bouger = async () => {
     </form>
     <div class="liste-g bouger-plus">${[...universOuvert('express', terr) ? [['#/express', ICO.colis, 'Envoyer un colis', 'Un livreur vérifié le récupère et le remet']] : [], ['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents, routes coupées']]
       .map(([h, i, t, d]) => `<a class="menu-l" href="${h}"><span class="ico-l">${i}</span><div><b>${t}</b><small>${d}</small></div>${ICO.droite}</a>`).join('')}</div>
-    </div><div class="bouger-carte" id="zoneCarte"><div id="carte" class="carte-move" role="img" aria-label="Carte du trajet"></div><button type="button" class="carte-loc" aria-label="Partir de ma position">${ICO.localiser}</button></div></div></div>`);
+    </div><div class="bouger-carte" id="zoneCarte"><div id="carte" class="carte-move" role="img" aria-label="Carte du trajet"></div><button type="button" class="carte-loc" aria-label="Partir de ma position">${ICO.localiser}</button><p class="carte-legende" id="legendeCarte" aria-live="polite"></p></div></div></div>`);
 
   const majTotal = () => {
     Object.keys(CATS).forEach(k => {
@@ -190,6 +196,19 @@ APP.pages.bouger = async () => {
   try {
     L = await chargerCarte(); if (!$('#carte')) return;
     const c = CENTRES[terr] || CENTRES.Martinique; carte = fondCarte(L, $('#carte'), [c[0], c[1]], c[2]); calques = L.layerGroup().addTo(carte); dessinerCarte();
+    // carte vivante : chauffeurs qui se sont dits disponibles (position arrondie, sans nom) et alertes route, rafraîchies toutes les 30 s
+    const vivant = L.layerGroup().addTo(carte), mk = (h, cls, titre) => L.divIcon({ className: 'mk ' + cls, html: `<span title="${esc(titre)}">${h}</span>`, iconSize: [30, 30], iconAnchor: [15, 15] });
+    const vivante = async () => {
+      const [ch, al] = await Promise.all([q(sb.rpc('chauffeurs_carte', { terr })).catch(() => null), q(sb.rpc('signalements_proches', { plat: c[0], plng: c[1], rayon_km: 80 })).catch(() => [])]);
+      if (!$('#legendeCarte')) return;
+      vivant.clearLayers();
+      (ch || []).forEach(x => L.marker([x.lat, x.lng], { icon: mk('🚕', 'mk-ch', 'Chauffeur disponible'), keyboard: false }).addTo(vivant));
+      al.forEach(x => L.marker([x.lat, x.lng], { icon: mk((ALERTES_ROUTE[x.type] || ['⚠️'])[0], 'mk-al', (ALERTES_ROUTE[x.type] || ['', 'Alerte'])[1]), keyboard: false })
+        .bindPopup(`<b>${esc((ALERTES_ROUTE[x.type] || ['', 'Alerte'])[1])}</b><br>signalé ${esc(jourHeure(x.created_at))}`).addTo(vivant));
+      $('#legendeCarte').innerHTML = (ch ? `<span>🚕 ${ch.length ? `${ch.length} chauffeur${ch.length > 1 ? 's' : ''} disponible${ch.length > 1 ? 's' : ''}` : 'Aucun chauffeur disponible en ce moment'}</span>` : '')   // base pas encore à jour : on ne dit rien plutôt qu'un faux « aucun »
+        + `<span>${al.length ? `⚠️ ${al.length} alerte${al.length > 1 ? 's' : ''} route` : '✓ Aucune alerte route'}</span>`;
+    };
+    vivante(); clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.split('?')[0] === '#/bouger' && !document.hidden) vivante().catch(() => {}); }, 30000);
   } catch (e) { if ($('#carte')) $('#carte').innerHTML = '<p class="muted" style="padding:20px">Carte indisponible.</p>'; }
 };
 // anciennes adresses : #/move et #/woulib mènent à Bouger (sans laisser d'étape dans l'historique)

@@ -798,7 +798,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
 
     <h2>Où intervenons-nous en Martinique ?</h2>
     ${p.distance ? '<p><b>À distance dans toutes les Antilles</b> : ce service se fait aussi entièrement à distance, pour les entreprises de Guadeloupe, de Guyane, de Saint-Martin et de Saint-Barthélemy (échanges en visio, WhatsApp et email).</p>' : ''}
-    <p>Nos agences de <b>Ducos</b> et du <b>Robert</b> couvrent toute l’île, un seul numéro : <b>${esc(AGENCES.robert.tel)}</b>. Déplacement offert dès ${eur(CONFIG.deplacementOffertDes)} de prestation, gratuit en agence et à distance.</p>
+    <p>Nos agences de <b>Ducos</b> et du <b>Robert</b> couvrent toute l’île, un seul numéro : <b>${esc(AGENCES.robert.tel)}</b>. ${CONFIG.deplacementOffertDes ? `Déplacement offert dès ${eur(CONFIG.deplacementOffertDes)} de prestation, gratuit` : 'Déplacement selon la commune, gratuit'} en agence et à distance.</p>
     <ul class="seo-zones">${zones}</ul>
 
     <section class="seo-cta" style="--t:${coul}">
