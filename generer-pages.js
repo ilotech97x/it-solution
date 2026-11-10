@@ -15,7 +15,7 @@ ctx.window = ctx;
 vm.createContext(ctx);
 ['data.js', 'outils.js', 'scenes.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(dir, f), 'utf8'), ctx, { filename: f }));
 const { CONFIG, SERVICES, CATEGORIES, COMMUNES, ZONES, AGENCES, HORAIRES, ENTREPRISE } = vm.runInContext('({ CONFIG, SERVICES, CATEGORIES, COMMUNES, ZONES, AGENCES, HORAIRES, ENTREPRISE })', ctx);
-const { esc, eur, svc, ico, scene, waUrl, bandeau } = vm.runInContext('({ esc, eur, svc, ico, scene, waUrl, bandeau })', ctx);
+const { esc, eur, svc, ico, scene, waUrl, bandeau, tablePrix } = vm.runInContext('({ esc, eur, svc, ico, scene, waUrl, bandeau, tablePrix })', ctx);
 const SITE = CONFIG.siteUrl.replace(/\/?$/, '/');
 const RESEAUX = Object.entries(CONFIG.reseaux || {}).filter(([, u]) => u);
 const SAMEAS = RESEAUX.map(([, u]) => u);
@@ -690,7 +690,7 @@ function tarifs(ids) {
       <h3>${ico(s.icon)} ${esc(s.nom)}</h3>
       <p class="muted">${esc(s.desc)}.${s.note ? ' ' + esc(s.note) : ''}</p>
       ${s.compris ? `<div class="svc-compris"><div><b>Compris</b><ul>${s.compris.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>${s.pasCompris ? `<div class="non"><b>Pas compris</b><ul>${s.pasCompris.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}</div>` : ''}
-      <table class="price-table"><tbody>${s.options.map(o => `<tr><td>${esc(o[1])}</td><td class="mono">${o[2] ? '+' + eur(o[2]) + (s.mensuel ? '/mois' : '') : esc(o[3] || 'Inclus')}</td></tr>`).join('')}</tbody></table>
+      ${tablePrix(s, 'Inclus')}
     </section>`).join('');
 }
 

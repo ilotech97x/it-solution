@@ -19,6 +19,19 @@ const pack = id => PACKS.find(p => p.id === id);
 const optOf = (sid, oid) => svc(sid).options.find(o => o[0] === oid);
 // valeur « à la carte » d'un ensemble { service: [options] } (sert au « au lieu de » des packs)
 const itemsValue = items => Object.entries(items).reduce((t, [sid, opts]) => t + svc(sid).base + opts.reduce((u, o) => u + optOf(sid, o)[2], 0), 0);
+// matériel fourni (kit, support, bornes…) : rangé à part sur les devis et les tarifs, comme sur un devis d'installation
+const estMateriel = (s, oid) => (s.fourni || []).includes(oid) || !!s.materiel?.ids.includes(oid);
+// table de prix d'un service, groupée : ce qu'il faut faire, matériel, pose et compléments (o[4] = explication de la ligne)
+function tablePrix(s, gratuit = 'Gratuit', cls = 'price-table') {
+  const t = s.travail?.ids || [];
+  const prix = o => o[2] ? (t.includes(o[0]) ? '' : '+') + eur(t.includes(o[0]) ? s.base + o[2] : o[2]) + (s.mensuel ? '/mois' : '') : t.includes(o[0]) ? eur(s.base) : esc(o[3] || gratuit);
+  const ligne = o => `<tr><td>${esc(o[1])}${o[4] ? `<small>${esc(o[4])}</small>` : ''}</td><td class="mono">${prix(o)}</td></tr>`;
+  const groupes = [[s.travail ? s.travail.q + ' (prix total)' : '', s.options.filter(o => t.includes(o[0]))],
+    ['Matériel', s.options.filter(o => !t.includes(o[0]) && estMateriel(s, o[0]))],
+    ['Pose, réglages et compléments', s.options.filter(o => !t.includes(o[0]) && !estMateriel(s, o[0]))]].filter(g => g[1].length);
+  const titres = groupes.length > 1;
+  return `<table class="${cls}">${groupes.map(([n, os]) => `<tbody>${titres ? `<tr class="pt-groupe"><th colspan="2">${esc(n)}</th></tr>` : ''}${os.map(ligne).join('')}</tbody>`).join('')}</table>`;
+}
 // réduction affichée (arrondie vers le bas) : seulement sur les formules marquées promo, par rapport aux services pris un par un
 const remise = p => p.promo ? Math.floor((1 - p.prix / itemsValue(p.items)) * 100) : 0;
 

@@ -185,8 +185,13 @@ function calc() {
     const sub = (inPack ? 0 : s.base) + chosen.reduce((t, o) => t + o[2], 0);
     if (!sub) { if (!inPack) lines.push({ label: s.nom, detail: chosen.map(o => o[1]).join(', '), prix: 0 }); return; }
     // le matériel a un prix fixe : il n'entre pas dans la fourchette haute
-    presta += sub; variable += sub - chosen.filter(o => s.materiel?.ids.includes(o[0])).reduce((t, o) => t + o[2], 0);
-    lines.push({ label: inPack ? `${s.nom} — en plus du pack` : s.nom, detail: chosen.map(o => o[1]).join(', '), prix: sub });
+    presta += sub; variable += sub - chosen.filter(o => estMateriel(s, o[0])).reduce((t, o) => t + o[2], 0);
+    // détail ligne par ligne pour le devis, comme un devis d'installation : la prise en charge, chaque prestation, chaque matériel
+    const parts = [...(inPack || !s.base ? [] : [{ label: s.nom + (s.baseNom ? ' : ' + s.baseNom : ''), detail: s.baseDetail || '', prix: s.base }]),
+      ...chosen.filter(o => o[2]).map(o => ({ label: o[1], detail: o[4] || '', prix: o[2], mat: estMateriel(s, o[0]) }))];
+    const infos = chosen.filter(o => !o[2]).map(o => o[1]).join(' · ');
+    if (infos && parts.length) parts[0].detail = [parts[0].detail, infos].filter(Boolean).join(' · ');
+    lines.push({ label: inPack ? `${s.nom} — en plus du pack` : s.nom, detail: chosen.map(o => o[1]).join(', '), prix: sub, parts });
   });
 
   let depl = 0, deplLabel = '', deplPlein = 0, offert = false;
@@ -295,25 +300,51 @@ function selectionHTML() {
 }
 
 // ce qu'il manque pour terminer une étape ('' = étape remplie)
-// matériel : le client dit s'il l'a déjà ou s'il faut le fournir (un seul choix)
-const matDe = id => (state.opt[id] || []).find(o => svc(id).materiel?.ids.includes(o)) || '';
+// précisions pour chaque service choisi : ce qu'il faut faire (pose, mise en service seule…), le matériel, puis les compléments
+const choixDe = (id, q) => (state.opt[id] || []).find(o => q?.ids.includes(o)) || '';
+const matDe = id => choixDe(id, svc(id).materiel);
+const travailDe = id => choixDe(id, svc(id).travail);
 const aMat = id => { const m = svc(id).materiel; return !!m && (!m.si || (state.opt[id] || []).some(o => m.si.includes(o))); };
-const sansMateriel = () => state.sel.find(id => aMat(id) && !matDe(id));
-function setMat(id, o) {
-  const ids = svc(id).materiel.ids;
-  state.opt[id] = (state.opt[id] || []).filter(x => !ids.includes(x)).concat(o);
+const tousPlus = s => !s.plus ? [] : Array.isArray(s.plus) ? s.plus : [...new Set(Object.values(s.plus).flat())];
+const plusDe = id => { const p = svc(id).plus; return !p ? [] : Array.isArray(p) ? p : p[travailDe(id)] || []; };
+const sansReponse = () => state.sel.map(id => svc(id).travail && !travailDe(id) ? [id, 'travail'] : aMat(id) && !matDe(id) ? [id, 'materiel'] : null).find(Boolean);
+function setChoix(id, k, o) {
+  const s = svc(id);
+  state.opt[id] = (state.opt[id] || []).filter(x => !s[k].ids.includes(x)).concat(o);
+  if (k === 'travail') {   // ce qui ne va plus avec ce travail est retiré (pose sur le toit pour une mise en service seule…)
+    const permis = plusDe(id);
+    state.opt[id] = state.opt[id].filter(x => !tousPlus(s).includes(x) || permis.includes(x));
+    if (!aMat(id)) state.opt[id] = state.opt[id].filter(x => !s.materiel?.ids.includes(x));
+  }
+  if (!packValid()) state.pack = null;
+  render();
+}
+const setMat = (id, o) => setChoix(id, 'materiel', o);
+function basculePlus(id, o) {
+  const cur = state.opt[id] || [];
+  state.opt[id] = cur.includes(o) ? cur.filter(x => x !== o) : cur.concat(o);
   if (!packValid()) state.pack = null;
   render();
 }
 function blocMateriel() {
-  return state.sel.filter(aMat).map(id => {
-    const s = svc(id), cur = matDe(id);
-    return `<div class="materiel ${cur ? '' : 'a-repondre'}" id="mat-${id}" style="--t:${themeOf(id)}">
-      <p class="mat-q">${ico('box')} <b>${esc(s.materiel.q)}</b> <span class="muted">${esc(s.nom)}</span></p>
-      <div class="mat-choix" role="radiogroup" aria-label="${esc(s.materiel.q)}">${s.materiel.ids.map(o => {
+  return state.sel.filter(id => svc(id).travail || aMat(id) || plusDe(id).length).map(id => {
+    const s = svc(id), tr = travailDe(id), mat = matDe(id), plus = plusDe(id);
+    const radio = (k, cur, prix) => `<p class="mat-sous"><b>${esc(s[k].q)}</b></p>
+      <div class="mat-choix" role="radiogroup" aria-label="${esc(s[k].q)}">${s[k].ids.map(o => {
         const x = optOf(id, o);
-        return `<button type="button" role="radio" class="chip ${cur === o ? 'on' : ''}" aria-checked="${cur === o}" onclick="setMat('${id}','${o}')">${esc(x[1])}<em class="mono">${x[2] ? eur(x[2]) : esc(x[3] || 'Sans frais')}</em></button>`;
-      }).join('')}</div></div>`;
+        return `<button type="button" role="radio" class="chip ${cur === o ? 'on' : ''}" aria-checked="${cur === o}" onclick="setChoix('${id}','${k}','${o}')">${esc(x[1])}<em class="mono">${prix(x)}</em></button>`;
+      }).join('')}</div>`;
+    return `<div class="materiel ${(s.travail && !tr) || (aMat(id) && !mat) ? 'a-repondre' : ''}" id="mat-${id}" style="--t:${themeOf(id)}">
+      <p class="mat-q">${ico(s.icon)} <b>${esc(s.nom)}</b></p>
+      ${s.travail ? radio('travail', tr, x => eur(s.base + x[2])) : ''}
+      ${aMat(id) ? radio('materiel', mat, x => x[2] ? '+' + eur(x[2]) : esc(x[3] || 'Sans frais')) : ''}
+      ${!plus.length ? '' : !(state.plusOuvert?.[id] || plus.some(o => (state.opt[id] || []).includes(o)))
+        ? `<button type="button" class="link mat-plus" aria-expanded="false" onclick="(state.plusOuvert ||= {})['${id}'] = true; render()">+ Ajouter un complément (${plus.length} possibles, facultatif)</button>`
+        : `<p class="mat-sous"><b>En plus, si besoin</b> <span class="muted">(facultatif)</span></p>
+      <div class="mat-choix">${plus.map(o => {
+        const x = optOf(id, o), on = (state.opt[id] || []).includes(o);
+        return `<button type="button" class="chip ${on ? 'on' : ''}" aria-pressed="${on}" onclick="basculePlus('${id}','${o}')">${on ? '✓' : '+'} ${esc(x[1])}<em class="mono">${x[2] ? '+' + eur(x[2]) : esc(x[3] || 'Sans frais')}</em></button>`;
+      }).join('')}</div>`}</div>`;
   }).join('');
 }
 
@@ -321,8 +352,8 @@ function manque(n) {
   const { d } = state;
   if (n === 1) {
     if (!state.sel.length) return 'Choisissez au moins un service ou une formule.';
-    const id = sansMateriel();
-    return id ? `Dites-nous si vous avez déjà le matériel pour « ${svc(id).nom} ».` : '';
+    const r = sansReponse();
+    return !r ? '' : r[1] === 'travail' ? `Dites-nous ce qu’il faut faire pour « ${svc(r[0]).nom} ».` : `Dites-nous si vous avez déjà le matériel pour « ${svc(r[0]).nom} ».`;
   }
   if (n === 2) {
     if (d.mode === 'site' && !d.commune) return 'Choisissez votre commune.';
@@ -480,14 +511,15 @@ const VIEWS = {
         <div class="help-row"><button type="button" class="btn btn-help" onclick="setTab('symptomes')">${ico('search')}<span>Je ne sais pas, j'explique mon problème</span></button></div></div>
       <div class="univers-row"><span class="univers" role="tablist" aria-label="Pôles">${UNIVERS.map(u => {
           const n = CATEGORIES.filter(c => c.univers === u.id && !c.bientot).flatMap(c => c.services).filter((id, i, a) => a.indexOf(id) === i && state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
-          return `<button type="button" role="tab" style="--t:${u.couleur}" title="${esc(u.desc)}" aria-label="${esc(u.nom)}" aria-selected="${univOf(state.cat) === u.id}" onclick="setUniv('${u.id}')"><span class="u-ico">${ico(u.icon)}</span><span class="u-nom"><span class="u-long">${esc(u.nom)}</span><span class="u-court">${esc(u.court || u.nom)}</span></span>${n ? `<em class="count">${n}</em>` : ''}</button>`;
-        }).join('')}</span></div>
-      <div class="cats" role="tablist" aria-label="Type de besoin" style="--t:${(UNIVERS.find(u => u.id === univOf(state.cat)) || {}).couleur}">${CATEGORIES.filter(c => !c.bientot && c.univers === univOf(state.cat)).map(c => {
+          const on = univOf(state.cat) === u.id;
+          return `<button type="button" role="tab" id="pole-${u.id}" style="--t:${u.couleur}" title="${esc(u.desc)}" aria-label="${esc(u.nom)}" aria-selected="${on}" aria-controls="cats" tabindex="${on ? 0 : -1}" onclick="setUniv('${u.id}')"><span class="u-ico">${ico(u.icon)}</span><span class="u-nom"><span class="u-long">${esc(u.nom)}</span><span class="u-court">${esc(u.court || u.nom)}</span></span>${n ? `<em class="count">${n}</em>` : ''}</button>`;
+        }).join('')}</span>${(u => u ? `<p class="u-resume" style="--t:${u.couleur}">${esc(u.resume || u.desc)}</p>` : '')(UNIVERS.find(u => u.id === univOf(state.cat)))}</div>
+      <div class="cats" id="cats" role="tablist" aria-label="Type de besoin" style="--t:${(UNIVERS.find(u => u.id === univOf(state.cat)) || {}).couleur}">${CATEGORIES.filter(c => !c.bientot && c.univers === univOf(state.cat)).map(c => {
         const n = c.services.filter(id => state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
-        return `<button type="button" role="tab" style="--t:${c.couleur}" aria-selected="${state.cat === c.id}" onclick="setCat('${c.id}')"><span class="c-ico">${ico(c.icon)}</span><span class="c-nom">${c.nom}</span>${n ? `<em class="count">${n}</em>` : c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</button>`;
+        return `<button type="button" role="tab" id="cat-${c.id}" style="--t:${c.couleur}" aria-selected="${state.cat === c.id}" aria-controls="svc-panel" tabindex="${state.cat === c.id ? 0 : -1}" onclick="setCat('${c.id}')"><span class="c-ico">${ico(c.icon)}</span><span class="c-nom">${c.nom}</span>${n ? `<em class="count">${n}</em>` : c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</button>`;
       }).join('')}</div>
       ${vitrineCompacte(CATEGORIES.find(c => c.id === state.cat))}
-      <div class="grid g5 services" role="tabpanel">${CATEGORIES.find(c => c.id === state.cat).services.map(id => {
+      <div class="grid g5 services" id="svc-panel" role="tabpanel" aria-labelledby="cat-${state.cat}">${CATEGORIES.find(c => c.id === state.cat).services.map(id => {
           const x = svc(id);
           const inPack = packValid() && pack(state.pack).items[x.id];
           return carteService(x, CATEGORIES.find(c => c.id === state.cat), !inPack && state.sel.includes(x.id), inPack);
@@ -657,6 +689,16 @@ function setGrand(on) {
 }
 function showSel() { document.querySelector('.summary').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 const univOf = cat => (CATEGORIES.find(c => c.id === cat) || CATEGORIES[0]).univers;
+// onglets au clavier (pôles et catégories) : flèches, Début, Fin ; le focus reste sur l'onglet choisi après l'affichage
+document.addEventListener('keydown', e => {
+  const tab = e.target.closest?.('[role="tab"]'), liste = tab?.closest('.univers, .cats');
+  if (!liste || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+  const tabs = [...liste.querySelectorAll('[role="tab"]')], i = tabs.indexOf(tab);
+  const j = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  const cible = liste.classList.contains('univers') ? '.univers [role="tab"]' : '.cats [role="tab"]';
+  e.preventDefault(); tabs[j].click();
+  setTimeout(() => document.querySelectorAll(cible)[j]?.focus());
+});
 function setUniv(u) { const c = CATEGORIES.find(x => x.univers === u && !x.bientot); if (c) { state.cat = c.id; render(); stat('pole', u); } }
 function setCat(c) { if (CATEGORIES.find(x => x.id === c && !x.bientot)) { state.cat = c; render(); } }
 function setKind(k) {
@@ -958,8 +1000,15 @@ function renderSuccess(lead, received, google) {
 function devisDoc(r, { ref, agence, client, validite, apercu }) {
   const ag = AGENCES[agence];
   const row = (label, detail, value) => `<tr><td>${esc(label)}${detail ? `<small>${esc(detail)}</small>` : ''}</td><td>${value}</td></tr>`;
-  let rows = r.lines.map(l => row(l.label, l.detail, (l.old ? `<s>${eur(l.old)}</s> ` : '') + (l.prix || l.mensuel ? lineVal(l) : 'Gratuit'))).join('');
-  if (r.deplLabel) rows += row(r.deplLabel, client.commune || '', r.offert ? `<s>${eur(r.deplPlein)}</s> Offert` : r.depl ? eur(r.depl) : 'Gratuit');
+  const val = l => (l.old ? `<s>${eur(l.old)}</s> ` : '') + (l.prix || l.mensuel ? lineVal(l) : 'Gratuit');
+  // une ligne par prestation et par matériel ; s'il y a du matériel : 1. matériel, 2. prestations, 3. déplacement, avec sous-totaux
+  const lignes = r.lines.flatMap(l => l.parts?.length ? l.parts : [l]);
+  const mat = lignes.filter(l => l.mat), presta = lignes.filter(l => !l.mat);
+  const sec = (n, t) => mat.length ? `<tr class="devis-sec"><th colspan="2">${n}. ${t}</th></tr>` : '';
+  const sous = (t, ls) => mat.length ? `<tr class="devis-sous"><td>Sous-total ${t}</td><td>${eur(ls.reduce((x, l) => x + (l.mensuel ? 0 : l.prix || 0), 0))}</td></tr>` : '';
+  let rows = (mat.length ? sec(1, 'Fourniture du matériel') + mat.map(l => row(l.label, l.detail, val(l))).join('') + sous('matériel', mat) : '')
+    + sec(mat.length ? 2 : 1, 'Prestations') + presta.map(l => row(l.label, l.detail, val(l))).join('') + sous('prestations', presta);
+  if (r.deplLabel) rows += sec(3, 'Déplacement') + row(r.deplLabel, client.commune || '', r.offert ? `<s>${eur(r.deplPlein)}</s> Offert` : r.depl ? eur(r.depl) : 'Gratuit');
   return `<article class="devis" id="devisDoc">
       <header class="devis-head">
         <div class="devis-brand"><img class="devis-logo" src="img/logo-ilo.png" alt=""><div><b>${ENTREPRISE.nomCommercial}</b><small>Agence ${ag.de} · ${esc(ag.tel)}</small><small>${ENTREPRISE.exploitant} · SIRET ${ENTREPRISE.siret}</small></div></div>

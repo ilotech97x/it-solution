@@ -2,13 +2,12 @@
 (function () {
   const mois = s => s.mensuel ? '/mois' : '';
   const prixBase = s => s.base ? eur(s.base) + mois(s) : 'Gratuit';
-  const prixOpt = (s, o) => o[2] ? '+' + eur(o[2]) + mois(s) : esc(o[3] || 'Gratuit');
 
   const service = s => `
     <section class="f-svc">
       <h3><span>${ico(s.icon)} ${esc(s.nom)}</span><b class="mono">${s.base ? 'dès ' : ''}${prixBase(s)}</b></h3>
       <p class="f-desc">${esc(s.desc)}</p>
-      <table>${s.options.map(o => `<tr><td>${esc(o[1])}</td><td class="mono">${prixOpt(s, o)}</td></tr>`).join('')}</table>
+      ${tablePrix(s, 'Gratuit', 'f-table')}
       ${s.note ? `<p class="f-note">${esc(s.note)}</p>` : ''}
     </section>`;
 
@@ -19,7 +18,7 @@
       <div class="f-meta mono"><b>FICHE TARIFS</b><span>À jour le ${today}</span>
         ${Object.values(AGENCES).map(a => `<span>${esc(a.nom)} · ${esc(a.tel)}</span>`).join('')}</div>
     </header>
-    <p class="f-intro">Prix main d'œuvre ; matériel et pièces en supplément sauf mention contraire. Le prix « dès » comprend le diagnostic et la prise en charge ; les options s'ajoutent. Devis gratuit, prix confirmé avant toute intervention${CONFIG.mentionPrix ? ' · ' + esc(CONFIG.mentionPrix) : ''}.</p>`;
+    <p class="f-intro">Prix main d'œuvre ; le matériel fourni est indiqué à part, comme sur nos devis. Le prix « dès » comprend le diagnostic et la prise en charge. Quand il faut choisir (pose complète, mise en service seule…), le prix indiqué est le total de la prestation ; le matériel et les compléments s'ajoutent. Devis gratuit, prix confirmé avant toute intervention${CONFIG.mentionPrix ? ' · ' + esc(CONFIG.mentionPrix) : ''}.</p>`;
 
   // Packs
   h += `<h2>Packs à prix fixe</h2><div class="f-packs">${PACKS.map(p => `

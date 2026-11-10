@@ -26,6 +26,7 @@
 .f-svc table{width:100%;border-collapse:collapse;font-size:12px}
 .f-svc td{padding:2px 0;border-top:1px dotted var(--line);vertical-align:top}
 .f-svc td small{display:block;color:var(--muted);font-size:10.5px}
+.f-svc .pt-groupe th{padding:7px 0 2px;text-align:left;font:700 9.5px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .f-svc td.mono{text-align:right;white-space:nowrap;padding-left:8px}
 .f-note{margin:4px 0 0;font-size:11px;color:var(--muted);font-style:italic}
 .f-foot{margin-top:16px;padding-top:8px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);text-align:center}
