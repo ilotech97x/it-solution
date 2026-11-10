@@ -83,9 +83,12 @@ NX.pages.factures = async id => {
   if (f === 'payee') r = r.eq('statut', 'payee');
   if (f === 'avoir') r = r.eq('type', 'avoir');
   const l = await q(r);
+  const signales = PORTAIL ? await q(sb.from('nx_paiements_declares').select('facture_id, nx_factures(numero)').eq('org_id', ORG.id).eq('statut', 'a_verifier')).catch(() => []) : [];
+  const bandeau = signales.length ? `<div class="carte" style="margin-bottom:14px">${tag(['att', `${signales.length} paiement${signales.length > 1 ? 's' : ''} signalé${signales.length > 1 ? 's' : ''} par vos clients`])} à vérifier :
+    ${[...new Map(signales.map(x => [x.facture_id, x])).values()].map(x => `<a href="#/factures/${x.facture_id}" class="mono">${esc(x.nx_factures?.numero || 'facture')}</a>`).join(', ')}</div>` : '';
   const du = l.filter(x => x.type === 'facture' && ['validee', 'partielle'].includes(x.statut)).reduce((s, x) => s + (x.total_ttc - x.paye), 0);
   vue(entete('Factures et avoirs', du ? `Reste à encaisser sur cette liste : <b>${montant(du)}</b>` : '', `<button class="btn" id="csv">Exporter (CSV)</button>${peut('facturation') ? '<a class="btn btn-p" href="#/factures/nouvelle">+ Nouvelle facture</a>' : ''}`)
-    + `<div class="puces" style="margin-bottom:14px">${[['', 'Toutes'], ['brouillon', 'Brouillons'], ['encaisser', 'À encaisser'], ['retard', 'En retard'], ['payee', 'Payées'], ['avoir', 'Avoirs']].map(([k, t]) => `<a href="#/factures${k ? '?f=' + k : ''}" class="${f === k ? 'on' : ''}">${t}</a>`).join('')}</div>`
+    + bandeau + `<div class="puces" style="margin-bottom:14px">${[['', 'Toutes'], ['brouillon', 'Brouillons'], ['encaisser', 'À encaisser'], ['retard', 'En retard'], ['payee', 'Payées'], ['avoir', 'Avoirs']].map(([k, t]) => `<a href="#/factures${k ? '?f=' + k : ''}" class="${f === k ? 'on' : ''}">${t}</a>`).join('')}</div>`
     + tableau(['Numéro', 'Client', 'Date', 'Échéance', 'Statut', '#Total TTC', '#Reste dû'], l.map(x => `<tr class="clic" data-href="#/factures/${x.id}"><td><b class="mono">${esc(x.numero || 'Brouillon')}</b><br><span class="muted petit">${x.type === 'avoir' ? 'Avoir · ' : ''}${esc(x.objet)}</span></td>
       <td>${esc(x.nx_clients?.nom || '')}</td><td class="petit">${date(x.date_emission)}</td><td class="petit">${x.type === 'facture' && x.statut !== 'brouillon' ? date(x.echeance) : '—'}</td><td>${tagFacture(x)}</td>
       <td class="num">${montant(x.total_ttc)}</td><td class="num">${x.type === 'facture' && ['validee', 'partielle'].includes(x.statut) ? `<b>${montant(x.total_ttc - x.paye)}</b>` : '—'}</td></tr>`),
@@ -116,6 +119,30 @@ async function nouveauDoc(type) {
 }
 
 // ---------------------------------------------------------------- éditeur commun devis / facture
+// espace client (espace_client.sql) : lien et code à donner au client, consultation, signature, échéancier, paiements déclarés à vérifier
+const ETAT_ECH_PRO = { payee: ['ok', 'Payée'], partielle: ['att', 'En partie payée'], a_payer: ['att', 'À régler'], en_retard: ['ko', 'En retard'], a_venir: ['', 'À venir'] };
+const lienClient = d => `${location.origin}${location.pathname}#/client?ref=${encodeURIComponent(d.numero)}&code=${encodeURIComponent(d.acces_code)}`;
+function carteEspaceClient(type, doc, [sig, ech, decl]) {
+  const fac = type === 'facture', reste = doc.total_ttc - doc.paye;
+  let cumul = 0;
+  const etat = e => { cumul += Number(e.montant); return doc.paye >= cumul - 0.001 ? 'payee' : doc.paye > cumul - e.montant ? 'partielle' : e.date_echeance < aujourdhui() ? 'en_retard' : e.date_echeance === aujourdhui() ? 'a_payer' : 'a_venir'; };
+  return `<div class="carte" style="margin-top:16px" id="espaceClient"><h2>Espace client</h2>
+    <p>Le client ouvre ce ${fac ? 'document' : 'devis'} sans compte, avec la référence <b class="mono">${esc(doc.numero)}</b> et le code d’accès <b class="mono">${esc(doc.acces_code)}</b> (imprimés sur le PDF). Il peut le signer${fac ? ', choisir de payer en plusieurs fois et signaler un paiement' : ''}.</p>
+    <div class="actions"><button class="btn btn-s" type="button" id="copierLien">Copier le lien client</button><a class="btn btn-s" href="${esc(lienClient(doc))}" target="_blank" rel="noopener">Voir comme le client</a>
+      ${peut(fac ? 'facturation' : 'ventes') ? '<button class="btn btn-s" type="button" id="nouveauCode">Changer le code</button>' : ''}</div>
+    <p class="petit muted">${doc.vu_le ? `Consulté par le client le ${dateHeure(doc.vu_le)}.` : 'Pas encore consulté par le client.'}</p>
+    ${!sig ? '' : sig.decision === 'refuse' ? `<p>${tag(['ko', 'Refusé en ligne'])} par <b>${esc(sig.nom)}</b> le ${dateHeure(sig.signe_at)}${sig.motif ? ` : « ${esc(sig.motif)} »` : ''}</p>`
+      : `<div class="ec-sig"><img src="${esc(sig.image)}" alt="Signature de ${esc(sig.nom)}"><p>${tag(['ok', 'Signé en ligne'])} par <b>${esc(sig.nom)}</b> le ${dateHeure(sig.signe_at)}<br>
+        <span class="petit muted">Empreinte <span class="mono">${esc(sig.empreinte.slice(0, 16))}…</span>${sig.ip ? ` · IP ${esc(sig.ip)}` : ''}</span></p></div>`}
+    ${fac && doc.type === 'facture' ? `<h3>Échéancier</h3>${ech.length ? `<ul class="ec-ech">${ech.map(e => `<li><span>${e.rang}. ${date(e.date_echeance)}${e.cree_par_client ? ' · choisi par le client' : ''}</span><b>${montant(e.montant)}</b>${tag(ETAT_ECH_PRO[etat(e)])}</li>`).join('')}</ul>
+        ${peut('facturation') ? '<button class="btn btn-s btn-ko" type="button" id="retirerEch">Retirer l’échéancier</button>' : ''}`
+      : ['validee', 'partielle'].includes(doc.statut) && peut('facturation') && reste >= 2 ? `<p class="petit muted">Le client peut le choisir lui-même dans son espace (Réglages › paiement en plusieurs fois), ou vous le proposez :</p>
+        <div class="actions">${[2, 3, 4].map(n => `<button class="btn btn-s" type="button" data-ech="${n}">${n} fois</button>`).join('')}</div>` : '<p class="petit muted">Aucun échéancier.</p>'}
+      ${decl.length ? `<h3>Paiements signalés par le client</h3><ul class="ec-ech">${decl.map(x => `<li><span>${dateHeure(x.created_at)} · ${MOYENS[x.moyen] || x.moyen}${x.reference ? ` · <span class="mono">${esc(x.reference)}</span>` : ''}${x.message ? `<br><span class="petit muted">${esc(x.message)}</span>` : ''}</span><b>${montant(x.montant)}</b>
+        ${x.statut === 'a_verifier' && peut('facturation') ? `<span class="actions"><button class="btn btn-s btn-p" type="button" data-decl="${x.id}" data-ok="1">Reçu</button><button class="btn btn-s" type="button" data-decl="${x.id}" data-ok="">Pas reçu</button></span>`
+          : tag(x.statut === 'confirme' ? ['ok', 'Confirmé'] : x.statut === 'refuse' ? ['ko', 'Non reçu'] : ['att', 'À vérifier'])}</li>`).join('')}</ul>` : ''}` : ''}</div>`;
+}
+
 async function editeur(type, id) {
   const table = type === 'devis' ? 'nx_devis' : 'nx_factures', tLignes = type === 'devis' ? 'nx_devis_lignes' : 'nx_facture_lignes', cle = type === 'devis' ? 'devis_id' : 'facture_id';
   const doc = await q(sb.from(table).select('*, nx_clients(*)').eq('id', id).eq('org_id', ORG.id).maybeSingle());
@@ -125,6 +152,10 @@ async function editeur(type, id) {
     type === 'facture' ? q(sb.from('nx_paiements').select('*').eq('facture_id', id).order('date_paiement')) : [],
     doc.origine_id ? q(sb.from('nx_factures').select('id, numero').eq('id', doc.origine_id).maybeSingle()) : null,
     type === 'facture' && doc.type === 'facture' ? q(sb.from('nx_factures').select('id, numero, statut, total_ttc').eq('origine_id', id)) : []]);
+  const portail = PORTAIL && doc.statut !== 'brouillon' && doc.type !== 'avoir' && doc.acces_code ? await Promise.all([
+    q(sb.from('nx_signatures').select('*').eq('doc_type', type).eq('doc_id', id).maybeSingle()),
+    type === 'facture' ? q(sb.from('nx_echeances').select('*').eq('facture_id', id).order('rang')) : [],
+    type === 'facture' ? q(sb.from('nx_paiements_declares').select('*').eq('facture_id', id).order('created_at', { ascending: false })) : []]) : null;
   const editable = doc.statut === 'brouillon' && peut(type === 'devis' ? 'ventes' : 'facturation');
   const nomDoc = type === 'devis' ? 'Devis' : doc.type === 'avoir' ? 'Avoir' : 'Facture';
   const statutTag = type === 'devis' ? tag(ST_DEVIS[doc.statut]) : tagFacture(doc);
@@ -184,7 +215,7 @@ async function editeur(type, id) {
       ${editable ? '<div class="actions"><button class="btn btn-p">Enregistrer</button><span class="muted petit">Les totaux définitifs sont calculés par NEXORA à l’enregistrement.</span></div>' : ''}</form>
     ${type === 'facture' && doc.type === 'facture' && doc.statut !== 'brouillon' ? `<div class="carte" style="margin-top:16px"><h2>Paiements</h2>${paiements.length ? `<table class="tab">${paiements.map(p => `<tr><td>${date(p.date_paiement)}</td><td>${MOYENS[p.moyen]}${p.reference ? ` · <span class="mono petit">${esc(p.reference)}</span>` : ''}</td>
         <td class="num"><b>${montant(p.montant)}</b></td><td class="num">${peut('facturation') ? `<button class="btn btn-s btn-ko" data-annuler-p="${p.id}">Annuler</button>` : ''}</td></tr>`).join('')}</table>` : '<p class="muted">Aucun paiement enregistré.</p>'}
-      ${avoirs.length ? `<h3 style="margin-top:14px">Avoirs</h3>${avoirs.map(a => `<p><a href="#/factures/${a.id}">${esc(a.numero || 'Avoir en brouillon')}</a> · ${montant(a.total_ttc)}</p>`).join('')}` : ''}</div>` : ''}`);
+      ${avoirs.length ? `<h3 style="margin-top:14px">Avoirs</h3>${avoirs.map(a => `<p><a href="#/factures/${a.id}">${esc(a.numero || 'Avoir en brouillon')}</a> · ${montant(a.total_ttc)}</p>`).join('')}` : ''}</div>` : ''}${portail ? carteEspaceClient(type, doc, portail) : ''}`);
 
   const f = $('#fDoc');
   const lireLignes = () => $$('#lignes tbody tr').map((tr, i) => { const v = n => $(`[name=${n}]`, tr).value; return { ordre: i + 1, designation: v('designation').trim(), quantite: Number(v('quantite')), unite: v('unite').trim() || 'unité', prix_ht: Number(v('prix_ht')), remise_pct: Number(v('remise_pct') || 0), taux_tva: ORG.franchise_tva ? 0 : Number(v('taux_tva') || 0) }; }).filter(l => l.designation);
@@ -221,6 +252,16 @@ async function editeur(type, id) {
         if (!await confirmer(`Valider ${doc.type === 'avoir' ? 'l’avoir' : 'la facture'}`, `Un numéro définitif va être attribué. Ensuite, ${doc.type === 'avoir' ? 'l’avoir' : 'la facture'} ne pourra plus être modifié${doc.type === 'avoir' ? '' : 'e'} ni supprimé${doc.type === 'avoir' ? '' : 'e'} (obligation légale). Pensez à enregistrer vos dernières modifications avant.`, 'Valider définitivement')) return;
         const n = await q(sb.rpc('nx_valider_facture', { fid: id })); toast(`${nomDoc} ${n} validé${doc.type === 'avoir' ? '' : 'e'}.`); return editeur(type, id);
       }
+      if (b.id === 'copierLien') {
+        try { await navigator.clipboard.writeText(lienClient(doc)); toast('Lien copié : envoyez-le au client (WhatsApp, email).'); } catch (err) { await modale('Lien client', `<input readonly value="${esc(lienClient(doc))}">`, { valider: 'Fermer' }); }
+        return;
+      }
+      if (b.id === 'nouveauCode' && await confirmer('Changer le code d’accès', 'L’ancien lien et l’ancien code ne marcheront plus. Donnez ensuite le nouveau lien au client.', 'Changer le code')) {
+        await q(sb.rpc('nx_changer_code', { typ: type, did: id })); toast('Nouveau code créé.'); return editeur(type, id);
+      }
+      if (b.dataset.ech) { await q(sb.rpc('nx_creer_echeancier', { fid: id, nb: Number(b.dataset.ech) })); toast('Échéancier proposé : le client le voit dans son espace.'); return editeur(type, id); }
+      if (b.id === 'retirerEch' && await confirmer('Retirer l’échéancier', 'Le client ne verra plus les échéances ; les paiements déjà reçus restent enregistrés.', 'Retirer')) { await q(sb.rpc('nx_retirer_echeancier', { fid: id })); return editeur(type, id); }
+      if (b.dataset.decl) { await q(sb.rpc('nx_traiter_declaration', { decl: b.dataset.decl, confirmer: !!b.dataset.ok })); toast(b.dataset.ok ? 'Paiement enregistré sur la facture.' : 'Noté : paiement non reçu.'); return editeur(type, id); }
       if (b.id === 'payer') {
         const d = await modale('Paiement reçu', `<div class="g2"><label>Montant (€)<input name="montant" type="number" step="0.01" min="0.01" max="${doc.total_ttc - doc.paye}" required value="${(doc.total_ttc - doc.paye).toFixed(2)}"></label>
           <label>Date<input name="date" type="date" required max="${aujourdhui()}" value="${aujourdhui()}"></label></div><div class="g2"><label>Moyen<select name="moyen">${Object.entries(MOYENS).map(([k, t]) => `<option value="${k}">${t}</option>`).join('')}</select></label>
@@ -243,6 +284,8 @@ NX.pages.imprimer = async (type, id) => {
   const lignes = await q(sb.from(type === 'devis' ? 'nx_devis_lignes' : 'nx_facture_lignes').select('*').eq(type === 'devis' ? 'devis_id' : 'facture_id', id).order('ordre').order('id'));
   const origine = doc.origine_id ? await q(sb.from('nx_factures').select('numero, date_emission').eq('id', doc.origine_id).maybeSingle()) : null;
   const o = doc.org_snap || ORG, c = doc.client_snap || doc.nx_clients || {}, t = calculer(lignes), devise = o.devise || ORG.devise;
+  const enLigne = PORTAIL && doc.acces_code && doc.statut !== 'brouillon' && doc.type !== 'avoir';
+  const sig = enLigne ? await q(sb.from('nx_signatures').select('nom, signe_at, image, decision').eq('doc_type', type).eq('doc_id', id).maybeSingle()) : null;
   const titre = type === 'devis' ? 'DEVIS' : doc.type === 'avoir' ? 'AVOIR' : 'FACTURE', brouillon = doc.statut === 'brouillon' && type === 'facture';
   const adr = x => [x.adresse, [x.code_postal, x.ville].filter(Boolean).join(' '), x.pays && x.pays !== 'France' ? x.pays : ''].filter(Boolean).map(esc).join('<br>');
   document.title = `${titre} ${doc.numero || 'brouillon'} — ${o.nom}`;
@@ -269,7 +312,9 @@ NX.pages.imprimer = async (type, id) => {
         ${c.points_faibles?.length || c.avantages?.length ? `<div class="parties">${c.points_faibles?.length ? `<div><b>Aujourd’hui</b><ul>${li(c.points_faibles)}</ul></div>` : ''}${c.avantages?.length ? `<div><b>Ce que vous gagnez en plus</b><ul>${li(c.avantages)}</ul></div>` : ''}</div>` : ''}
         ${c.inconvenients?.length ? `<p><b>Points d’attention</b></p><ul>${li(c.inconvenients)}</ul>` : ''}
         <p class="petit" style="color:#666">Estimation établie à partir des coûts actuels indiqués par le client ; elle n’engage pas sur des économies futures.</p></section>`; })() : ''}
-    ${type === 'devis' ? '<p style="margin-top:30px">Bon pour accord — date et signature du client :</p><div style="height:70px;border:1px dashed #bbb;border-radius:8px;max-width:320px"></div>' : ''}
+    ${sig && sig.decision === 'accepte' ? `<p style="margin-top:30px">Bon pour accord, signé en ligne par <b>${esc(sig.nom)}</b> le ${dateHeure(sig.signe_at)} :</p><img src="${esc(sig.image)}" alt="Signature" style="max-width:260px;height:auto">`
+      : type === 'devis' ? '<p style="margin-top:30px">Bon pour accord — date et signature du client :</p><div style="height:70px;border:1px dashed #bbb;border-radius:8px;max-width:320px"></div>' : ''}
+    ${enLigne ? `<p class="ec-imp">Signer, suivre${type === 'facture' ? ' et régler (paiement en plusieurs fois possible)' : ''} en ligne : <b>${esc(location.origin + location.pathname)}#/client</b> — référence <b>${esc(doc.numero)}</b>, code d’accès <b>${esc(doc.acces_code)}</b>.</p>` : ''}
     <div class="mentions">${o.franchise_tva ? 'TVA non applicable, art. 293 B du CGI.\n' : ''}${doc.notes ? esc(doc.notes) + '\n' : ''}${esc(doc.conditions)}${o.iban && type === 'facture' && doc.type === 'facture' ? `\nRèglement par virement : IBAN ${esc(o.iban)}` : ''}</div></article>`);
   $('#imp').onclick = () => window.print();
 };

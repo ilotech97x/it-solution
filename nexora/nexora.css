@@ -246,3 +246,25 @@ a.kpi{display:block;text-decoration:none;color:inherit;transition:border-color .
 .gain-cp span{font-size:12.5px;color:var(--doux)}.gain-cp b{font-size:18px}.gain-cp.ko{background:color-mix(in srgb,var(--ko) 8%,transparent);border-color:color-mix(in srgb,var(--ko) 30%,transparent)}
 .cp-imp{margin-top:26px;break-inside:avoid}.cp-imp h2{font-size:16px;margin:0 0 8px;color:#111}.cp-imp ul{margin:4px 0 10px;padding-left:18px}
 .gains-imp{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}.gains-imp .gain-cp{background:#f2faf4;border-color:#b7e1c1}.gains-imp .gain-cp.ko{background:#fdf2f2;border-color:#f2c2c2}.gains-imp .gain-cp span{color:#555}
+
+/* espace client (client.js) : page publique, et rappels dans le suivi des devis et factures */
+.espace-client{max-width:880px;margin:0 auto;padding:16px;display:grid;gap:14px}
+.espace-client .carte{margin:0}
+.ec-tete{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}.ec-tete h1{margin:2px 0 6px;font-size:24px}
+.ec-total{display:grid;justify-items:end;gap:6px;text-align:right}.ec-total b{font-size:28px;color:var(--titre)}
+.ec-suivi{display:flex;gap:6px;list-style:none;margin:0;padding:12px;overflow-x:auto}
+.ec-suivi li{flex:1 1 0;min-width:112px;display:grid;gap:2px;padding:8px 10px;border-radius:10px;background:var(--surface2);color:var(--doux);font-size:13px}
+.ec-suivi li.fait{background:var(--ok-d);color:var(--ok)}
+.ec-sig{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:8px 0}.ec-sig img{width:220px;max-width:100%;height:auto;background:#fff;border:1px solid var(--ligne);border-radius:10px}
+.ec-pad{position:relative;border:1.5px dashed var(--ligne);border-radius:12px;background:#fff;touch-action:none}
+.ec-pad canvas{display:block;width:100%;height:180px;cursor:crosshair;touch-action:none}
+.ec-pad span{position:absolute;left:0;right:0;bottom:10px;text-align:center;pointer-events:none}
+.ec-ech{list-style:none;margin:6px 0 12px;padding:0;display:grid;gap:6px}
+.ec-ech li{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--ligne);border-radius:10px}
+.ec-ech li>span:first-child{flex:1 1 200px}
+.ec-option{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--ligne)}.ec-option div{display:grid;gap:2px}
+.ec-moyens{display:grid;gap:10px;margin-bottom:10px}.ec-rib{display:grid;gap:2px;padding:10px 12px;border-radius:10px;background:var(--surface2);overflow-wrap:anywhere}
+.ec-plus{margin-top:10px}.ec-plus summary{cursor:pointer;padding:8px 0}
+.ec-pied{text-align:center}
+.ec-imp{margin-top:18px;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:12px}
+@media print{.espace-client .ec-suivi,.espace-client details,.espace-client .actions,.espace-client #fSig,.espace-client .no-print,.pub-haut{display:none!important}}

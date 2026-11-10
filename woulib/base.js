@@ -143,7 +143,8 @@ async function pageNotifs() {
   if (nonLues.length) { await sb.from('notifs').update({ lu: true }).in('id', nonLues); nbNotifs = 0; nav(); }
 }
 function nav() {
-  const h = location.hash || '#/', on = p => (p === '#/' ? h === '#/' || h.startsWith('#/?') : h.startsWith(p)) ? 'on' : '';
+  const h = location.hash || '#/', actif = APP.ongletDe?.(h);   // l'appli peut dire quel onglet éclairer (fiche, suivi, sous-page…)
+  const on = p => (actif ? actif === p.split('?')[0] : p === '#/' ? h === '#/' || h.startsWith('#/?') : h.startsWith(p)) ? 'on' : '';
   const b = n => n ? `<span class="badge">${n}</span>` : '';
   const c = $('#clocheApp'); if (c) { c.hidden = !moi; c.innerHTML = (APP.icones?.().cloche || '🔔') + b(nbNotifs); }
   const r = $('#retourApp'); if (r && APP.icones && !r.querySelector('svg')) r.innerHTML = APP.icones().retour;
@@ -161,7 +162,8 @@ function nav() {
 // et l'on retrouve l'endroit où l'on était ; entre onglets du bas, simple fondu. Les pages restent des fonctions qui appellent vue().
 let rang = 0, pageEnCours = null, premierRendu = null, aRestaurer = null, recul = false;
 const defilements = {};
-const onglets = () => APP.menuBas().map(([h]) => h.split('?')[0]);
+// pages « racine » : les onglets du bas, plus celles que l'appli déclare (Woulib : l'écran d'entrée, qui n'a pas d'onglet à lui)
+const onglets = () => [...APP.menuBas().map(([h]) => h.split('?')[0]), ...(APP.racines || [])];
 const estOnglet = h => onglets().includes(h);
 function sensNavigation(prec, h) {
   const st = history.state;

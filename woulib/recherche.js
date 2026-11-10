@@ -38,11 +38,11 @@ function comprendre(texte, terr) {
   }
   if (/\b(colis|paquet|enveloppe|coursier|document)/.test(t) || /^envoyer\b/.test(t)) ajout('#/express', ICO.colis, 'Envoyer un colis', 'Un livreur vérifié le récupère et le remet', true);
   if (/\b(covoit|covoiturage)/.test(t) || /proposer un trajet/.test(t)) ajout('#/bouger?mode=covoiturage', ICO.gens, /proposer/.test(t) ? 'Proposer un trajet' : 'Covoiturage', 'Pas encore ouvert : être prévenu');
-  if (/\b(lift|autostop|auto stop|entraide|coup de main)\b/.test(t)) ajout('#/bouger?mode=entraide', ICO.bouclier, 'Entraide', 'Pas encore ouverte : être prévenu');
+  if (/\b(lift|autostop|auto stop|entraide|coup de main)\b/.test(t)) ajout('#/bouger?mode=stop', ICO.bouclier, 'Je cherche un stop', 'Pas encore ouvert : être prévenu');
   if (/\b(taxi|taxis|vtc|chauffeur|aeroport)\b/.test(t)) ajout('#/bouger', ICO.taxi, 'Taxi ou VTC', 'Chauffeurs professionnels vérifiés, prix estimé', true);
   if (/\b(gps|itineraire|guidage|bouchon|bouchons|accident|route)\b/.test(t)) ajout('#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, alertes');
   Object.entries(MOTS_CUISINE).forEach(([k, m]) => { if (contientMot(t, m)) ajout(`#/manger?cuisine=${k}`, ICO.manger, `Manger : ${CUISINES[k][1].toLowerCase()}`, 'Les restaurants de cette cuisine', true); });
-  if (BOUTIQUES) Object.entries(MOTS_RAYON).forEach(([k, m]) => { if (contientMot(t, m)) ajout(`#/manger?vue=commerces&rayon=${k}`, ICO.commerce, `Commerces : ${RAYONS_FILTRE.find(x => x[0] === k)[1].toLowerCase()}`, 'Retrait ou livraison', true); });
+  if (BOUTIQUES) Object.entries(MOTS_RAYON).forEach(([k, m]) => { if (contientMot(t, m)) ajout(`#/commerce?rayon=${k}`, ICO.commerce, `Commerces : ${RAYONS_FILTRE.find(x => x[0] === k)[1].toLowerCase()}`, 'Retrait ou livraison', true); });
   if (/\b(restaurant|restaurants|resto|manger|faim|repas|dejeuner|diner|livraison)\b/.test(t)) ajout('#/manger', ICO.manger, 'Commander à manger', 'Livré ou à emporter');
   if (/\b(anniversaire|mariage|bapteme|communion|fete|organiser)\b/.test(t)) ajout('#/projets', ICO.calendrier, 'Organiser un événement', 'La liste, le budget, les prestataires');
   const ext = c => (REGISTRE || REPLI).find(u => u.code === c && u.statut === 'externe' && u.lien);
@@ -73,7 +73,7 @@ APP.pages.recherche = async () => {
     <p class="cache-visuel" id="annonce" aria-live="polite"></p><div id="resultats"></div></div>`);
   const champ = $('#q'), zone = $('#resultats');
   // la teinte du domaine : Manger, Commerces, Bouger, Colis
-  const teinte = h => /vue=commerces/.test(h) ? 't-com' : /^#\/(bouger|gps)/.test(h) ? 't-move' : /^#\/manger/.test(h) ? 't-food' : /^#\/(express|projets)/.test(h) ? 't-colis' : '';
+  const teinte = h => /^#\/commerce/.test(h) ? 't-com' : /^#\/(bouger|gps)/.test(h) ? 't-move' : /^#\/manger/.test(h) ? 't-food' : /^#\/(express|projets)/.test(h) ? 't-colis' : '';
   const lien = ([h, i, t, d, avant]) => `<a class="action-r ${avant ? 'avant' : ''}" href="${esc(h)}" data-garder><span class="ico-t ${teinte(h)}">${i}</span><span><b>${esc(t)}</b><small>${esc(d)}</small></span>${ICO.droite}</a>`;
   const ligneResto = x => { const e = etatOuverture(x); return `<a class="ligne-r" href="#/resto/${x.id}" data-garder><span class="cr-img mini ${estBoutique(x) ? 't-com' : 't-food'}">${x.photo ? `<img src="${esc(photo(x.photo))}" alt="" loading="lazy">` : `<span aria-hidden="true">${CUISINES[x.cuisine]?.[0] || '🍽️'}</span>`}</span>
     <span><b>${esc(x.nom)}</b><small class="${e.ouvert ? 'ok' : ''}">${esc(etatTexte(x, e))}</small></span><small class="muted">${esc(x.commune)}</small></a>`; };
@@ -83,7 +83,7 @@ APP.pages.recherche = async () => {
   const accueilRecherche = () => {
     const rec = lireRecentes();
     zone.innerHTML = `${rec.length ? section('Recherches récentes', `<div class="puces">${rec.map(x => `<button type="button" data-essai="${esc(x)}">${ICO.horloge}${esc(x)}</button>`).join('')}</div>`) : ''}
-      ${section('Raccourcis', `<div class="liste-g">${[['#/manger', ICO.manger, 'Commander à manger', 'Restaurants livrés ou à emporter'], ...BOUTIQUES ? [['#/manger?vue=commerces', ICO.commerce, 'Commerces', 'Boissons, épicerie, dépannage']] : [],
+      ${section('Raccourcis', `<div class="liste-g">${[['#/manger', ICO.manger, 'Commander à manger', 'Restaurants livrés ou à emporter'], ...BOUTIQUES ? [['#/commerce', ICO.commerce, 'Commerces', 'Boissons, épicerie, dépannage']] : [],
         ['#/bouger', ICO.bouger, 'Se déplacer', 'Taxi et VTC vérifiés'], ...universOuvert('express', terr) ? [['#/express', ICO.colis, 'Envoyer un colis', 'Un livreur vérifié']] : []].map(lien).join('')}</div>`)}
       <p class="muted essais">Essayez : ${['pizza', 'épicerie', 'envoyer un colis', 'aller au Lamentin'].map(x => `<button type="button" class="lien" data-essai="${x}">${x}</button>`).join(' · ')}</p>`;
     $('#annonce').textContent = '';

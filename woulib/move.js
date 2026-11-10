@@ -20,7 +20,9 @@ let minuterie = null, suiviGps = null;
 // Taxi et VTC passent par le moteur de courses actuel (move.sql). Covoiturage et entraide ne sont pas ouverts : leur onglet le dit
 // et propose d'être prévenu (univers « bientôt », woulib/bouger.sql), sans aucun faux trajet ni faux conducteur.
 declarerUnivers('move', { routes: /^#\/(bouger|move|woulib|course|courses|chauffeur|livraison|partage|admin\/woulib|gps)\b/, zone: 'move', accueil: '#/bouger', appel: 'Réserver un trajet' });
-const MODES = [['covoiturage', 'Covoiturage'], ['entraide', 'Entraide'], ['taxi', 'Taxi/VTC']];
+// quatre modes (vision du 09/11) ; seuls Taxi et VTC sont ouverts. « Je cherche un stop » et « Je prends en stop » relèvent de l'entraide
+// (gratuite), fermée comme le covoiturage jusqu'à l'avis juridique : leur onglet explique les règles prévues et propose une alerte.
+const MODES = [['taxi', 'Taxi/VTC'], ['covoiturage', 'Covoiturage'], ['stop', 'Je cherche un stop'], ['prendre', 'Je prends en stop']];
 // lieux enregistrés : dans le compte (commun/adresses.sql) quand la base les accepte, sinon sur cet appareil comme avant
 const lieuxLocaux = () => { try { return JSON.parse(localStorage.getItem('kvAdresses')) || []; } catch (e) { return []; } };
 const ecrireLieuxLocaux = l => { try { localStorage.setItem('kvAdresses', JSON.stringify(l.slice(0, 8))); } catch (e) { /* stockage indisponible */ } };
@@ -32,18 +34,18 @@ APP.pages.bouger = async () => {
   let terr = territoireActif();
   const p = param(), pts = { depart: null, arrivee: null };
   let cat = 'eco', carte = null, calques = null, L = null, estim = {}, dispo = null, nbPass = 1, quand = '', lieux = [], auCompte = false;
-  let mode = MODES.some(([k]) => k === p.mode) ? p.mode : 'taxi';
+  let mode = p.mode === 'entraide' ? 'stop' : MODES.some(([k]) => k === p.mode) ? p.mode : 'taxi';
   const telConnu = !!contact?.telephone;
   const champ = k => `<div class="pt-l"><span class="pt-m ${k === 'depart' ? 'm-dep' : 'm-arr'}" aria-hidden="true"></span><label for="${k}"><span>${k === 'depart' ? 'Départ' : 'Destination'}</span>
       <input id="${k}" placeholder="${k === 'depart' ? 'Adresse, lieu, hôtel…' : 'Où allez-vous ?'}" autocomplete="off" maxlength="200" enterkeyhint="search"></label>
       <button type="button" class="btn-icone" data-chercher="${k}" aria-label="Chercher ${k === 'depart' ? 'le départ' : 'la destination'}">${ICO.recherche}</button></div>
     <div id="res-${k}" class="sugg" aria-live="polite"></div>
     <div class="puces pt-rac">${k === 'depart' ? `<button type="button" data-mapos="1">${ICO.localiser}Ma position</button>` : ''}<button type="button" data-aero="${k}">${ICO.avion}Aéroport</button><span class="favs" data-pour="${k}"></span></div>`;
-  const pasOuvert = (k, titre, texte) => `<div class="mode-p" id="mode-${k}" ${mode === k ? '' : 'hidden'}>
-      ${k === 'entraide' ? `<div class="bandeau ok">${ICO.bouclier}<span><b>Gratuit, entre voisins.</b> Aucune somme ne pourra être demandée ni versée, même un pourboire.</span></div>` : ''}
-      <div class="vide-etat"><span class="ico">${k === 'entraide' ? ICO.gens : ICO.taxi}</span><h3>${titre}</h3><p class="muted">${texte}</p>
-        <div class="actions" style="justify-content:center">${univers(k) ? `<button type="button" class="btn btn-sec" data-alerte="${k}">Me prévenir à l’ouverture</button>` : ''}<button type="button" class="btn btn-p" data-mode="taxi">Voir Taxi/VTC</button></div></div></div>`;
-  vue(`<div class="wrap page-bouger"><h1>Bouger</h1>
+  const pasOuvert = (k, titre, texte, code = k) => `<div class="mode-p" id="mode-${k}" ${mode === k ? '' : 'hidden'}>
+      ${code === 'entraide' ? `<div class="bandeau ok">${ICO.bouclier}<span><b>Gratuit, entre voisins.</b> Aucune somme ne pourra être demandée ni versée, même un pourboire.</span></div>` : ''}
+      <div class="vide-etat"><span class="ico">${code === 'entraide' ? ICO.gens : ICO.taxi}</span><h3>${titre}</h3><p class="muted">${texte}</p>
+        <div class="actions" style="justify-content:center">${univers(code) ? `<button type="button" class="btn btn-sec" data-alerte="${code}">Me prévenir à l’ouverture</button>` : ''}<button type="button" class="btn btn-p" data-mode="taxi">Voir Taxi/VTC</button></div></div></div>`;
+  vue(`<div class="wrap page-bouger"><h1>Mobility</h1>
     <div class="bouger-g"><div class="bouger-col">
     <form class="f trajet-f" id="fRes">
       <div class="trajet-c">${champ('depart')}${champ('arrivee')}
@@ -64,11 +66,12 @@ APP.pages.bouger = async () => {
         <button class="btn btn-p btn-g btn-plein" id="reserver">Commander</button>
         <p class="muted petit" style="margin:0">Prix estimé par Woulib selon la distance, réglé directement au chauffeur (péages, longue attente ou détour en plus). Chauffeurs professionnels vérifiés : carte VTC ou licence de taxi.</p></div>
       ${pasOuvert('covoiturage', 'Le covoiturage n’est pas encore ouvert', 'Rejoindre un conducteur qui fait déjà ce trajet pour lui, en partageant seulement les frais.')}
-      ${pasOuvert('entraide', 'L’entraide n’est pas encore ouverte', 'Un coup de main gratuit entre voisins, avec des conducteurs vérifiés un par un.')}
+      ${pasOuvert('stop', '« Je cherche un stop » n’est pas encore ouvert', 'Vous activerez votre disponibilité quand vous le voulez : le reste du temps, personne ne vous voit. Avant l’accord des deux personnes, la carte ne montre qu’une position approximative.', 'entraide')}
+      ${pasOuvert('prendre', '« Je prends en stop » n’est pas encore ouvert', 'Les conducteurs vérifiés un par un activent leur disponibilité pour un trajet. Le lieu exact du rendez-vous n’est donné qu’après l’accord des deux personnes.', 'entraide')}
     </form>
     <div class="liste-g bouger-plus">${[...universOuvert('express', terr) ? [['#/express', ICO.colis, 'Envoyer un colis', 'Un livreur vérifié le récupère et le remet']] : [], ['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents, routes coupées']]
       .map(([h, i, t, d]) => `<a class="menu-l" href="${h}"><span class="ico-l">${i}</span><div><b>${t}</b><small>${d}</small></div>${ICO.droite}</a>`).join('')}</div>
-    </div><div class="bouger-carte" id="zoneCarte"><div id="carte" class="carte-move" role="img" aria-label="Carte du trajet"></div></div></div></div>`);
+    </div><div class="bouger-carte" id="zoneCarte"><div id="carte" class="carte-move" role="img" aria-label="Carte du trajet"></div><button type="button" class="carte-loc" aria-label="Partir de ma position">${ICO.localiser}</button></div></div></div>`);
 
   const majTotal = () => {
     Object.keys(CATS).forEach(k => {
@@ -101,7 +104,9 @@ APP.pages.bouger = async () => {
   };
   const montrerCarte = () => { const z = $('#zoneCarte'); if (z && !z.classList.contains('vue')) { z.classList.add('vue'); setTimeout(() => carte?.invalidateSize(), 60); } };
   const majFav = () => document.querySelectorAll('.favs').forEach(z => {
-    z.innerHTML = lieux.map((f, i) => [f, i]).filter(([f]) => !f.terr || f.terr === terr).map(([f, i]) => `<button type="button" data-fav="${i}" data-pour="${z.dataset.pour}">${esc(f.icone)} ${esc(f.titre)}</button>`).join('');
+    z.innerHTML = lieux.map((f, i) => [f, i]).filter(([f]) => !f.terr || f.terr === terr).map(([f, i]) => `<button type="button" data-fav="${i}" data-pour="${z.dataset.pour}">${esc(f.icone)} ${esc(f.titre)}</button>`).join('')
+      + (moi && z.dataset.pour === 'arrivee' ? [['🏠', 'domicile', /maison|chez|domicile/i], ['💼', 'travail', /travail|bureau|boulot/i]].filter(([, , re]) => !lieux.some(f => re.test(f.titre)))
+        .map(([i, t]) => `<a class="fav-ajout" href="#/compte/adresses">${i} Ajouter ${t}</a>`).join('') : '');
   });
   const choisir = (k, pt) => {
     pts[k] = pt; $('#' + k).value = pt.nom.split(',').slice(0, 3).join(',');
@@ -124,6 +129,7 @@ APP.pages.bouger = async () => {
   };
   ['depart', 'arrivee'].forEach(k => $('#' + k).addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); chercher(k); } }));
   $('#fRes').addEventListener('change', ev => { if (ev.target.name === 'cat') { cat = ev.target.value; majTotal(); } });
+  $('#zoneCarte').addEventListener('click', ev => { if (ev.target.closest('.carte-loc')) $('#fRes [data-mapos]')?.click(); });   // bouton rond posé sur la carte
   $('#fRes').addEventListener('click', async ev => {
     const t = ev.target, c = t.closest('[data-chercher]'), a = t.closest('[data-aero]'), g = t.closest('[data-mapos]'), md = t.closest('[data-mode]'), qd = t.closest('[data-quand]'), ps = t.closest('[data-pass]'), al = t.closest('[data-alerte]');
     if (c) chercher(c.dataset.chercher);

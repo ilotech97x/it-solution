@@ -12,7 +12,7 @@ APP.pages.express = async () => {
   await chargerRegistre(); if (!universOuvert('express')) return universFerme('express');
   let terr = terrPrefere() || profil?.territoire || 'Martinique'; if (!TERRITOIRES[terr] || terr === 'Autre pays') terr = 'Martinique';
   const pts = { retrait: null, depot: null }; let taille = 'petit', estim = {}, L = null, carte = null, calques = null;
-  vue(`<div class="wrap page-move"><h1 class="titre-move">📦 Envoyer un colis</h1><div class="fiche fiche-d"><div><div id="carte" class="carte-move"></div></div>
+  vue(`<div class="wrap page-move"><h1 class="titre-move">Delivery</h1><p class="muted" style="margin:-6px 0 14px">📦 Envoyer un colis : un livreur vérifié le récupère et le livre.</p><div class="fiche fiche-d"><div><div id="carte" class="carte-move"></div></div>
     <aside><form class="f panier colle" id="fColis">
       ${['retrait', 'depot'].map(k => `<div><label>${k === 'retrait' ? '📦 Où récupérer le colis' : '🏁 Où le livrer'}<div style="display:flex;gap:6px"><input id="${k}" placeholder="Adresse, quartier, commerce…" autocomplete="off" maxlength="200" style="flex:1">
         <button type="button" class="btn btn-s" data-chercher="${k}" aria-label="Chercher">🔎</button></div></label><div id="res-${k}" class="petit"></div>

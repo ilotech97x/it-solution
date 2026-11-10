@@ -56,6 +56,7 @@ const icone = n => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><pat
 // ---------------------------------------------------------------- session, entreprises, droits
 let moi = null, profil = null, ORGS = [], ORG = null, ROLE = null;
 let ERP = false;   // erp.sql installé dans la base (sinon les modules de gestion restent masqués)
+let PORTAIL = false;   // espace_client.sql installé (espace client : signature, échéancier, paiements déclarés)
 let COMM = false;  // communication.sql installé (emails de l'entreprise, comparatif des devis)
 const ROLES = { proprietaire: 'Propriétaire', admin: 'Administrateur', commercial: 'Commercial', comptable: 'Comptable', lecteur: 'Lecteur' };
 const DROITS = { crm: ['proprietaire', 'admin', 'commercial'], ventes: ['proprietaire', 'admin', 'commercial'], facturation: ['proprietaire', 'admin', 'comptable'],
@@ -177,6 +178,7 @@ async function rendre() {
   try {
     if (!PRET) { document.body.innerHTML = '<div class="carte-auth"><div class="carte"><h1>NEXORA</h1><p>Ouverture très bientôt.</p></div></div>'; return; }
     if (nom === 'invitation') return await NX.publiques.invitation(parts[1]);
+    if (nom === 'client') return await NX.publiques.client();   // espace client : la même page, avec ou sans compte
     if (!moi) { const p = NX.publiques[nom] || NX.publiques['']; return await p(...parts.slice(1)); }
     if (!ORG || nom === 'bienvenue') return await NX.publiques.bienvenue();
     coquille();
@@ -195,6 +197,7 @@ function demarrer() {
     if (PRET) {
       ERP = !(await sb.from('nx_fournisseurs').select('id').limit(1)).error;
       COMM = !(await sb.from('nx_modeles_email').select('id').limit(1)).error;
+      PORTAIL = !(await sb.from('nx_echeances').select('id').limit(1)).error;
       sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { moi = null; ORG = null; } }); await chargerSession().catch(e => console.error(e));
     }
     rendre();

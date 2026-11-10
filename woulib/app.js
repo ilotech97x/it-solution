@@ -57,10 +57,23 @@ ICO.trajets = ICO.bouger;
 const enSaisie = () => document.activeElement?.matches?.('#app input:not([type=checkbox]):not([type=radio]), #app textarea, #app select')
   || [...document.querySelectorAll('#app input:not([type=checkbox]):not([type=radio]):not([type=hidden]), #app textarea')].some(i => i.value !== i.defaultValue);
 const territoireActif = () => { const t = terrPrefere() || profil?.territoire || 'Martinique'; return TERRITOIRES[t] && t !== 'Autre pays' ? t : 'Martinique'; };
+// rubrique éclairée en bas : celle de la page ; une fiche ou un suivi ouverts depuis Food ou Commerce gardent la rubrique d'où l'on vient
+let derniereRubrique = '#/manger';
+function rubriqueDe(h) {
+  const p = h.split('?')[0], si = (re, o) => re.test(p) ? o : null;
+  const o = si(/^#\/commerce\b/, '#/commerce') || (/^#\/manger\b/.test(p) && /vue=commerces/.test(h) ? '#/commerce' : null)
+    || si(/^#\/(express|colis|livraison)\b/, '#/express') || si(/^#\/(bouger|move|woulib|course|courses|chauffeur|partage|gps)\b/, '#/bouger')
+    || si(/^#\/(compte|connexion|inscription|activite|assistance|notifs|espace-pro|pros|pro|projets|projet|bienvenue|admin)\b/, moi ? '#/compte' : '#/connexion')
+    || si(/^#\/(manger|commandes)\b/, '#/manger') || (p === '#/' || p === '' ? '#/manger' : null);
+  if (o === '#/manger' || o === '#/commerce') derniereRubrique = o;
+  return o || (/^#\/(resto|suivi|recherche)\b/.test(p) ? derniereRubrique : null);
+}
 const APP = {
   nom: 'Woulib', titre: 'Woulib — repas livrés, VTC, taxis et GPS', accueilConnecte: '#/', apresInscription: '#/bienvenue', pourTel: 'que le restaurant, le chauffeur ou le livreur puisse vous joindre',
   menu: () => [],
-  menuBas: () => [['#/', ICO.accueil, 'Accueil'], ['#/manger', ICO.manger, 'Manger'], ['#/bouger', ICO.bouger, 'Bouger'], ['#/activite', ICO.activite, 'Activité'], [moi ? '#/compte' : '#/connexion', ICO.compte, moi ? 'Compte' : 'Connexion']],
+  // cinq rubriques, toujours les mêmes (vision Woulib du 09/11) : pas d'onglet « Accueil », l'écran d'entrée fait partie de Food
+  menuBas: () => [['#/manger', ICO.manger, 'Food'], ['#/commerce', ICO.commerce, 'Commerce'], ['#/express', ICO.colis, 'Delivery'], ['#/bouger', ICO.bouger, 'Mobility'], [moi ? '#/compte' : '#/connexion', ICO.compte, 'Profil']],
+  ongletDe: h => rubriqueDe(h), racines: ['#/'],
   // ordinateur : le rail latéral porte aussi le logo et l'espace pro (ce ne sont pas des onglets du téléphone)
   enteteRail: () => '<a class="rail-logo" href="#/" aria-label="Woulib, accueil">Woulib</a>',
   menuRail: () => [['#/espace-pro', ICO.pro, 'Espace pro']],
@@ -69,7 +82,7 @@ const APP = {
     const t = territoireActif(); b.innerHTML = `${ICO.pin}<span>${esc(t)}</span>${ICO.bas}`; b.setAttribute('aria-label', `Choisir le territoire, actuellement ${t}`);
   },
   icones: () => ICO,
-  differes: { gps: 'gps.js?v=5', projets: 'projets.js?v=3', projet: 'projets.js?v=3', assistance: 'compte.js?v=3', recherche: 'recherche.js?v=1', pro: 'pro.js?v=1' },   // chargés à la première ouverture
+  differes: { gps: 'gps.js?v=5', projets: 'projets.js?v=3', projet: 'projets.js?v=3', assistance: 'compte.js?v=3', recherche: 'recherche.js?v=2', pro: 'pro.js?v=1' },   // chargés à la première ouverture
   // bouton retour d'une page ouverte directement (lien partagé) : l'accueil de son univers
   parent: h => Object.values(MODULES).find(m => m.routes.test(h.split('?')[0]))?.accueil || '#/',
   // à chaque changement de page : arrêter les rafraîchissements, couper le GPS hors des pages qui guident, couleurs de l'univers visité
@@ -138,17 +151,16 @@ APP.pages[''] = async () => {
   const bientot = reg.filter(u => u.statut === 'bientot' && !DANS_BOUGER.includes(u.code));
   const externes = reg.filter(u => u.statut === 'externe' && u.lien);
   // 3ᵉ et 4ᵉ raccourcis : Commerces et Colis quand ils sont ouverts, sinon le GPS et « Organiser »
-  const avecCom = ouvert('food') && BOUTIQUES, avecColis = ouvert('express');
-  const R = [ouvert('food') && ['#/manger', ICO.manger, 'Commander à manger', 't-food'], ouvert('move') && ['#/bouger', ICO.bouger, 'Se déplacer', 't-move'],
-    avecCom ? ['#/manger?vue=commerces', ICO.commerce, 'Commerces', 't-com'] : ['#/gps', ICO.gps, 'GPS et alertes route', 't-com'],
-    avecColis ? ['#/express', ICO.colis, 'Envoyer un colis', 't-colis'] : ['#/projets', ICO.calendrier, 'Organiser un événement', 't-colis']].filter(Boolean);
-  const services = [...(avecCom ? [['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents et routes coupées']] : []),
-    ...(avecColis ? [['#/projets', ICO.calendrier, 'Organiser un événement', 'Anniversaire, mariage, séjour : la liste et le budget']] : []),
+  // les quatre marchés, avec les mêmes noms que la barre du bas
+  const R = [ouvert('food') && ['#/manger', ICO.manger, 'Food', 't-food', 'Restaurants et plats'], ouvert('food') && BOUTIQUES && ['#/commerce', ICO.commerce, 'Commerce', 't-com', 'Boutiques et produits'],
+    ouvert('express') && ['#/express', ICO.colis, 'Delivery', 't-colis', 'Colis et coursiers'], ouvert('move') && ['#/bouger', ICO.bouger, 'Mobility', 't-move', 'Taxis, VTC et trajets']].filter(Boolean);
+  const services = [['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents et routes coupées'],
+    ['#/projets', ICO.calendrier, 'Organiser un événement', 'Anniversaire, mariage, séjour : la liste et le budget'],
     ...externes.map(u => [u.lien, ICO[ICO_UNIVERS[u.code]] || ICO.droite, EXTERNES[u.code]?.[0] || u.nom.replace('Woulib ', ''), u.description + (EXTERNES[u.code] ? ` · sur ${EXTERNES[u.code][1]}, même compte` : '')])];
   vue(`<div class="wrap accueil">
     <div class="bonjour"><h1>${moi && profil?.prenom ? `Bonjour ${esc(profil.prenom)}` : 'Woulib, tout le quotidien'}</h1><p class="muted">Que voulez-vous faire aujourd’hui ?</p></div>
     <a class="rch-lien" href="#/recherche">${ICO.recherche}<span>Pizza, épicerie, aller au Lamentin…</span></a>
-    <nav class="raccourcis" aria-label="Raccourcis">${R.map(([h, i, t, c]) => `<a class="raccourci ${c}" href="${h}">${i}<b>${t}</b></a>`).join('')}</nav>
+    <nav class="raccourcis" aria-label="Les marchés de Woulib">${R.map(([h, i, t, c, s]) => `<a class="raccourci ${c}" href="${h}">${i}<b>${t}</b><small>${s}</small></a>`).join('')}</nav>
     ${blocInstallation()}
     <div id="enCours"></div>
     <section class="section" id="restosAccueil" hidden><div class="titre-s"><h2>Restaurants ouverts</h2><a href="#/manger">Tout voir</a></div><div class="defile rangee" id="restosListe"></div></section>
@@ -183,7 +195,7 @@ APP.pages[''] = async () => {
     const notes = l.length ? Object.fromEntries((await memo('acc-notes:' + terr, () => q(sb.from('notes_resto').select('*').in('restaurant_id', l.map(x => x.id)))).catch(() => [])).map(x => [x.restaurant_id, x])) : {};
     await boutique;
     if (l.length && $('#restosListe')) { $('#restosListe').innerHTML = l.map(x => carteRangee(x, notes[x.id])).join(''); $('#restosAccueil').hidden = false; }
-    if (com.length && $('#commercesAcc')) { $('#commercesAcc').innerHTML = `<div class="titre-s"><h2>Commerces ouverts</h2><a href="#/manger?vue=commerces">Tout voir</a></div><div class="pastilles-c">${com.map(x => `<a class="pastille-c" href="#/resto/${x.id}"><i aria-hidden="true"></i>${esc(x.nom)} · ${esc(x.commune)}</a>`).join('')}</div>`; $('#commercesAcc').hidden = false; }
+    if (com.length && $('#commercesAcc')) { $('#commercesAcc').innerHTML = `<div class="titre-s"><h2>Commerces ouverts</h2><a href="#/commerce">Tout voir</a></div><div class="pastilles-c">${com.map(x => `<a class="pastille-c" href="#/resto/${x.id}"><i aria-hidden="true"></i>${esc(x.nom)} · ${esc(x.commune)}</a>`).join('')}</div>`; $('#commercesAcc').hidden = false; }
     await afficherPlatsAccueil(l).catch(() => {});
   }
 };
@@ -282,7 +294,7 @@ APP.pages.activite = async () => {
     ${enCours.length ? `<h2>En cours</h2><div class="acts">${enCours.map(carte).join('')}</div>` : ''}
     ${passe.length ? `<h2>Historique</h2><div class="acts histo">${passe.map(ligne).join('')}</div>` : ''}
     ${l.length ? '' : `<div class="vide-etat"><span class="ico">${ICO.activite}</span><h3>Rien ici pour l’instant</h3><p class="muted">${f ? 'Ce que vous ferez dans cette rubrique apparaîtra ici.' : 'Vos commandes, vos achats, vos trajets et vos colis apparaîtront ici.'}</p>
-      <a class="btn btn-p" href="${{ trajets: '#/bouger', colis: '#/express', achats: '#/manger?vue=commerces' }[f] || '#/manger'}">${{ trajets: 'Réserver un trajet', colis: 'Envoyer un colis', achats: 'Voir les commerces' }[f] || 'Commander à manger'}</a></div>`}
+      <a class="btn btn-p" href="${{ trajets: '#/bouger', colis: '#/express', achats: '#/commerce' }[f] || '#/manger'}">${{ trajets: 'Réserver un trajet', colis: 'Envoyer un colis', achats: 'Voir les commerces' }[f] || 'Commander à manger'}</a></div>`}
     <p class="muted petit" style="margin-top:18px"><a href="#/projets">Mes projets</a> · <a href="#/notifs">Notifications</a></p></div>`);
   $('#app').onclick = e => { const b = e.target.closest('[data-encore]'); if (b) recommander(b.dataset.encore, b.dataset.resto); };
 };
