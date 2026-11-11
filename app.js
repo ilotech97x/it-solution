@@ -1067,7 +1067,7 @@ function ouvrirMenu() {
     <div class="menu-grille">
       <section><h3>Nos services</h3>${UNIVERS.map(u => `<button type="button" style="--t:${u.couleur}" onclick="$('menuSite').close();setUniv('${u.id}');scrollTo({top:0,behavior:'smooth'})">${ico(u.icon)}<span>${esc(u.nom)}<small>${esc(u.desc)}</small></span></button>`).join('')}</section>
       <section><h3>Infos et outils</h3>
-        ${lien('services.html', 'Tous les services et tarifs')}${lien('installation-starlink-martinique.html', 'Installation Starlink', 'Internet partout en Martinique')}
+        ${lien('services.html', 'Tous les services et tarifs')}${lien('boutique.html', 'Boutique IloTech', 'Bientôt : matériel et accessoires')}${lien('installation-starlink-martinique.html', 'Installation Starlink', 'Internet partout en Martinique')}
         ${lien('conseils.html', 'Conseils et guides')}${lien('outils-gratuits.html', 'Outils gratuits', 'QR code, mot de passe…')}
         ${lien('fiche-tarifs.html', 'Fiche tarifs à imprimer')}<a href="#" onclick="$('menuSite').close();openSuivi();return false">Suivre ma demande</a>
         <h3>Nos autres sites</h3>${lien('https://studio.ilo-tech.com/', 'IloTech Studio', 'Agence marketing et IA')}${lien('https://immo.ilo-tech.com/', 'IloTech Immobilier', 'Photos, drone, annonces')}</section>

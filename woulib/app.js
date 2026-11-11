@@ -146,60 +146,19 @@ const carteRangee = (x, n) => { const e = etatOuverture(x); return `<a class="ca
   <span class="cr-corps"><b>${esc(x.nom)}</b><small>${esc(CUISINES[x.cuisine]?.[1] || '')} · ${x.delai_min} min${n ? ` · ★ ${String(n.moyenne).replace('.', ',')}` : ''}</small>${e.ouvert ? '' : `<small class="att">${esc(e.texte ? e.texte[0].toUpperCase() + e.texte.slice(1) : 'Fermé')}</small>`}</span></a>`; };
 
 // accueil : bonjour, une recherche, quatre raccourcis, ce qui est en cours, puis des rangées faites de vraies données
-APP.pages[''] = async () => {
-  const reg = await chargerRegistre(), terr = territoireActif();
-  const ouvert = c => universOuvert(c, terr);
-  const bientot = reg.filter(u => u.statut === 'bientot' && !DANS_BOUGER.includes(u.code));
-  const externes = reg.filter(u => u.statut === 'externe' && u.lien);
-  // 3ᵉ et 4ᵉ raccourcis : Commerces et Colis quand ils sont ouverts, sinon le GPS et « Organiser »
-  // les quatre marchés, avec les mêmes noms que la barre du bas
-  const R = [ouvert('move') && ['#/bouger', ICO.bouger, 'Mobility', 't-move', 'Où allez-vous ? Taxi, VTC, trajets'], ouvert('food') && ['#/manger', ICO.manger, 'Food', 't-food', 'Restaurants et plats'],
-    ouvert('food') && BOUTIQUES && ['#/commerce', ICO.commerce, 'Commerce', 't-com', 'Boutiques et produits'], ouvert('express') && ['#/express', ICO.colis, 'Delivery', 't-colis', 'Colis et coursiers']].filter(Boolean);
-  const services = [['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents et routes coupées'],
-    ['#/projets', ICO.calendrier, 'Organiser un événement', 'Anniversaire, mariage, séjour : la liste et le budget'],
-    ...externes.map(u => [u.lien, ICO[ICO_UNIVERS[u.code]] || ICO.droite, EXTERNES[u.code]?.[0] || u.nom.replace('Woulib ', ''), u.description + (EXTERNES[u.code] ? ` · sur ${EXTERNES[u.code][1]}, même compte` : '')])];
-  vue(`<div class="wrap accueil">
-    <div class="bonjour"><h1>${moi && profil?.prenom ? `Bonjour ${esc(profil.prenom)}` : 'Woulib, tout le quotidien'}</h1><p class="muted">Que voulez-vous faire aujourd’hui ?</p></div>
-    <a class="rch-lien" href="#/recherche">${ICO.recherche}<span>Pizza, épicerie, aller au Lamentin…</span></a>
-    <nav class="raccourcis" aria-label="Les marchés de Woulib">${R.map(([h, i, t, c, s]) => `<a class="raccourci ${c}" href="${h}">${i}<b>${t}</b><small>${s}</small></a>`).join('')}</nav>
-    ${blocInstallation()}
-    <div id="enCours"></div>
-    <section class="section" id="restosAccueil" hidden><div class="titre-s"><h2>Restaurants ouverts</h2><a href="#/manger">Tout voir</a></div><div class="defile rangee" id="restosListe"></div></section>
-    <section class="section" id="platsAcc" hidden></section>
-    <section class="section" id="boutiqueAcc" hidden></section>
-    <section class="section" id="commercesAcc" hidden></section>
-    ${services.length ? `<section class="section"><h2>Autres services</h2><div class="liste-g">${services.map(([h, i, t, d]) => `<a class="menu-l" href="${esc(h)}"><span class="ico-l">${i}</span><div><b>${esc(t)}</b><small>${esc(d)}</small></div>${ICO.droite}</a>`).join('')}</div></section>` : ''}
-    <a class="banniere-pro" href="#/pros"><span class="ico-l">${ICO.pro}</span><span><b>Gagner avec Woulib</b><small>Restaurant, commerce, chauffeur, livreur : inscription gratuite</small></span>${ICO.droite}</a>
-    ${moi ? '' : `<section class="section"><h2>Pourquoi Woulib ?</h2><div class="pourquoi">${POURQUOI.map(([t, d]) => `<div><b>${t}</b><small>${d}</small></div>`).join('')}</div></section>`}
-    ${bientot.length ? `<section class="section"><h2>Bientôt sur Woulib</h2><div class="defile" id="univers">${bientot.map(u => `<button type="button" class="pastille-u" data-alerte="${u.code}" title="${esc(u.description)}"><span class="ico-l">${ICO[ICO_UNIVERS[u.code]] || ICO.etoile}</span><b>${esc(u.nom.replace('Woulib ', ''))}</b><small>Me prévenir</small></button>`).join('')}</div></section>` : ''}</div>`);
-  if ($('#univers')) $('#univers').onclick = async e => {
-    const b = e.target.closest('[data-alerte]'); if (!b || !exigeCompte()) return;
-    try { await q(sb.from('alertes_univers').insert({ univers: b.dataset.alerte })); b.querySelector('small').textContent = '✓ Prévenu'; b.disabled = true; toast('C’est noté : nous vous préviendrons à l’ouverture.'); } catch (err) { toast(erreur(err), true); }
-  };
-  // ce qui est en cours passe avant tout : commande, achat ou course, avec une barre d'avancement
-  if (moi) {
-    const [cmd, crs, deja] = await Promise.all([
-      q(sb.from('commandes').select('id, statut, restaurants(nom, genre)').eq('client_id', moi.id).in('statut', ['envoyee', 'acceptee', 'en_preparation', 'prete', 'en_livraison']).order('created_at', { ascending: false }).limit(2)).catch(() => []),
-      q(sb.from('courses').select('id, statut, arrivee_txt').eq('client_id', moi.id).in('statut', ['demande', 'acceptee', 'en_route', 'arrivee', 'a_bord']).order('created_at', { ascending: false }).limit(1)).catch(() => []),
-      q(sb.from('alertes_univers').select('univers')).catch(() => [])]);
-    const pas = (l, st) => Math.max(1, l.findIndex(e => e[0] === st) + 1) / l.length * 100;
-    const ec = (h, ico, c, t, s, p) => `<a class="en-cours" href="${h}"><span class="ico-t ${c}">${ico}</span><span class="ec-t"><b>${esc(t)}</b><small>${esc(s)}</small><i class="prog"><i style="width:${p}%"></i></i></span><em>Suivre</em></a>`;
-    if ($('#enCours')) $('#enCours').innerHTML = [...cmd.map(c => ec('#/suivi/' + c.id, estBoutique(c.restaurants) ? ICO.commerce : ICO.manger, estBoutique(c.restaurants) ? 't-com' : 't-food', c.restaurants?.nom || 'Votre commande', `${estBoutique(c.restaurants) ? 'Achat' : 'Repas'} · ${ST_CMD[c.statut]?.[1] || ''}`, pas(ETAPES, c.statut))),
-      ...crs.map(c => ec('#/course/' + c.id, ICO.taxi, 't-move', 'Vers ' + c.arrivee_txt, 'Taxi/VTC · ' + (ST_COURSE[c.statut]?.[1] || ''), pas(ETAPES_C, c.statut)))].join('');
-    deja.forEach(a => { const b = document.querySelector(`[data-alerte="${a.univers}"]`); if (b) { b.querySelector('small').textContent = '✓ Prévenu'; b.disabled = true; } });
-  }
-  if (ouvert('food')) {
-    const boutique = afficherBoutiqueAccueil(terr).catch(() => {});
-    const r = sb.from('restaurants').select('*').eq('statut', 'publie').eq('ouvert', true).eq('territoire', terr).order('created_at', { ascending: false }).limit(30);
-    const tous = (await memo('acc-restos:' + terr, () => q(r)).catch(() => [])).filter(x => etatOuverture(x).ouvert);
-    const l = tous.filter(x => !estBoutique(x)).slice(0, 10), com = tous.filter(estBoutique).slice(0, 6);
-    const notes = l.length ? Object.fromEntries((await memo('acc-notes:' + terr, () => q(sb.from('notes_resto').select('*').in('restaurant_id', l.map(x => x.id)))).catch(() => [])).map(x => [x.restaurant_id, x])) : {};
-    await boutique;
-    if (l.length && $('#restosListe')) { $('#restosListe').innerHTML = l.map(x => carteRangee(x, notes[x.id])).join(''); $('#restosAccueil').hidden = false; }
-    if (com.length && $('#commercesAcc')) { $('#commercesAcc').innerHTML = `<div class="titre-s"><h2>Commerces ouverts</h2><a href="#/commerce">Tout voir</a></div><div class="pastilles-c">${com.map(x => `<a class="pastille-c" href="#/resto/${x.id}"><i aria-hidden="true"></i>${esc(x.nom)} · ${esc(x.commune)}</a>`).join('')}</div>`; $('#commercesAcc').hidden = false; }
-    await afficherPlatsAccueil(l).catch(() => {});
-  }
-};
+// pas de page d'accueil (demande du 11/11) : l'appli s'ouvre sur la première rubrique, Mobility ; les blocs utiles sont dans les rubriques
+APP.pages[''] = () => rediriger('#/bouger');
+// ce qui est en cours (commande, achat ou course), avec une barre d'avancement : en tête de Mobility (courses), Food et Commerce (commandes)
+async function afficherEnCours(quoi) {
+  if (!moi || !$('#enCours')) return;
+  const [cmd, crs] = await Promise.all([
+    quoi === 'courses' ? [] : q(sb.from('commandes').select('id, statut, restaurants(nom, genre)').eq('client_id', moi.id).in('statut', ['envoyee', 'acceptee', 'en_preparation', 'prete', 'en_livraison']).order('created_at', { ascending: false }).limit(2)).catch(() => []),
+    quoi === 'commandes' ? [] : q(sb.from('courses').select('id, statut, arrivee_txt').eq('client_id', moi.id).in('statut', ['demande', 'acceptee', 'en_route', 'arrivee', 'a_bord']).order('created_at', { ascending: false }).limit(1)).catch(() => [])]);
+  const pas = (l, st) => Math.max(1, l.findIndex(e => e[0] === st) + 1) / l.length * 100;
+  const ec = (h, ico, c, t, s, p) => `<a class="en-cours" href="${h}"><span class="ico-t ${c}">${ico}</span><span class="ec-t"><b>${esc(t)}</b><small>${esc(s)}</small><i class="prog"><i style="width:${p}%"></i></i></span><em>Suivre</em></a>`;
+  if ($('#enCours')) $('#enCours').innerHTML = [...cmd.map(c => ec('#/suivi/' + c.id, estBoutique(c.restaurants) ? ICO.commerce : ICO.manger, estBoutique(c.restaurants) ? 't-com' : 't-food', c.restaurants?.nom || 'Votre commande', `${estBoutique(c.restaurants) ? 'Achat' : 'Repas'} · ${ST_CMD[c.statut]?.[1] || ''}`, pas(ETAPES, c.statut))),
+    ...crs.map(c => ec('#/course/' + c.id, ICO.taxi, 't-move', 'Vers ' + c.arrivee_txt, 'Taxi/VTC · ' + (ST_COURSE[c.statut]?.[1] || ''), pas(ETAPES_C, c.statut)))].join('');
+}
 
 // « Espace pro » du rail (ordinateur) : l'espace du compte, ou la page pour le devenir
 APP.pages['espace-pro'] = async () => {
@@ -252,6 +211,9 @@ APP.pages.compte = async sous => {
     ${blocInstallation()}
     ${groupe('Mon compte', [['#/compte/adresses', ICO.pin, 'Adresses', 'Maison, travail : pour vos courses et vos livraisons'], ['#/compte/favoris', ICO.coeur, 'Favoris', 'Restaurants et commerces'],
       ['#/compte/paiement', ICO.carte, 'Moyens de paiement', 'Pour l’instant : payé au livreur, au chauffeur ou au commerçant'], ['#/activite', ICO.activite, 'Mon activité', 'Commandes, achats, trajets, colis'], ['#/projets', ICO.calendrier, 'Mes projets', 'Anniversaire, mariage, séjour…']])}
+    ${groupe('Autres services IloTech', [['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents et routes coupées'],
+      ['#/projets', ICO.calendrier, 'Organiser un événement', 'Anniversaire, mariage, séjour : la liste et le budget'],
+      ['../pass/', ICO.billet, 'Événements et billets', 'Sur EventPass, même compte'], ['https://immo.ilo-tech.com/', ICO.maison, 'Logements et séjours', 'Sur Kaz An Nou, même compte']])}
     ${groupe('Réglages', [['#/notifs', ICO.cloche, 'Notifications', 'Commandes, trajets, réponses de l’équipe'], ['#/compte/securite', ICO.bouclier, 'Sécurité', 'Mot de passe, appareils connectés'],
       ['#/compte/confidentialite', ICO.donnees, 'Confidentialité', 'Télécharger mes données, supprimer mon compte']])}
     ${groupe('Espace pro', [...resto.length ? [['#/pro', bq ? ICO.commerce : ICO.manger, bq ? 'Ma boutique' : 'Mon restaurant', 'Carte, articles, stock, commandes en direct']] : [],

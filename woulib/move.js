@@ -52,6 +52,7 @@ APP.pages.bouger = async () => {
         <div class="actions" style="justify-content:center">${univers(code) ? `<button type="button" class="btn btn-sec" data-alerte="${code}">Me prévenir à l’ouverture</button>` : ''}<button type="button" class="btn btn-p" data-mode="taxi">Voir Taxi/VTC</button></div></div></div>`;
   vue(`<div class="wrap page-bouger"><h1>Mobility</h1>
     <div class="bouger-g"><div class="bouger-col">
+    ${blocInstallation()}<div id="enCours"></div>
     ${roles(0, [['#/bouger', 'Je cherche un trajet'], ['#/chauffeur', 'Je conduis (chauffeur)']])}
     <form class="f trajet-f" id="fRes">
       <div class="trajet-c">${champ('depart')}${champ('arrivee')}
@@ -108,6 +109,7 @@ APP.pages.bouger = async () => {
     else if (m.length) carte.setView(m[0].getLatLng(), 14);
     else { const c = CENTRES[terr] || CENTRES.Martinique; carte.setView([c[0], c[1]], c[2]); }
   };
+  afficherEnCours('courses').catch(() => {});
   const montrerCarte = () => { const z = $('#zoneCarte'); if (z && !z.classList.contains('vue')) { z.classList.add('vue'); setTimeout(() => carte?.invalidateSize(), 60); } };
   const majFav = () => document.querySelectorAll('.favs').forEach(z => {
     z.innerHTML = lieux.map((f, i) => [f, i]).filter(([f]) => !f.terr || f.terr === terr).map(([f, i]) => `<button type="button" data-fav="${i}" data-pour="${z.dataset.pour}">${esc(f.icone)} ${esc(f.titre)}</button>`).join('')
