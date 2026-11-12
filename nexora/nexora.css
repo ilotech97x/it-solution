@@ -268,3 +268,127 @@ a.kpi{display:block;text-decoration:none;color:inherit;transition:border-color .
 .ec-pied{text-align:center}
 .ec-imp{margin-top:18px;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:12px}
 @media print{.espace-client .ec-suivi,.espace-client details,.espace-client .actions,.espace-client #fSig,.espace-client .no-print,.pub-haut{display:none!important}}
+
+/* ===================== equipe_devis : notifications, devis par catégories, devis → facture, Mon espace, planning, vue « Mon entreprise » */
+:root{--ok-t:#067647;--att-t:#B54708;--ko-t:#B42318;--sol-iso:#EDE6DA;--joint-iso:rgba(0,0,0,.08);--facade:#E9DCC6;--toit:#B4563F;--trottoir:#C9CED6;--herbe:#7CC08A}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--ok-t:#47CD89;--att-t:#FDB022;--ko-t:#F97066;--sol-iso:#3A3F4A;--joint-iso:rgba(255,255,255,.06);--facade:#2A3346;--toit:#7E3B2C;--trottoir:#3B4352;--herbe:#2F6B3E}}
+:root[data-theme=dark]{--ok-t:#47CD89;--att-t:#FDB022;--ko-t:#F97066;--sol-iso:#3A3F4A;--joint-iso:rgba(255,255,255,.06);--facade:#2A3346;--toit:#7E3B2C;--trottoir:#3B4352;--herbe:#2F6B3E}
+.top .ico{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cloche{position:relative;min-width:40px;min-height:38px}
+.pastille-n{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--ko);color:#fff;font:700 11px/18px var(--police)}
+.notifs{position:fixed;top:58px;right:12px;z-index:65;width:min(380px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:var(--surface);border:1px solid var(--ligne);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.25);padding:12px}
+.notifs-t{display:block;padding:4px 6px 8px;color:var(--titre)}
+.notifs ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.notifs a{display:grid;gap:2px;padding:9px 10px;border-radius:10px;color:var(--texte);text-decoration:none}
+.notifs a:hover,.notifs a:focus-visible{background:var(--surface2)}
+.notifs a.non-lu{background:var(--info-d)}.notifs a.non-lu span::before{content:"\25CF  ";color:var(--cyan-f)}
+.notifs small{color:var(--doux);font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--ligne);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:8px 12px;font:600 13.5px var(--police);color:var(--doux);cursor:pointer;min-height:38px}
+.seg button[aria-pressed=true]{background:var(--profond);color:#fff}
+:root[data-theme=dark] .seg button[aria-pressed=true]{background:var(--cyan);color:#06202A}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .seg button[aria-pressed=true]{background:var(--cyan);color:#06202A}}
+/* devis → facture */
+.a-facturer{margin-bottom:14px;display:grid;gap:8px;border-color:color-mix(in srgb,var(--att) 45%,var(--ligne))}
+.a-facturer ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.a-facturer li{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between;padding:8px 10px;border:1px solid var(--ligne);border-radius:10px}
+.a-facturer li>a{flex:1 1 220px}
+.rappel-fact{margin-bottom:14px;border-left:4px solid var(--att)}
+.rappel-fact ol{margin:8px 0;padding-left:20px;line-height:1.7}
+/* lignes classées par catégorie */
+.doc-lignes .w-c{width:136px}
+.tab .sect-l th,.feuille .sect-l th{background:var(--surface2);color:var(--titre);font-size:13px;text-transform:none;letter-spacing:0;padding:8px 12px}
+.tab .st-l td{font-size:13px;color:var(--doux);font-weight:600;text-align:right;border-bottom:2px solid var(--ligne)}
+.tab .st-l td.num{color:var(--titre)}
+.num-l{display:inline-block;min-width:26px;color:var(--doux);font-size:12px;font-variant-numeric:tabular-nums}
+.totaux .repart{display:grid;gap:4px;padding-bottom:6px;margin-bottom:2px;border-bottom:1px dashed var(--ligne);font-size:13px;color:var(--doux)}
+.feuille .sect-l th{background:#E9EEF6;color:#111;font-size:12.5px}
+.feuille .st-l td{text-align:right;font-weight:600;color:#333;border-bottom:1.5px solid #ccc}
+.feuille .num-l{color:#666}
+/* Mon espace (employé) */
+.moi-grille{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start}
+.titre-l{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.titre-l h2{margin:0}
+.jours{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.jour{display:grid;grid-template-columns:88px minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px;border:1px solid var(--ligne);border-radius:12px}
+.jour.auj{border-color:var(--cyan);box-shadow:inset 3px 0 0 var(--cyan)}
+.jour.ferie{background:var(--surface2)}
+.jour-t{display:grid;gap:2px}.jour-t span{font-size:13px;color:var(--doux)}
+.jour-c{display:grid;gap:6px;min-width:0}
+.creneau{display:grid;gap:1px;padding:6px 10px;border-radius:10px;background:var(--info-d);overflow-wrap:anywhere}
+.jour-h{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.solde{margin:4px 0 10px;font-size:15px}.solde b{font-size:34px;color:var(--titre);margin-right:4px}
+.abs-pl{display:inline-block;padding:3px 9px;border-radius:99px;background:var(--ok-d);color:var(--ok-t);font-size:12.5px;font-weight:600}
+.abs-pl.att{background:var(--att-d);color:var(--att-t);border:1px dashed var(--att)}
+.apercu-j{margin:0;font-weight:600;color:var(--titre)}
+.moi-pied{text-align:center;margin-top:18px}
+/* planning (responsables) */
+.planning-boite{margin-bottom:10px}
+.planning{min-width:860px}
+.planning th:first-child{position:sticky;left:0;z-index:1;background:var(--surface);min-width:130px;text-transform:none;letter-spacing:0;font-size:13.5px;color:var(--texte)}
+.planning thead th{text-align:center}.planning thead th:first-child{text-align:left}
+.planning thead th.auj{color:var(--cyan-f)}
+.planning td.case-pl{vertical-align:top;padding:6px;min-width:112px}.cr-pl b{white-space:nowrap}.planning tfoot td{text-align:center}
+.planning td.ferie,.planning td.auj{background:color-mix(in srgb,var(--surface2) 60%,transparent)}
+.cr-pl{display:grid;gap:1px;width:100%;margin-bottom:4px;padding:5px 7px;border:1px solid color-mix(in srgb,var(--cyan) 40%,var(--ligne));border-radius:8px;background:var(--info-d);color:var(--texte);font:600 12.5px var(--police);text-align:left;cursor:pointer}
+.cr-pl small{font-weight:500;color:var(--doux);overflow-wrap:anywhere}
+.cr-pl:hover{border-color:var(--cyan)}
+.aj-pl{width:100%;min-height:30px;border:1px dashed var(--ligne);border-radius:8px;background:none;color:var(--doux);font:600 16px var(--police);cursor:pointer}
+.aj-pl:hover{border-color:var(--cyan);color:var(--cyan-f)}
+.planning .abs-pl{display:block;margin-bottom:4px;text-align:center}
+.alerte-pl{margin-bottom:14px;border-left:4px solid var(--att)}.alerte-pl ul{margin:6px 0;padding-left:20px}
+.jours-rep{border:1px solid var(--ligne);border-radius:12px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:4px 14px;margin:0}
+.jours-rep legend{font-size:13px;font-weight:600;color:var(--doux);padding:0 4px}
+.jours-rep .case{min-height:32px}
+@page paysage{size:A4 landscape;margin:12mm}
+@media print{.planning-boite{page:paysage;box-shadow:none;border:0;overflow:visible}.planning{min-width:0;font-size:11px}.planning th:first-child{position:static}.alerte-pl,.titre-p .actions{display:none!important}.cr-pl{border:1px solid #999;background:#fff}}
+/* vue « Mon entreprise » */
+.ent{display:grid;gap:14px}
+.ent-resume{display:flex;gap:14px;align-items:flex-start}.ent-resume h2{margin:2px 0 6px;font-size:18px}.ent-resume p{margin:0 0 8px}
+.humeur{font-size:26px;line-height:1}
+.immeuble{border-radius:22px;overflow:hidden;border:1px solid var(--ligne);background:var(--facade)}
+.immeuble .ciel{position:relative;height:70px;background:linear-gradient(#7CCBF2,#CDEBFB)}
+.immeuble.soir .ciel{background:linear-gradient(#F59E6B,#F9D29D)}
+.immeuble.nuit .ciel{background:linear-gradient(#0B1530,#22305A)}
+.astre{position:absolute;top:14px;width:30px;height:30px;border-radius:50%;background:#FFD54A;box-shadow:0 0 22px #FFE38A}
+.immeuble.nuit .astre{background:#E8EEF8;box-shadow:0 0 14px rgba(232,238,248,.6)}
+.nuage{position:absolute;height:14px;border-radius:99px;background:rgba(255,255,255,.85)}
+.nuage.n1{width:60px;top:22px;left:12%}.nuage.n2{width:44px;top:38px;left:62%}
+.immeuble.nuit .nuage{opacity:.15}
+@media (prefers-reduced-motion:no-preference){.nuage.n1{animation:nx-nuage 40s linear infinite alternate}.nuage.n2{animation:nx-nuage 55s linear infinite alternate-reverse}.piece .bulle{animation:nx-bulle 1.6s ease-in-out infinite}}
+@keyframes nx-nuage{to{margin-left:12%}}
+@keyframes nx-bulle{50%{translate:0 -3px}}
+.toit{height:40px;margin-top:-30px;background:var(--toit);clip-path:polygon(3% 100%,9% 0,91% 0,97% 100%)}
+.enseigne{display:flex;justify-content:center;margin:-26px 16px 0;position:relative}
+.enseigne span{max-width:100%;padding:4px 14px;border-radius:8px;background:var(--surface);color:var(--titre);font-weight:800;font-size:14px;box-shadow:var(--ombre);overflow-wrap:anywhere;text-align:center}
+.etages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px}
+@media (min-width:900px){.etages{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.piece{position:relative;display:grid;gap:4px;align-content:start;padding:10px;border-radius:16px;background:var(--surface);border:2px solid var(--ligne);color:inherit;text-decoration:none;min-width:0}
+a.piece:hover,a.piece:focus-visible{border-color:var(--cyan)}
+.piece.niv-ko{border-color:color-mix(in srgb,var(--ko) 55%,var(--ligne))}
+.piece.niv-att{border-color:color-mix(in srgb,var(--att) 50%,var(--ligne))}
+.piece-tete{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.piece-nom{font-weight:700;color:var(--titre);font-size:14.5px}
+.bulle{display:grid;place-items:center;width:24px;height:24px;border-radius:50% 50% 50% 4px;background:var(--ko);color:#fff;font-weight:800;font-size:14px}
+.niv-att .bulle{background:var(--att)}
+.iso{width:100%;height:auto;display:block}
+.iso-sol{fill:var(--sol-iso)}.iso-joint{fill:none;stroke:var(--joint-iso);stroke-width:.7}
+:root[data-theme=dark] .iso{filter:brightness(.82) saturate(.9)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .iso{filter:brightness(.82) saturate(.9)}}
+.verrou{position:absolute;top:44%;left:50%;translate:-50% -50%;font-size:26px}
+.niv-verrou .iso{opacity:.55}
+.piece-jauge{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.jauge{display:flex;gap:3px;flex:1 1 70px;max-width:120px}.jauge i{flex:1;height:8px;border-radius:3px;background:var(--surface2)}
+.niv-ok .jauge i.on{background:var(--ok)}.niv-att .jauge i.on{background:var(--att)}.niv-ko .jauge i.on{background:var(--ko)}
+.niv-txt{font-size:12.5px;font-weight:700;color:var(--doux)}
+.niv-ok .niv-txt{color:var(--ok-t)}.niv-att .niv-txt{color:var(--att-t)}.niv-ko .niv-txt{color:var(--ko-t)}
+.piece-etat{font-size:13px;color:var(--texte);overflow-wrap:anywhere}
+.trottoir{display:flex;justify-content:space-between;align-items:flex-end;height:46px;padding:0 6%;background:linear-gradient(var(--herbe) 0 30%,var(--trottoir) 30%)}
+.palmier{width:34px;height:52px;margin-bottom:6px}
+.porte{width:46px;height:30px;border-radius:8px 8px 0 0;background:var(--toit)}
+@media (max-width:1000px){.moi-grille{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){.etages{gap:8px;padding:8px}.piece{padding:8px}.jour{grid-template-columns:70px minmax(0,1fr)}.jour-h{grid-column:2}.ent-resume{flex-direction:column}}
+@media (max-width:359px){.etages{grid-template-columns:minmax(0,1fr)}}
+@media print{.notifs,.cloche{display:none!important}}
+/* sur téléphone, un tableau large défile dans sa carte au lieu d'élargir la page (sinon le navigateur dézoome toute la page) */
+.espace-client{grid-template-columns:minmax(0,1fr)}
+.espace-client>*,.grille>*{min-width:0}

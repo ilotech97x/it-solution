@@ -704,3 +704,21 @@ button,.btn,.bas a,.raccourci,.pastille-u,.seg button,.qte,.menu-l,.act,.article
 .mk-al span{background:#FFF4E5}
 .carte-legende{position:absolute;left:12px;top:12px;z-index:500;display:flex;flex-wrap:wrap;gap:6px;margin:0;max-width:calc(100% - 80px);pointer-events:none}
 .carte-legende span{padding:5px 10px;border-radius:999px;background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,.18);font-size:12.5px;font-weight:700;color:var(--encre)}
+
+/* Woulib plus joyeuse (12/11, inspiration des applis de La Réunion) : une couleur vive par rubrique, des formes rondes, de petits rebonds.
+   Textes foncés sur fonds pastel : contraste d'au moins 4,5. Les animations s'arrêtent si l'appareil demande moins de mouvement. */
+:root{--r-carte:20px;--r-btn:999px}
+.bas a:nth-child(1){--c:#0B5E58;--cd:#D7F5F2}.bas a:nth-child(2){--c:#A8331A;--cd:#FFE4DB}.bas a:nth-child(3){--c:#155E3B;--cd:#DDF3E6}
+.bas a:nth-child(4){--c:#7A4A00;--cd:#FFF1C9}.bas a:nth-child(5){--c:#4C2DB3;--cd:#ECE6FF}
+.bas a.on{color:var(--c);background:var(--cd);border-radius:18px}
+.bas a.on span{animation:rebond .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes rebond{40%{transform:translateY(-4px) scale(1.12)}}
+.btn-p{background:linear-gradient(135deg,#FF5A36,#F2761E);box-shadow:0 6px 16px -8px rgba(201,64,31,.8)}
+.btn-p:active,.raccourci:active,.envies a:active,.carte-resto:active{transform:scale(.97)}
+.envies a:nth-child(5n+1){background:#FFE9E2}.envies a:nth-child(5n+2){background:#FFF3CD}.envies a:nth-child(5n+3){background:#DFF6EC}
+.envies a:nth-child(5n+4){background:#E3F0FF}.envies a:nth-child(5n){background:#F1E8FF}.envies a{border-color:transparent;transition:transform .15s}
+.carte-resto,.carte-r,.plat-c{border-radius:20px}
+.roles{background:#EAF7F6;border-radius:999px;padding:4px}.roles a{border-radius:999px;color:#0B5E58}.roles a[aria-pressed="true"]{background:#fff;box-shadow:0 2px 8px rgba(11,94,88,.18)}
+.page-bouger .bouger-col::before{content:"";display:block;width:44px;height:5px;margin:-6px auto 12px;border-radius:9px;background:#E6D3C9}
+.sous-joie{margin:-6px 0 12px;color:var(--texte-2);font-weight:700}
+@media (prefers-reduced-motion:reduce){.bas a.on span{animation:none}.btn-p:active,.raccourci:active,.envies a:active,.carte-resto:active{transform:none}}

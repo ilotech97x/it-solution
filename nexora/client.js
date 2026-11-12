@@ -41,8 +41,9 @@ NX.publiques.client = async () => {
     const suivi = [[fac ? 'Facture émise' : 'Devis envoyé', d.emise_le || d.date, true], ['Consulté', d.vu_le, true],
       d.signature ? [d.signature.decision === 'refuse' ? 'Refusé' : 'Signé « bon pour accord »', d.signature.le, true] : [fac ? 'Signature (facultative)' : 'Votre réponse', null, false],
       ...(fac ? [[d.echeances.length ? `Paiement en ${d.echeances.length} fois` : 'Paiement', null, d.paye > 0 || d.echeances.length > 0], ['Réglée', null, d.statut === 'payee']] : [])];
-    const lignes = d.lignes.map(l => `<tr><td>${esc(l.designation)}</td><td class="num">${nombre(l.quantite)} ${esc(l.unite)}</td><td class="num">${m(l.prix_ht)}</td>
-      ${o.franchise_tva ? '' : `<td class="num">${nombre(l.taux_tva)} %</td>`}<td class="num">${m(Math.round(l.quantite * l.prix_ht * (1 - l.remise_pct / 100) * 100) / 100)}</td></tr>`).join('');
+    // lignes classées par catégorie (matériel, main-d'œuvre, déplacement) avec sous-totaux, comme sur le devis imprimé
+    const lignes = corpsLignes(d.lignes, (l, n) => `<tr><td>${numL(n)}${esc(l.designation)}</td><td class="num">${nombre(l.quantite)} ${esc(l.unite)}</td><td class="num">${m(l.prix_ht)}</td>
+      ${o.franchise_tva ? '' : `<td class="num">${nombre(l.taux_tva)} %</td>`}<td class="num">${m(htLigne(l))}</td></tr>`, o.franchise_tva ? 4 : 5, m);
     const reste = Number(d.reste || 0), prochaine = (d.echeances || []).find(e => e.etat !== 'payee');
     page(`<div class="ec-tete carte"><div><p class="muted petit">${esc(o.nom)}${o.ville ? ' · ' + esc(o.ville) : ''}</p><h1>${fac ? 'Facture' : 'Devis'} <span class="mono">${esc(d.numero)}</span></h1>
         <p>${esc(d.objet || '')}</p><p>${tag(st)} <span class="muted petit">${fac ? `Émise le ${date(d.date)}${d.echeance ? ` · échéance ${date(d.echeance)}` : ''}` : `Du ${date(d.date)}${d.validite ? ` · valable jusqu’au ${date(d.validite)}` : ''}`}</span></p></div>
@@ -53,7 +54,8 @@ NX.publiques.client = async () => {
       <div class="carte"><h2>Détail</h2><div class="tab-boite"><table class="tab"><thead><tr><th>Désignation</th><th class="num">Qté</th><th class="num">Prix HT</th>${o.franchise_tva ? '' : '<th class="num">TVA</th>'}<th class="num">Total HT</th></tr></thead><tbody>${lignes}</tbody></table></div>
         <div class="totaux"><div><span>Total HT</span><b>${m(d.total_ht)}</b></div>${o.franchise_tva ? '' : `<div><span>TVA</span><span>${m(d.total_tva)}</span></div>`}<div class="ttc"><span>Total TTC</span><span>${m(d.total_ttc)}</span></div>
           ${fac && Number(d.paye) ? `<div><span>Déjà réglé</span><span>${m(d.paye)}</span></div><div><b>Reste à payer</b><b>${m(reste)}</b></div>` : ''}</div>
-        ${o.franchise_tva ? '<p class="petit muted">TVA non applicable, art. 293 B du CGI.</p>' : ''}${d.conditions ? `<p class="petit muted" style="white-space:pre-line">${esc(d.conditions)}</p>` : ''}</div>
+        ${o.franchise_tva ? '<p class="petit muted">TVA non applicable, art. 293 B du CGI.</p>' : ''}${d.conditions ? `<p class="petit muted" style="white-space:pre-line">${esc(d.conditions)}</p>` : ''}
+        ${o.assurance ? `<p class="petit muted">Assurance professionnelle : ${esc(o.assurance)}</p>` : ''}</div>
       ${blocSignature(d)}
       ${fac ? blocPaiement(d, m, reste, prochaine) : ''}
       <p class="petit muted ec-pied">${esc(o.nom)}${o.siret ? ` · SIRET ${esc(o.siret)}` : ''}${o.telephone ? ` · ${esc(o.telephone)}` : ''}${o.email ? ` · ${esc(o.email)}` : ''}</p>`);

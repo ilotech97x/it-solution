@@ -113,7 +113,7 @@ const pageMarche = async marche => {
   const p = param(), terr = territoireActif(), com = BOUTIQUES && marche === 'commerce';
   const lienF = ch => (com ? '#/commerce' : '#/manger') + ((u => u.toString() ? '?' + u : '')(new URLSearchParams(Object.entries({ ...p, ...ch }).filter(([k, v]) => v && k !== 'vue'))));
   const puce = (ch, t, on) => `<a href="${lienF(ch)}" class="${on ? 'on' : ''}" ${on ? 'aria-current="true"' : ''}>${t}</a>`;
-  vue(`<div class="wrap page-manger ${com ? 'page-commerce' : ''}"><h1>${com ? 'Commerce' : 'Food'}</h1><div id="enCours"></div>
+  vue(`<div class="wrap page-manger ${com ? 'page-commerce' : ''}"><h1>${com ? 'Commerce' : 'Food'}</h1><p class="sous-joie">${com ? 'Les courses, sans bouger 🛒' : 'On mange quoi aujourd’hui ? 😋'}</p><div id="enCours"></div>
     <a class="rch-lien" href="#/recherche${p.q ? '?q=' + encodeURIComponent(p.q) : ''}">${ICO.recherche}<span>${p.q ? esc(p.q) : com ? 'Un produit, une boutique, un rayon…' : 'Un plat, un restaurant, une cuisine…'}</span></a>
     ${com ? '' : `<nav class="envies defile" aria-label="Envie de…">${ENVIES.map(([e, t, m]) => `<a href="#/manger?q=${encodeURIComponent(m)}" ${sansAccent(p.q) === sansAccent(m) ? 'aria-current="true"' : ''}><span aria-hidden="true">${e}</span>${t}</a>`).join('')}</nav>`}
     <div class="puces" role="group" aria-label="Filtres">${puce({ ouvert: p.ouvert ? '' : '1' }, 'Ouvert maintenant', !!p.ouvert)}${puce({ mode: p.mode === 'livraison' ? '' : 'livraison' }, 'Livraison', p.mode === 'livraison')}${puce({ mode: p.mode === 'emporter' ? '' : 'emporter' }, 'À emporter', p.mode === 'emporter')}

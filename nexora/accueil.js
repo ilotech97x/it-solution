@@ -113,7 +113,8 @@ NX.publiques.bienvenue = async () => {
 
 // ---------------------------------------------------------------- tableau de bord
 NX.pages[''] = async () => {
-  vue(entete(`Bonjour ${esc(profil?.prenom || '')}`, esc(ORG.nom) + ' · ' + esc(ROLES[ROLE])) + '<div class="chargement">Calcul des indicateurs…</div>');
+  if (EQ && lire('nxVue') === 'entreprise') return vueEntreprise();   // vue « Mon entreprise » (entreprise.js), choix gardé sur l'appareil
+  vue(entete(`Bonjour ${esc(profil?.prenom || '')}`, esc(ORG.nom) + ' · ' + esc(ROLES[ROLE]), basculeVue('classique')) + '<div class="chargement">Calcul des indicateurs…</div>');
   const [t, retard, taches, e, tr] = await Promise.all([q(sb.rpc('nx_tableau', { org: ORG.id })),
     q(sb.from('nx_factures').select('id, numero, total_ttc, paye, echeance, client_snap').eq('org_id', ORG.id).eq('type', 'facture').in('statut', ['validee', 'partielle']).lt('echeance', aujourdhui()).order('echeance').limit(6)),
     q(sb.from('nx_activites').select('id, titre, type, echeance, client_id, nx_clients(nom)').eq('org_id', ORG.id).eq('fait', false).order('echeance', { ascending: true, nullsFirst: false }).limit(6)),
@@ -123,7 +124,7 @@ NX.pages[''] = async () => {
   const nomMois = m => new Date(m + '-15').toLocaleDateString('fr-FR', { month: 'short' });
   const rien = !t.mois.some(m => Number(m.ht)) && !t.nb_clients && !t.nb_prospects;
   vue(entete(`Bonjour ${esc(profil?.prenom || '')}`, esc(ORG.nom) + ' · ' + esc(ROLES[ROLE]),
-      `${peut('crm') ? '<a class="btn" href="#/clients?nouveau=1">+ Client</a>' : ''}${peut('ventes') ? '<a class="btn" href="#/devis/nouveau">+ Devis</a>' : ''}${peut('facturation') ? '<a class="btn btn-p" href="#/factures/nouvelle">+ Facture</a>' : ''}`)
+      `${basculeVue('classique')}${peut('crm') ? '<a class="btn" href="#/clients?nouveau=1">+ Client</a>' : ''}${peut('ventes') ? '<a class="btn" href="#/devis/nouveau">+ Devis</a>' : ''}${peut('facturation') ? '<a class="btn btn-p" href="#/factures/nouvelle">+ Facture</a>' : ''}`)
     + (rien ? `<div class="carte" style="margin-bottom:16px"><h2>Pour bien démarrer</h2><ol class="muted" style="margin:0;padding-left:20px;line-height:2">
         <li><a href="#/reglages">Complétez votre entreprise</a> (SIRET, adresse, IBAN) : ces informations apparaissent sur vos factures.</li><li><a href="#/catalogue">Ajoutez vos prestations et produits</a>.</li>
         <li><a href="#/clients?nouveau=1">Créez votre premier client</a>, puis un devis ou une facture.</li><li><a href="#/equipe">Invitez votre équipe</a> si vous n’êtes pas seul.</li></ol></div>` : '')
@@ -146,5 +147,8 @@ NX.pages[''] = async () => {
         <td class="petit" style="color:var(--ko)">échue le ${date(f.echeance)}</td><td class="num"><b>${montant(f.total_ttc - f.paye)}</b></td></tr>`).join('')}</table>` : '<p class="muted">Aucune facture en retard. 👍</p>'}</div>
       <div class="carte"><h2>À faire ${t.a_faire ? tag(['att', t.a_faire + ' en retard ou aujourd’hui']) : ''}</h2>${taches.length ? taches.map(a => `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--ligne)">
         <span>${TYPES_ACT[a.type][0]} <a href="#/clients/${a.client_id}">${esc(a.titre)}</a><br><span class="muted petit">${esc(a.nx_clients?.nom || '')}</span></span><span class="petit ${a.echeance && a.echeance < new Date().toISOString() ? '' : 'muted'}" style="${a.echeance && a.echeance < new Date().toISOString() ? 'color:var(--ko)' : ''}">${a.echeance ? dateHeure(a.echeance) : ''}</span></div>`).join('') + '<p><a href="#/activites">Toutes les activités →</a></p>' : '<p class="muted">Rien de prévu.</p>'}</div></div>`);
-  $('#page').onclick = e => { const r = e.target.closest('[data-href]'); if (r && !e.target.closest('a')) aller(r.dataset.href); };
+  $('#page').onclick = e => {
+    const b = e.target.closest('[data-vue]'); if (b) { ecrire('nxVue', b.dataset.vue); return NX.pages[''](); }
+    const r = e.target.closest('[data-href]'); if (r && !e.target.closest('a')) aller(r.dataset.href);
+  };
 };

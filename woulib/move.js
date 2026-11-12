@@ -53,6 +53,7 @@ APP.pages.bouger = async () => {
   vue(`<div class="wrap page-bouger"><h1>Mobility</h1>
     <div class="bouger-g"><div class="bouger-col">
     ${blocInstallation()}<div id="enCours"></div>
+    <p class="sous-joie">Où on va aujourd’hui ? 🚕</p>
     ${roles(0, [['#/bouger', 'Je cherche un trajet'], ['#/chauffeur', 'Je conduis (chauffeur)']])}
     <form class="f trajet-f" id="fRes">
       <div class="trajet-c">${champ('depart')}${champ('arrivee')}

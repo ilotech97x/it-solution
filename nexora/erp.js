@@ -241,38 +241,69 @@ NX.pages.relances = async () => {
 };
 
 // ---------------------------------------------------------------- employés et absences
+// Avec equipe_devis.sql : accès « Mon espace » donné depuis la fiche, durée du contrat et report de congés, décisions motivées, lien vers le planning.
 NX.pages.employes = async onglet => {
   if (refuse('rh', 'La gestion des employés est réservée aux propriétaires et administrateurs.')) return;
-  const [l, abs] = await Promise.all([q(sb.from('nx_employes').select('*').eq('org_id', ORG.id).order('nom')), q(sb.from('nx_absences').select('*, nx_employes(prenom, nom)').eq('org_id', ORG.id).order('debut', { ascending: false }).limit(200))]);
+  const [l, abs] = await Promise.all([q(sb.from('nx_employes').select('*').eq('org_id', ORG.id).order('nom')), q(sb.from('nx_absences').select(`*, nx_employes(prenom, nom${EQ ? ', user_id' : ''})`).eq('org_id', ORG.id).order('debut', { ascending: false }).limit(200))]);
   const auj = aujourdhui(), an = auj.slice(0, 4), actifs = l.filter(x => x.actif);
   const pris = id => abs.filter(a => a.employe_id === id && a.type === 'conges' && a.statut === 'validee' && a.debut.startsWith(an)).reduce((x, a) => x + Number(a.jours), 0);
   const absents = abs.filter(a => a.statut === 'validee' && a.debut <= auj && a.fin >= auj), aValider = abs.filter(a => a.statut === 'demande');
+  const droitAn = x => Number(x.conges_annuels) + Number(x.conges_report || 0);
+  const parEmploye = a => a.demande_par && a.demande_par === a.nx_employes?.user_id;
   vue(entete('Employés et absences', `${actifs.length} personne${actifs.length > 1 ? 's' : ''} · masse salariale ${montant(actifs.reduce((x, e) => x + Number(e.cout_mensuel || 0), 0))} / mois`,
-      `<button class="btn" id="nvAbs">+ Absence</button><button class="btn btn-p" id="nvEmp">+ Employé</button>`)
+      `${EQ ? '<a class="btn" href="#/planning">📅 Planning</a>' : ''}<button class="btn" id="nvAbs">+ Absence</button><button class="btn btn-p" id="nvEmp">+ Employé</button>`)
     + `<div class="onglets"><a href="#/employes" class="${onglet !== 'absences' ? 'on' : ''}">Équipe</a><a href="#/employes/absences" class="${onglet === 'absences' ? 'on' : ''}">Absences${aValider.length ? ` (${aValider.length} à valider)` : ''}</a></div>
     ${absents.length ? `<p>🌴 Absent${absents.length > 1 ? 's' : ''} aujourd’hui : <b>${absents.map(a => esc(a.nx_employes.prenom + ' ' + a.nx_employes.nom)).join(', ')}</b></p>` : ''}`
     + (onglet === 'absences'
-      ? tableau(['Personne', 'Type', 'Du', 'Au', '#Jours ouvrés', 'Statut', ''], abs.map(a => `<tr><td><b>${esc(a.nx_employes.prenom)} ${esc(a.nx_employes.nom)}</b>${a.commentaire ? `<br><span class="muted petit">${esc(a.commentaire)}</span>` : ''}</td><td>${esc(ABSENCES[a.type])}</td><td>${date(a.debut)}</td><td>${date(a.fin)}</td>
-          <td class="num">${nombre(a.jours)}</td><td>${tag(ST_ABS[a.statut])}</td><td class="num">${a.statut === 'demande' ? `<button class="btn btn-s" data-abs="${a.id}" data-st="validee">Valider</button><button class="btn btn-s" data-abs="${a.id}" data-st="refusee">Refuser</button>` : ''}</td></tr>`),
+      ? tableau(['Personne', 'Type', 'Du', 'Au', '#Jours ouvrés', 'Statut', ''], abs.map(a => `<tr><td><b>${esc(a.nx_employes.prenom)} ${esc(a.nx_employes.nom)}</b>${parEmploye(a) ? `<br><span class="muted petit">demandé le ${date(a.created_at)} depuis son espace</span>` : ''}${a.commentaire ? `<br><span class="muted petit">${esc(a.commentaire)}</span>` : ''}</td><td>${esc(ABSENCES[a.type])}</td><td>${date(a.debut)}</td><td>${date(a.fin)}</td>
+          <td class="num">${nombre(a.jours)}</td><td>${tag(ST_ABS[a.statut])}${a.reponse ? `<br><span class="muted petit">${esc(a.reponse)}</span>` : ''}</td><td class="num">${a.statut === 'demande' ? `<button class="btn btn-s btn-p" data-abs="${a.id}" data-st="validee">Valider</button><button class="btn btn-s" data-abs="${a.id}" data-st="refusee">Refuser</button>` : ''}</td></tr>`),
         vide('Aucune absence', 'Notez les congés, arrêts maladie et formations : vous voyez qui est absent et le solde de congés de chacun.'))
-      : tableau(['Personne', 'Contrat', 'Entrée', '#Coût mensuel', '#Congés pris ' + an, ''], l.map(x => `<tr style="${x.actif ? '' : 'opacity:.55'}"><td><b>${esc(x.prenom)} ${esc(x.nom)}</b><br><span class="muted petit">${esc(x.poste || '')}${x.telephone ? ' · ' + esc(x.telephone) : ''}</span></td>
-          <td>${esc(CONTRATS[x.contrat])}${x.date_sortie ? `<br><span class="muted petit">sortie le ${date(x.date_sortie)}</span>` : ''}</td><td>${date(x.date_entree)}</td><td class="num">${x.cout_mensuel != null ? montant(x.cout_mensuel) : '—'}</td>
-          <td class="num">${nombre(pris(x.id))} / ${nombre(x.conges_annuels)} j</td><td class="num"><button class="btn btn-s" data-modif="${x.id}">Modifier</button></td></tr>`),
-        vide('Aucun employé', 'Ajoutez votre équipe : contrats, dates, coût mensuel (utilisé pour la prévision de trésorerie) et congés.', '<button class="btn btn-p" id="nvEmp2">+ Ajouter un employé</button>'))));
-  const formEmp = async (x = { contrat: 'cdi', actif: true, conges_annuels: 25 }) => {
+        + (EQ ? '<p class="muted petit">Les jours ouvrés (lundi à vendredi) ne comptent ni les week-ends ni les jours fériés. Une absence validée retire les créneaux de ces jours-là du planning.</p>' : '')
+      : tableau(['Personne', 'Contrat', 'Entrée', '#Coût mensuel', '#Congés pris ' + an, ...(EQ ? ['Mon espace'] : []), ''], l.map(x => `<tr style="${x.actif ? '' : 'opacity:.55'}"><td><b>${esc(x.prenom)} ${esc(x.nom)}</b><br><span class="muted petit">${esc(x.poste || '')}${x.telephone ? ' · ' + esc(x.telephone) : ''}</span></td>
+          <td>${esc(CONTRATS[x.contrat])}${EQ ? `<br><span class="muted petit">${nombre(x.heures_hebdo)} h / semaine</span>` : ''}${x.date_sortie ? `<br><span class="muted petit">sortie le ${date(x.date_sortie)}</span>` : ''}</td><td>${date(x.date_entree)}</td><td class="num">${x.cout_mensuel != null ? montant(x.cout_mensuel) : '—'}</td>
+          <td class="num">${nombre(pris(x.id))} / ${nombre(droitAn(x))} j</td>${EQ ? `<td>${x.user_id ? tag(['ok', 'Compte relié']) : x.actif ? `<button class="btn btn-s" data-acces="${x.id}">Donner l’accès</button>` : '—'}</td>` : ''}
+          <td class="num"><button class="btn btn-s" data-modif="${x.id}">Modifier</button></td></tr>`),
+        vide('Aucun employé', 'Ajoutez votre équipe : contrats, dates, coût mensuel (utilisé pour la prévision de trésorerie) et congés.', '<button class="btn btn-p" id="nvEmp2">+ Ajouter un employé</button>'))
+        + (EQ ? '<p class="muted petit">« Donner l’accès » : l’employé reçoit un lien pour créer son compte. Il voit seulement son planning, son solde de congés et ses demandes, rien d’autre de l’entreprise.</p>' : '')));
+  const formEmp = async (x = { contrat: 'cdi', actif: true, conges_annuels: 25, heures_hebdo: 35, conges_report: 0 }) => {
     const r = await modale(x.id ? 'Modifier' : 'Nouvel employé', `<div class="g3"><label>Prénom<input name="prenom" required maxlength="60" value="${esc(x.prenom || '')}"></label><label>Nom<input name="nom" required maxlength="80" value="${esc(x.nom || '')}"></label><label>Poste<input name="poste" maxlength="80" value="${esc(x.poste || '')}"></label></div>
       <div class="g3"><label>Contrat<select name="contrat">${opts(CONTRATS, x.contrat)}</select></label><label>Date d’entrée<input name="date_entree" type="date" value="${x.date_entree || ''}"></label><label>Date de sortie<input name="date_sortie" type="date" value="${x.date_sortie || ''}"></label></div>
       <div class="g3"><label>Coût mensuel employeur (€)<input name="cout_mensuel" type="number" min="0" step="0.01" value="${x.cout_mensuel ?? ''}"></label><label>Congés par an (jours ouvrés)<input name="conges_annuels" type="number" min="0" max="60" step="0.5" value="${x.conges_annuels}"></label><label>Téléphone<input name="telephone" maxlength="30" value="${esc(x.telephone || '')}"></label></div>
-      <label>Email<input name="email" type="email" maxlength="120" value="${esc(x.email || '')}"></label><label>Notes<input name="notes" maxlength="2000" value="${esc(x.notes || '')}"></label>
+      ${EQ ? `<div class="g2"><label>Heures par semaine (contrat)<input name="heures_hebdo" type="number" min="0" max="60" step="0.5" value="${x.heures_hebdo ?? 35}"></label>
+        <label>Report ou ajustement de congés (jours)<input name="conges_report" type="number" min="-60" max="120" step="0.5" value="${x.conges_report ?? 0}"><span class="petit muted">Jours restants de l’an dernier, ou correction : ajoutés au droit de l’année.</span></label></div>` : ''}
+      <label>Email<input name="email" type="email" maxlength="120" value="${esc(x.email || '')}"></label><label>Notes <span class="muted">(visibles par les responsables seulement)</span><input name="notes" maxlength="2000" value="${esc(x.notes || '')}"></label>
       <label class="case"><input type="checkbox" name="actif" ${x.actif ? 'checked' : ''}> Dans l’équipe</label>`, { large: true });
     if (!r) return;
     const v = { prenom: r.prenom.trim(), nom: r.nom.trim(), poste: nul(r.poste.trim()), contrat: r.contrat, date_entree: nul(r.date_entree), date_sortie: nul(r.date_sortie), cout_mensuel: r.cout_mensuel === '' ? null : Number(r.cout_mensuel),
-      conges_annuels: Number(r.conges_annuels || 0), telephone: nul(r.telephone.trim()), email: nul(r.email.trim()), notes: r.notes.trim(), actif: !!r.actif };
+      conges_annuels: Number(r.conges_annuels || 0), telephone: nul(r.telephone.trim()), email: nul(r.email.trim()), notes: r.notes.trim(), actif: !!r.actif,
+      ...(EQ ? { heures_hebdo: Number(r.heures_hebdo || 0), conges_report: Number(r.conges_report || 0) } : {}) };
     try { if (x.id) await q(sb.from('nx_employes').update(v).eq('id', x.id)); else await q(sb.from('nx_employes').insert({ org_id: ORG.id, ...v })); toast('Enregistré.'); NX.pages.employes(onglet); } catch (err) { toast(erreur(err), true); }
+  };
+  // accès « Mon espace » : invitation par email, ou fiche reliée à un compte qui fait déjà partie de l'équipe
+  const donnerAcces = async x => {
+    const membres = await q(sb.rpc('nx_equipe', { org: ORG.id })).catch(() => []);
+    const libres = membres.filter(m => !l.some(e => e.user_id === m.user_id));
+    const r = await modale(`Accès de ${x.prenom} à « Mon espace »`, `<p style="margin:0">${esc(x.prenom)} verra son planning, son solde de congés et pourra demander ses congés. Rien d’autre de l’entreprise (clients, devis, factures…).</p>
+      <label>Email de ${esc(x.prenom)}<input name="email" type="email" maxlength="120" value="${esc(x.email || '')}"></label>
+      ${libres.length ? `<label>ou relier un compte qui fait déjà partie de l’équipe<select name="membre"><option value="">—</option>${libres.map(m => `<option value="${m.user_id}">${esc(`${m.prenom || ''} ${m.nom || ''}`.trim() || m.email)} (${esc(ROLES[m.role] || m.role)})</option>`).join('')}</select></label>` : ''}`, { valider: 'Donner l’accès' });
+    if (!r) return;
+    try {
+      if (r.membre) { await q(sb.rpc('nx_lier_employe', { eid: x.id, membre: r.membre })); toast(`Fiche de ${x.prenom} reliée à son compte.`); return NX.pages.employes(onglet); }
+      if (!r.email?.trim()) return toast('Indiquez l’email de la personne.', true);
+      const res = await q(sb.rpc('nx_inviter_employe', { eid: x.id, adresse: r.email.trim() }));
+      if (res.relie) { toast(`${x.prenom} faisait déjà partie de l’équipe : sa fiche est reliée.`); return NX.pages.employes(onglet); }
+      const lien = `${location.origin}${location.pathname}#/invitation/${res.jeton}`;
+      await navigator.clipboard?.writeText(lien).catch(() => {});
+      await modale('Lien à envoyer', `<p>Envoyez ce lien à <b>${esc(x.prenom)}</b> (valable 14 jours). Il crée son compte avec l’adresse <b>${esc(r.email.trim())}</b> et arrive directement dans son espace.</p><input readonly value="${esc(lien)}" aria-label="Lien d’invitation">
+        <div class="actions"><a class="btn" target="_blank" rel="noopener" href="https://wa.me/${x.telephone ? numeroWa(x.telephone) : ''}?text=${encodeURIComponent(`Bonjour ${x.prenom}, voici ton accès à ton planning et à tes congés chez ${ORG.nom} (NEXORA) : ${lien}`)}">Envoyer par WhatsApp</a>
+        <a class="btn" href="mailto:${esc(r.email.trim())}?subject=${encodeURIComponent('Votre planning et vos congés — ' + ORG.nom)}&body=${encodeURIComponent(`Bonjour ${x.prenom},\n\nVoici votre accès à votre planning et à vos congés chez ${ORG.nom} :\n${lien}\n\nÀ bientôt`)}">Envoyer par email</a></div>`, { valider: 'Fermer' });
+      NX.pages.employes(onglet);
+    } catch (err) { toast(erreur(err), true); }
   };
   $('#page').onclick = async e => {
     if (['nvEmp', 'nvEmp2'].includes(e.target.id)) return formEmp();
     const m = e.target.closest('[data-modif]'); if (m) return formEmp(l.find(x => x.id === m.dataset.modif));
+    const ac = e.target.closest('[data-acces]'); if (ac) return donnerAcces(l.find(x => x.id === ac.dataset.acces));
     if (e.target.id === 'nvAbs') {
       if (!actifs.length) return toast('Ajoutez d’abord un employé.', true);
       const r = await modale('Nouvelle absence', `<div class="g2"><label>Personne<select name="employe_id">${actifs.map(x => `<option value="${x.id}">${esc(x.prenom)} ${esc(x.nom)}</option>`).join('')}</select></label><label>Type<select name="type">${opts(ABSENCES, 'conges')}</select></label></div>
@@ -282,7 +313,19 @@ NX.pages.employes = async onglet => {
       try { await q(sb.from('nx_absences').insert({ org_id: ORG.id, employe_id: r.employe_id, type: r.type, debut: r.debut, fin: r.fin, statut: r.statut, commentaire: nul(r.commentaire.trim()) })); toast('Absence enregistrée.'); aller('#/employes/absences'); } catch (err) { toast(erreur(err), true); }
     }
     const a = e.target.closest('[data-abs]');
-    if (a) { try { await q(sb.from('nx_absences').update({ statut: a.dataset.st }).eq('id', a.dataset.abs)); toast(a.dataset.st === 'validee' ? 'Absence validée.' : 'Absence refusée.'); NX.pages.employes('absences'); } catch (err) { toast(erreur(err), true); } }
+    if (a) {
+      try {
+        if (!EQ) { await q(sb.from('nx_absences').update({ statut: a.dataset.st }).eq('id', a.dataset.abs)); toast(a.dataset.st === 'validee' ? 'Absence validée.' : 'Absence refusée.'); return NX.pages.employes('absences'); }
+        let motif = null;
+        if (a.dataset.st === 'refusee') {
+          const r = await modale('Refuser la demande', '<label>Motif <span class="muted">(facultatif, transmis à l’employé)</span><textarea name="motif" maxlength="300" placeholder="Ex. Période de forte activité : proposez une autre date"></textarea></label>', { valider: 'Refuser' });
+          if (!r) return; motif = r.motif || null;
+        }
+        const res = await q(sb.rpc('nx_traiter_absence', { aid: a.dataset.abs, decision: a.dataset.st, reponse_c: motif }));
+        toast(a.dataset.st === 'validee' ? `Absence validée${res.creneaux_retires ? ` : ${res.creneaux_retires} créneau${res.creneaux_retires > 1 ? 'x' : ''} retiré${res.creneaux_retires > 1 ? 's' : ''} du planning` : ''}.` : 'Demande refusée.');
+        NX.pages.employes('absences');
+      } catch (err) { toast(erreur(err), true); }
+    }
   };
 };
 
