@@ -114,16 +114,6 @@ async function blocCommission() {
 
 // taux de commission affichés aux pros (réglés dans l'administration ; repli : taux de départ). Commerces : taux à part (commissions.sql)
 const tauxPro = (code, cle = 'commission_pct') => Number(univers(code)?.parametres?.[cle] ?? ({ commission_commerces_pct: { food: 5 } }[cle] || { food: 10, move: 10, living: 8, events: 5 })[code] ?? 0);
-const POURQUOI = [['Plus juste pour les pros', 'Commission de 5 à 10 %, quand les grandes plateformes prennent souvent 25 à 30 %.'],
-  ['Vous payez directement', 'Espèces ou carte, au restaurant, au chauffeur ou au livreur. Personne ne garde votre argent.'],
-  ['D’ici, pour ici', 'Restaurants, chauffeurs et livreurs de votre île, vérifiés un par un.'],
-  ['Sécurité', 'Code de remise à la livraison, trajet partagé en direct avec un proche, bouton d’urgence.']];
-// covoiturage et entraide : présentés dans Bouger seulement (ouverture après avis juridique, AUDIT partie 13)
-const DANS_BOUGER = ['covoiturage', 'entraide'];
-// autres applis et services de l'écosystème : une icône au trait par univers
-const ICO_UNIVERS = { events: 'billet', living: 'maison', services: 'pro', experiences: 'etoile', express: 'colis', market: 'commerce', daily: 'commerce', rental: 'taxi', pay: 'carte', ai: 'aide' };
-// univers tenus par une autre appli de l'écosystème : un nom clair et l'appli où l'on arrive
-const EXTERNES = { events: ['Événements et billets', 'EventPass'], experiences: ['Excursions et activités', 'EventPass'], living: ['Logements', 'Kaz An Nou'], services: ['Services à domicile', 'Kaz An Nou'] };
 
 // territoire : feuille du bas ouverte depuis la barre du haut ; le choix est gardé sur l'appareil
 function choisirTerritoire() {

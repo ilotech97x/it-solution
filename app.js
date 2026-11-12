@@ -319,7 +319,6 @@ function setChoix(id, k, o) {
   if (!packValid()) state.pack = null;
   render();
 }
-const setMat = (id, o) => setChoix(id, 'materiel', o);
 function basculePlus(id, o) {
   const cur = state.opt[id] || [];
   state.opt[id] = cur.includes(o) ? cur.filter(x => x !== o) : cur.concat(o);
