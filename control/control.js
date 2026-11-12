@@ -8,7 +8,7 @@
 const svg = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
 const ICO = { retour: svg('M15 6l-6 6 6 6'), cloche: svg('M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 21h4') };
 // code de la page, titre, ouvert aux modérateurs
-const MODULES = [['', 'Vue générale', true], ['applications', 'Applications'], ['utilisateurs', 'Utilisateurs'], ['partenaires', 'Partenaires', true], ['moderation', 'Modération', true],
+const MODULES = [['', 'Vue générale', true], ['applications', 'Applications'], ['audience', 'Audience'], ['utilisateurs', 'Utilisateurs'], ['partenaires', 'Partenaires', true], ['moderation', 'Modération', true],
   ['finances', 'Finances'], ['commissions', 'Commissions'], ['territoires', 'Territoires'], ['securite', 'Sécurité'], ['assistance', 'Assistance', true], ['configuration', 'Configuration']];
 let mesModerations = [], compteurs = {}, auth2 = null;   // auth2 : niveau de connexion (aal1, aal2) et suivant
 const estAdmin = () => profil?.role === 'admin';
@@ -275,6 +275,26 @@ APP.pages.utilisateurs = async () => {
 };
 
 // ---------------------------------------------------------------- Finances et Commissions
+// audience de toutes les applis (commun/mesures.sql) : visites et clics, sans cookie ni donnée personnelle
+const NOMS_MESURE = { site: 'Site ilo-tech.com', woulib: 'Woulib', eventpass: 'EventPass', kaz: 'Kaz An Nou', nexora: 'NEXORA', studio: 'IloTech Studio' };
+APP.pages.audience = async () => {
+  if (!garde('audience')) return;
+  attente();
+  const jours = Number(param().jours) || 30;
+  const r = await q(sb.rpc('mesures_resume', { jours })).catch(() => null);
+  if (r === null) return vue(page('Audience', INSTALLER));
+  const tot = k => r.series.reduce((t, x) => t + Number(x[k] || 0), 0), app = a => esc(NOMS_MESURE[a] || a);
+  const ligne = (cols, num) => `<tr>${cols.map((c, i) => i === 0 ? `<th scope="row">${c}</th>` : `<td class="${num.includes(i) ? 'num' : ''}">${c}</td>`).join('')}</tr>`;
+  const table = (tetes, lignes, num) => lignes.length ? `<div class="tableau"><table class="t ctl-t"><thead><tr>${tetes.map((t, i) => `<th scope="col" class="${num.includes(i) ? 'num' : ''}">${t}</th>`).join('')}</tr></thead><tbody>${lignes.join('')}</tbody></table></div>` : '<p class="muted">Pas encore de données sur la période.</p>';
+  const ap = r.appareils || {}, totAp = Object.values(ap).reduce((t, x) => t + Number(x), 0) || 1;
+  vue(page('Audience', `<div class="ctl-kpis">${[['Pages vues', nbFr(tot('vues')), `${jours} derniers jours`], ['Clics', nbFr(tot('clics')), 'boutons et liens principaux'],
+      ['Sur téléphone', Math.round(100 * Number(ap.mobile || 0) / totAp) + ' %', 'des pages vues']].map(([a, b, c]) => `<div class="ctl-kpi"><span>${a}</span><b>${b}</b><small>${c}</small></div>`).join('')}</div>
+    <div class="courbes">${courbe(r.series, 'vues', 'Pages vues par jour', nbFr, '#0E7490')}${courbe(r.series, 'clics', 'Clics par jour', nbFr, '#7C3AED')}</div>
+    ${carte('Par application', table(['Application', 'Pages vues', 'Clics'], r.apps.map(x => ligne([app(x.app), nbFr(x.vues), nbFr(x.clics)], [1, 2])), [1, 2]))}
+    ${carte('Pages les plus vues', table(['Page', 'Application', 'Vues'], r.pages.map(x => ligne([`<span class="mono">${esc(x.page)}</span>`, app(x.app), nbFr(x.nb)], [2])), [2]))}
+    ${carte('Boutons les plus cliqués', table(['Bouton', 'Page', 'Application', 'Clics'], r.clics.map(x => ligne([esc(x.cible), `<span class="mono">${esc(x.page)}</span>`, app(x.app), nbFr(x.nb)], [3])), [3]))}
+    <p class="petit muted">Mesure sans cookie ni donnée personnelle : aucun visiteur n’est identifié, seulement des compteurs par jour (conservés 13 mois). Les navigateurs réglés sur « Ne pas me suivre » ne sont pas comptés.</p>`, periodes(jours, '#/audience')));
+};
 APP.pages.finances = async () => {
   if (!garde('finances')) return;
   attente();

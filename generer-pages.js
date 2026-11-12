@@ -712,10 +712,10 @@ function page(p) {
     ...agences.map(a => ({ '@context': 'https://schema.org', ...a }))
   ];
   return `<!doctype html>
-<html lang="fr">
+<html lang="fr" data-app="site">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://formsubmit.co; form-action 'self' https://formsubmit.co; object-src 'none'; base-uri 'self'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://mocntvrlwdndyuiwrxen.supabase.co https://script.google.com https://script.googleusercontent.com https://formsubmit.co; form-action 'self' https://formsubmit.co; object-src 'none'; base-uri 'self'; upgrade-insecure-requests">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${esc(p.titre)}</title>
@@ -811,6 +811,8 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
     <ul class="seo-liens">${autres.map(x => `<li><a href="${lien(x)}">${esc(x.h1)}</a></li>`).join('')}<li><a href="services.html">Tous nos services et tarifs</a></li></ul>
   </main>
   <footer class="seo-pied">${reseauxHtml()}<p>IloTech — ${esc(ENTREPRISE.nomCommercial)}, entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
+  <script src="config.js?v=1"></script>
+  <script src="mesure.js?v=1"></script>
   <script src="data.js?v=${V}"></script>
   <script src="outils.js?v=${V}"></script>
 </body>
@@ -820,10 +822,10 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
 
 /* ---------- Gabarit commun (en-tête et pied) ---------- */
 const enTete = (titre, desc, url, ld, ogTitre, ogDesc, robots = 'index,follow,max-image-preview:large') => `<!doctype html>
-<html lang="fr">
+<html lang="fr" data-app="site">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://formsubmit.co; form-action 'self' https://formsubmit.co; object-src 'none'; base-uri 'self'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://mocntvrlwdndyuiwrxen.supabase.co https://script.google.com https://script.googleusercontent.com https://formsubmit.co; form-action 'self' https://formsubmit.co; object-src 'none'; base-uri 'self'; upgrade-insecure-requests">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${esc(titre)}</title>
@@ -856,6 +858,8 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
   </header>
 `;
 const pied = () => `  <footer class="seo-pied">${reseauxHtml()}<p>IloTech — entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="https://studio.ilo-tech.com/">IloTech Studio, agence marketing</a> · <a href="https://immo.ilo-tech.com/">IloTech Immobilier</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
+  <script src="config.js?v=1"></script>
+  <script src="mesure.js?v=1"></script>
   <script src="data.js?v=${V}"></script>
   <script src="outils.js?v=${V}"></script>
 </body>
