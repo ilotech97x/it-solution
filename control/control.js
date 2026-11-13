@@ -147,7 +147,7 @@ APP.pages[''] = async () => {
   majCompteurs({ partenaires: file?.length || 0, moderation: sig.length, assistance: aide.length });
   const periode = jours === 365 ? '12 derniers mois' : jours + ' derniers jours';
   const kpi = (titre, v, s) => `<div class="ctl-kpi"><span>${titre}</span><b>${v}</b><small>${s}</small></div>`;
-  vue(page('Vue générale', `${file === null ? INSTALLER : ''}
+  vue(page('Vue générale', `${admin && auth2 && auth2.nextLevel === 'aal1' ? '<div class="ctl-carte" role="note"><b>🔐 Activez la double authentification</b> : <a href="#/securite">Sécurité</a>. Ensuite, chaque action d’administration demandera le code de votre téléphone.</div>' : ''}${file === null ? INSTALLER : ''}
     ${t ? `<div class="ctl-kpis">${kpi('Volume d’affaires', eurC(t.volume), 'commandes, courses, colis, billets, séjours')}${kpi('Commissions', eurC(t.commissions.periode), `dont ${eurC(t.commissions.dues)} à encaisser`)}
       ${kpi('Nouveaux comptes', nbFr(t.comptes.periode), `${nbFr(t.comptes.total)} comptes en tout`)}${kpi('Demandes des clients', nbFr(t.activite), 'toutes applis confondues')}</div>` : ''}
     <div class="ctl-2">${carte(`À valider · ${file?.length || 0}`, file?.length ? `<div class="ctl-liste">${file.slice(0, 6).map(x => `<div class="ctl-ligne"><span><b>${esc(x.nom)}</b><small>${esc(x.genre)} · ${esc(APPLI_U[x.univers] || '')} · ${ilYa(x.depuis)}</small></span>
