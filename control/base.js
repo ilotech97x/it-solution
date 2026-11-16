@@ -120,12 +120,14 @@ function pageInscription() {
       <label>Email<input type="email" name="email" required autocomplete="email"></label>
       <label>Téléphone <span class="aide">(pour ${esc(APP.pourTel)})</span><input type="tel" name="telephone" pattern="[0-9 +]{6,20}" required autocomplete="tel"></label>
       <label>Mot de passe <span class="aide">(8 caractères minimum)</span><input type="password" name="mdp" required minlength="8" autocomplete="new-password"></label>
+      <label style="display:flex;gap:8px;font-weight:600"><input type="checkbox" name="quinze_ans" required style="width:auto"> <span>J’ai 15 ans ou plus.</span></label>
       <label style="display:flex;gap:8px;font-weight:600"><input type="checkbox" required style="width:auto"> <span>J’accepte les <a href="cgu.html" target="_blank">conditions</a> et la <a href="confidentialite.html" target="_blank">confidentialité</a>.</span></label>
       <button class="btn btn-p">Créer mon compte</button></form></div></div>`);
   $('#fIns').addEventListener('submit', async e => {
     e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)), b = e.target.querySelector('button'); b.disabled = true;
     try {
-      const r = await q(sb.auth.signUp({ email: d.email.trim(), password: d.mdp, options: { data: { prenom: d.prenom.trim(), nom: d.nom.trim(), telephone: d.telephone.trim() } } }));
+      // comptes réservés aux 15 ans et plus (âge du consentement numérique) : la déclaration est gardée avec le compte
+      const r = await q(sb.auth.signUp({ email: d.email.trim(), password: d.mdp, options: { data: { prenom: d.prenom.trim(), nom: d.nom.trim(), telephone: d.telephone.trim(), quinze_ans: !!d.quinze_ans } } }));
       if (r.session) { await chargerMoi(); toast('Compte créé, bienvenue !'); aller(decodeURIComponent(param().retour || '') || APP.apresInscription || APP.accueilConnecte); }
       else vue('<div class="wrap"><div class="carte-f"><h1>Vérifiez vos emails 📩</h1><p>Cliquez sur le lien reçu pour activer votre compte, puis connectez-vous.</p></div></div>');
     } catch (err) { toast(erreur(err), true); b.disabled = false; }

@@ -35,7 +35,7 @@ const APP = {
 };
 
 // ---------------------------------------------------------------- outils d'affichage
-const APPLI_U = { food: 'Woulib', move: 'Woulib', express: 'Woulib', events: 'EventPass', living: 'Kaz An Nou', services: 'Kaz An Nou' };
+const APPLI_U = { food: 'Woulib', move: 'Woulib', express: 'Woulib', events: 'EventPass', experiences: 'EventPass', living: 'Kaz An Nou', services: 'Kaz An Nou' };
 const LIEN_FICHE = { restaurant: id => '../woulib/#/resto/' + id, evenement: id => '../pass/#/evenement/' + id, logement: id => 'https://immo.ilo-tech.com/#/logement/' + id, prestation: id => 'https://immo.ilo-tech.com/#/prestation/' + id };
 const MOTIFS = { arnaque: 'Arnaque ou prix trompeur', faux: 'Fausse information ou faux profil', danger: 'Danger ou conduite à risque', harcelement: 'Insulte, harcèlement ou menace',
   illegal: 'Vente ou contenu illégal', choquant: 'Contenu choquant', droits: 'Photo ou texte copié sans droit', autre: 'Autre chose' };
@@ -163,7 +163,7 @@ APP.pages[''] = async () => {
 };
 
 // ---------------------------------------------------------------- Partenaires : une seule file pour valider tous les pros
-const TYPES_P = [['', 'Tout'], ['restaurant', 'Restaurants et commerces'], ['chauffeur', 'Chauffeurs et livreurs'], ['evenement', 'Événements'], ['logement', 'Logements'], ['prestation', 'Prestations'], ['role', 'Hôtes et prestataires']];
+const TYPES_P = [['', 'Tout'], ['restaurant', 'Restaurants et commerces'], ['chauffeur', 'Chauffeurs et livreurs'], ['orga', 'Organisateurs (EventPass)'], ['evenement', 'Événements et expériences'], ['logement', 'Logements'], ['prestation', 'Prestations'], ['role', 'Hôtes et prestataires']];
 const cartePartenaire = x => `<article class="ctl-carte ctl-part" id="p-${esc(x.id)}">${x.photo ? `<img src="${esc(photo(x.photo))}" alt="" loading="lazy">` : ''}
   <div class="ctl-part-c"><div class="ctl-part-t"><b>${esc(x.nom)}</b><span class="tag">${esc(x.genre)}</span><span class="muted petit">${esc(APPLI_U[x.univers] || '')} · ${esc([x.commune, x.territoire].filter(Boolean).join(', '))} · ${ilYa(x.depuis)}</span></div>
     ${x.details ? `<p class="petit">${esc(x.details)}</p>` : ''}${x.carte ? `<p class="petit">Carte professionnelle : <b>${esc(x.carte)}</b></p>` : ''}
@@ -455,3 +455,6 @@ async function activerDouble() {
 }
 
 document.addEventListener('DOMContentLoaded', demarrer);
+
+// appli installable (écran d'accueil) : les fichiers du site restent lisibles sans réseau, jamais les données (sw.js)
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});

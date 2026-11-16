@@ -1,0 +1,17 @@
+{
+  "name": "ILO CONTROL — administration IloTech",
+  "short_name": "ILO CONTROL",
+  "description": "Administration centrale de l'écosystème IloTech (outil interne).",
+  "lang": "fr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#15171C",
+  "theme_color": "#15171C",
+  "icons": [
+    { "src": "img/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icone-512-masque.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

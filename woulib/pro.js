@@ -56,8 +56,12 @@ async function formResto(id, genre) {
       <div class="panneau" style="padding:14px"><label style="display:flex;gap:8px;align-items:flex-start;font-weight:800"><input type="checkbox" name="livreurs_kivora" ${r.livreurs_kivora ? 'checked' : ''} style="width:auto;margin-top:4px">
         <span>🛵 Mes livraisons sont faites par les livreurs Woulib<br><span class="aide" style="font-weight:600">Pas de livreur à embaucher : dès que vous acceptez une commande, les livreurs vérifiés les plus proches sont prévenus. Le client paie le livreur à la livraison ;
         les frais de livraison (2 € minimum) reviennent au livreur, qui vous remet le prix du repas. Woulib tient le compte de ce qu’il vous doit, et vous confirmez la réception.</span></span></label></div>
+      ${bq && alcoolV2() ? `<fieldset class="panneau licence-f"><legend><b>🔞 Vente d’alcool</b> <span class="aide">(seulement si vous en vendez)</span></legend>
+        <label>N° de licence de vente à emporter <span class="aide">(récépissé de déclaration de la mairie : obligatoire pour mettre de l’alcool en vente)</span><input name="licence_alcool" minlength="3" maxlength="40" pattern=".*[0-9].*" title="Le numéro contient au moins un chiffre" value="${esc(r.licence_alcool || '')}" autocomplete="off" placeholder="Ex. 97213-2026-014"></label>
+        <label>N° de permis de vente de nuit <span class="aide">(facultatif : sans lui, l’alcool n’est vendu que ${textePlage(r.territoire)})</span><input name="permis_nuit" minlength="3" maxlength="40" pattern=".*[0-9].*" title="Le numéro contient au moins un chiffre" value="${esc(r.permis_nuit || '')}" autocomplete="off"></label>
+        <p class="aide" style="margin:0">Le tabac, les cigarettes électroniques et les produits à la nicotine sont interdits sur Woulib (vente à distance interdite).</p></fieldset>` : ''}
       <div><b>Photo</b><div id="apercu" style="max-width:240px;margin:8px 0"></div><input type="file" id="ph" accept="image/*"></div>
-      <label style="display:flex;gap:8px;font-weight:600"><input type="checkbox" required style="width:auto"> ${bq ? 'Mon activité est déclarée (SIRET) ; si je vends de l’alcool, j’ai la licence de vente à emporter et je ne vends jamais à un mineur (pièce d’identité à la remise) ; les prix affichés sont les vrais prix.' : 'Mon activité est déclarée (SIRET) et respecte les règles d’hygiène ; les prix affichés sont les vrais prix.'}</label>
+      <label style="display:flex;gap:8px;font-weight:600"><input type="checkbox" required style="width:auto"> ${bq ? 'Mon activité est déclarée (SIRET) ; si je vends de l’alcool, ma licence est valide, je respecte les heures de vente et je ne vends jamais à un mineur (pièce d’identité à la remise) ; je ne vends ni tabac ni produit à la nicotine ; les prix affichés sont les vrais prix.' : 'Mon activité est déclarée (SIRET) et respecte les règles d’hygiène ; les prix affichés sont les vrais prix.'}</label>
       <div class="actions"><button class="btn btn-p" value="en_attente">${id && r.statut === 'publie' ? 'Enregistrer' : 'Enregistrer et envoyer en validation'}</button>${!id || r.statut !== 'publie' ? '<button class="btn" value="brouillon">Brouillon</button>' : ''}</div></form></div>`);
   const ap = () => { $('#apercu').innerHTML = ph ? `<img src="${esc(photo(ph))}" alt="" style="border-radius:16px">` : ''; }; ap();
   brancherVilles(document.querySelector('#fR [name=territoire]'), 'villesR');
@@ -67,6 +71,7 @@ async function formResto(id, genre) {
     ev.preventDefault(); const f = ev.target, d = Object.fromEntries(new FormData(f)), envoi = ev.submitter?.value || 'en_attente';
     if (!d.livraison && !d.emporter) return toast('Choisissez livraison, à emporter ou les deux.', true);
     if (d.livreurs_kivora && d.livraison && (+d.frais_livraison || 0) < 2) return toast('Avec les livreurs Woulib, les frais de livraison doivent être d’au moins 2 € (ils paient le livreur).', true);
+    if (d.permis_nuit?.trim() && !d.licence_alcool?.trim()) return toast('Indiquez d’abord le numéro de votre licence de vente à emporter : le permis de nuit la complète.', true);
     const sem = {};
     for (const j of BASE_V2 ? SEMAINE : []) {
       const t = d['h' + j].trim(); if (!t) continue;
@@ -76,7 +81,8 @@ async function formResto(id, genre) {
     }
     const l = { nom: d.nom.trim(), cuisine: d.cuisine, description: d.description.trim(), territoire: d.territoire, commune: d.commune.trim(), adresse: d.adresse.trim() || null, telephone: d.telephone.trim() || null,
       ...(BASE_V2 ? { horaires: Object.keys(sem).length ? null : r.horaires || null, horaires_sem: Object.keys(sem).length ? sem : null } : { horaires: d.horaires?.trim() || null }), livraison: !!d.livraison, emporter: !!d.emporter, delai_min: +d.delai_min, frais_livraison: +d.frais_livraison || 0, minimum: +d.minimum || 0,
-      communes_livrees: d.villes.split(',').map(x => x.trim()).filter(Boolean).slice(0, 40), photo: ph, livreurs_kivora: !!(d.livreurs_kivora && d.livraison), ...(bq && !id ? { genre: 'boutique' } : {}) };
+      communes_livrees: d.villes.split(',').map(x => x.trim()).filter(Boolean).slice(0, 40), photo: ph, livreurs_kivora: !!(d.livreurs_kivora && d.livraison), ...(bq && !id ? { genre: 'boutique' } : {}),
+      ...(bq && alcoolV2() ? { licence_alcool: d.licence_alcool.trim() || null, permis_nuit: d.permis_nuit.trim() || null } : {}) };
     // position du restaurant (pour envoyer les livreurs les plus proches), recalculée si l'adresse change
     if (r.lat == null || l.adresse !== r.adresse || l.commune !== r.commune) {
       const pos = (await geocoder([l.adresse, l.commune].filter(Boolean).join(', '), l.territoire).catch(() => []))[0];
@@ -84,7 +90,7 @@ async function formResto(id, genre) {
     }
     if (!(id && r.statut === 'publie')) l.statut = envoi;
     try { if (id) await q(sb.from('restaurants').update(l).eq('id', id)); else { const n = await q(sb.from('restaurants').insert(l).select('id').single()); toast(bq ? 'Boutique créée : ajoutez vos articles !' : 'Restaurant créé : ajoutez votre carte !'); return aller('#/pro/menu/' + n.id); } toast('Enregistré.'); aller('#/pro'); }
-    catch (err) { toast(erreur(err), true); }
+    catch (err) { toast(/licence_alcool|permis_nuit/.test(err.message || '') ? 'Numéro de licence ou de permis invalide : 3 à 40 caractères, dont au moins un chiffre.' : erreur(err), true); }
   });
 }
 // « 11h-14h30, 18:00 - 22:00 » → [["11:00", "14:30"], ["18:00", "22:00"]] ; null si illisible (après minuit : finir à 24:00)
@@ -107,15 +113,19 @@ const DEPART = [['frais', 'Eau minérale 1,5 L', 1.5], ['frais', 'Eau gazeuse 1 
   ['glace', 'Sachet de glaçons 2 kg', 3], ['glace', 'Glace en pot 500 ml', 5.5], ['epicerie', 'Baguette de pain', 1.2], ['epicerie', 'Lait 1 L', 1.6], ['maison', 'Gobelets (lot de 50)', 3], ['maison', 'Charbon de bois 3 kg', 7], ['maison', 'Papier toilette (lot de 4)', 3.5]];
 async function pageMenu(rid, edite) {
   const [r, plats] = await Promise.all([q(sb.from('restaurants').select('*').eq('id', rid).single()), q(sb.from('plats').select('*').eq('restaurant_id', rid).order('ordre').order('created_at'))]);
-  const bq = estBoutique(r), CATS = bq ? CATS_BOUTIQUE : CATS_PLAT, depart = DEPART.filter(([, nom]) => !plats.some(p => p.nom.toLowerCase() === nom.toLowerCase()));
+  // sans licence déclarée, la base refuse les articles 18+ en vente : le catalogue de départ ne les propose pas encore
+  const bq = estBoutique(r), CATS = bq ? CATS_BOUTIQUE : CATS_PLAT, licence = !sansLicence(r);
+  const depart = DEPART.filter(([c, nom]) => (licence || c !== 'alcool') && !plats.some(p => p.nom.toLowerCase() === nom.toLowerCase()));
+  const lienLicence = `<a href="#/pro/resto/${r.id}">Horaires et infos</a>`;
   const p0 = plats.find(p => p.id === edite) || { nom: '', prix: '', categorie: bq ? 'frais' : 'plat', description: '', options: [], stock: null };
   vue(`<div class="wrap page-pro" style="max-width:960px">${enteteResto(r, 'carte')}<h1>${bq ? 'Articles et stock' : 'La carte'}</h1>
     ${bq && depart.length ? `<details class="panneau depart" ${plats.length ? '' : 'open'}><summary><b>🚀 Catalogue de départ</b> · cochez, mettez vos prix, ajoutez tout d’un coup</summary>
       <form id="fDepart" class="f"><p class="aide" style="margin:0">Prix indicatifs : remplacez-les par vos vrais prix. Vous pourrez tout modifier ensuite. Plats préparés : seulement si vous respectez les règles d’hygiène (formation HACCP) ; indiquez leurs allergènes.</p>
+        ${licence ? '' : `<p class="aide" style="margin:0">🔞 Bières et alcools : indiquez d’abord le numéro de votre licence de vente à emporter dans ${lienLicence}.</p>`}
         <div class="depart-l">${depart.map(([c, nom, prix, coche = true], i) => `<label><input type="checkbox" name="c${i}" ${coche ? 'checked' : ''}><span>${LIB_CAT[c].split(' ')[0]} ${esc(nom)}</span><input type="number" name="p${i}" min="0.5" max="500" step="0.1" value="${prix}" aria-label="Prix de ${esc(nom)}"> €</label>`).join('')}</div>
         <button class="btn btn-p">Ajouter les articles cochés</button></form></details>` : ''}
     ${plats.length ? plats.map(p => `<div class="ligne-l">${p.photo ? `<img class="mini" style="height:72px" src="${esc(photo(p.photo))}" alt="">` : `<div class="mini" style="height:72px;display:grid;place-items:center;font-size:28px">${(LIB_CAT[p.categorie] || '🍽️').split(' ')[0]}</div>`}
-      <div><b>${esc(p.nom)}</b> · <span class="prix">${eur(p.prix)}</span> ${p.dispo ? '' : tag(['gris', 'Épuisé'])}${p.majeur ? ' ' + tag(['att', '🔞 18+']) : ''}<div class="muted petit">${esc(CATS[p.categorie] || LIB_CAT[p.categorie] || '')}${p.description ? ' · ' + esc(p.description) : ''}</div>
+      <div><b>${esc(p.nom)}</b> · <span class="prix">${eur(p.prix)}</span> ${p.dispo ? '' : tag(['gris', 'Épuisé'])}${p.majeur ? ' ' + tag(['att', '🔞 18+']) : ''}${p.majeur && !licence ? ' ' + tag(['ko', 'Hors vente : licence à déclarer']) : ''}<div class="muted petit">${esc(CATS[p.categorie] || LIB_CAT[p.categorie] || '')}${p.description ? ' · ' + esc(p.description) : ''}</div>
         ${BOUTIQUES ? (p.allergenes ? `<div class="allerg">${esc(texteAllergenes(p))}</div>` : tag(['att', '⚠️ Allergènes à renseigner'])) : ''}
         ${bq ? `<label class="stock-l">Stock <input type="number" min="0" max="9999" data-stock="${p.id}" value="${p.stock ?? ''}" placeholder="non suivi" aria-label="Stock de ${esc(p.nom)}">${p.stock === 0 ? ' <b style="color:var(--rouge)">épuisé</b>' : ''}</label>` : ''}
         ${p.options?.length ? `<div class="petit">${p.options.map(g => `<b>${esc(g.nom)}</b> : ${esc(g.choix.map(c => c.nom + (Number(c.prix) ? ' +' + eur(c.prix) : '')).join(', '))}`).join(' · ')}</div>` : ''}</div>
@@ -123,7 +133,8 @@ async function pageMenu(rid, edite) {
     <form class="f panneau" id="fP" style="margin-top:16px"><h2 style="margin:0">${edite ? 'Modifier · ' + esc(p0.nom) : bq ? 'Ajouter un article' : 'Ajouter un plat'}</h2>
       <div class="ligne3"><label>Nom<input name="nom" required minlength="2" maxlength="80" placeholder="${bq ? 'Eau 1,5 L' : 'Colombo de poulet'}" value="${esc(p0.nom)}"></label><label>Prix (€)<input name="prix" type="number" min="0.5" max="500" step="${bq ? '0.1' : '0.5'}" required value="${esc(p0.prix)}"></label><label>${bq ? 'Rayon' : 'Catégorie'}<select name="categorie">${Object.entries(CATS).map(([k, t]) => `<option value="${k}" ${k === p0.categorie ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
       <label>Description <span class="aide">(facultatif)</span><input name="description" maxlength="400" placeholder="${bq ? 'Bien fraîche' : 'Riz, légumes pays, sauce chien'}" value="${esc(p0.description || '')}"></label>
-      ${bq ? `<label>Stock <span class="aide">(facultatif : vide = pas de suivi ; à 0, l’article s’affiche épuisé)</span><input name="stock" type="number" min="0" max="9999" value="${p0.stock ?? ''}"></label><p class="aide" style="margin:0">🔞 Les articles du rayon « Bières et alcools » sont réservés aux majeurs : âge contrôlé à la remise.</p>` : ''}
+      ${bq ? `<label>Stock <span class="aide">(facultatif : vide = pas de suivi ; à 0, l’article s’affiche épuisé)</span><input name="stock" type="number" min="0" max="9999" value="${p0.stock ?? ''}"></label><p class="aide" style="margin:0">🔞 Les articles du rayon « Bières et alcools » sont réservés aux majeurs : âge contrôlé à la remise.${licence ? '' : ` Pour en vendre, indiquez d’abord votre numéro de licence dans ${lienLicence}.`}
+        Interdits sur Woulib : tabac, cigarettes (y compris électroniques), produits à la nicotine.</p>` : ''}
       ${BOUTIQUES ? `<fieldset class="allerg-f"><legend><b>Allergènes présents</b> <span class="aide">(obligatoire pour vendre à distance : les 14 allergènes majeurs)</span></legend>
         <div class="puces-c">${Object.entries(ALLERGENES).map(([k, t]) => `<label><input type="checkbox" name="al_${k}" ${p0.allergenes?.includes(k) ? 'checked' : ''}> ${t}</label>`).join('')}</div>
         <label class="aucun"><input type="checkbox" name="al_aucun" ${Array.isArray(p0.allergenes) && !p0.allergenes.length ? 'checked' : ''}> Aucun des 14 allergènes</label></fieldset>` : ''}

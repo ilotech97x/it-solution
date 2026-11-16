@@ -4,6 +4,10 @@
 const TAILLES = { enveloppe: ['✉️', 'Enveloppe', 'Documents, clés'], petit: ['📦', 'Petit', 'Tient dans un sac'], moyen: ['🗃️', 'Moyen', 'Carton jusqu’à 10 kg'], grand: ['🛋️', 'Grand', 'Jusqu’à 25 kg'] };
 const ETAPES_COLIS = [['recherche', '🔎', 'Recherche'], ['acceptee', '🛵', 'Vers le retrait'], ['recupere', '📦', 'En route'], ['livre', '🎉', 'Livré']];
 const ST_COLIS = { recherche: ['att', 'Recherche d’un livreur'], acceptee: ['ok', 'Livreur en route'], recupere: ['ok', 'En livraison'], livre: ['gris', 'Livré'], annule: ['ko', 'Annulé'], echec: ['ko', 'Non remis'] };
+// objets refusés (NORME-APPLIS 10.4), montrés avant l'envoi ; l'expéditeur coche « aucun objet interdit » et déclare la valeur, plafonnée par la base (express.sql)
+const INTERDITS_COLIS = ['Matières dangereuses : gaz, carburant, produits inflammables ou explosifs', 'Armes et munitions', 'Stupéfiants', 'Animaux vivants', 'Argent liquide', 'Médicaments soumis à ordonnance'];
+const colisV2 = () => reglage('express', null, 'valeur_max') != null;   // la base a reçu la valeur déclarée et la déclaration (express.sql du 12/11)
+const valeurMax = terr => Number(reglage('express', terr, 'valeur_max') ?? 150);
 
 declarerUnivers('express', { routes: /^#\/(express|colis)\b/, zone: 'move', accueil: '#/express', appel: 'Envoyer un colis' });
 
@@ -19,13 +23,17 @@ APP.pages.express = async () => {
         ${k === 'retrait' ? '<div class="puces" style="margin:6px 0 0"><a href="#" data-mapos="1">📍 Ma position</a></div>' : ''}</div>`).join('')}
       <div class="types tailles">${Object.entries(TAILLES).map(([k, [i, t, d]]) => `<button type="button" class="type" data-taille="${k}"><span><b>${i} ${t}</b><div class="muted petit">${d}</div></span><span class="prix" id="tx-${k}">—</span></button>`).join('')}</div>
       <label>Qu’est-ce que c’est ?<input name="quoi" required minlength="2" maxlength="300" placeholder="Clés, documents, petit carton…"></label>
+      ${colisV2() ? `<label>Valeur du contenu (€) <span class="aide">(0 pour des documents ; ${eur(valeurMax(terr))} au maximum)</span><input name="valeur" type="number" inputmode="decimal" required min="0" max="${valeurMax(terr)}" step="0.01" placeholder="0"></label>` : ''}
       <div class="ligne2"><label>Nom du destinataire<input name="nom" required maxlength="80"></label><label>Son téléphone<input name="tel_dest" type="tel" required pattern="[0-9 +]{6,20}"></label></div>
       <label>Votre téléphone<input name="tel" type="tel" required pattern="[0-9 +]{6,20}" value="${esc(contact?.telephone || '')}" autocomplete="tel"></label>
       <details class="plus-options"><summary>💶 Qui paie, message pour le livreur</summary>
         <label>Qui paie le livreur ?<select name="payeur"><option value="expediteur">Moi, au retrait du colis</option><option value="destinataire">Le destinataire, à la livraison</option></select></label>
         <label>Message pour le livreur<input name="note" maxlength="300" placeholder="Code du portail, étage, fragile…"></label></details>
+      <div class="bandeau att interdits-c"><span aria-hidden="true">⛔</span><div><b>Objets interdits dans un colis</b><ul>${INTERDITS_COLIS.map(x => `<li>${x}</li>`).join('')}</ul>
+        <small>Le livreur peut refuser un colis douteux${colisV2() ? ` ; au-delà de ${eur(valeurMax(terr))}, remettez l’objet en main propre` : ''}.</small></div></div>
+      <label class="majeur-ok"><input type="checkbox" name="sans_interdit" required> <span><b>Mon colis ne contient aucun objet interdit</b><small>Vous restez responsable de son contenu.</small></span></label>
       <div id="total"></div><button class="btn btn-p" id="envoyer">Envoyer le colis</button>
-      <p class="muted petit" style="margin:0">Livreurs vérifiés. Prix selon la distance et la taille, réglé directement au livreur. Interdits : objets illégaux ou dangereux, argent liquide, animaux.</p></form></aside></div></div>`);
+      <p class="muted petit" style="margin:0">Livreurs vérifiés. Prix selon la distance et la taille, réglé directement au livreur.</p></form></aside></div></div>`);
   const majPrix = () => {
     Object.keys(TAILLES).forEach(k => { $('#tx-' + k).textContent = estim[k] ? eur(estim[k].prix) : '—'; document.querySelector(`[data-taille="${k}"]`).classList.toggle('on', k === taille); });
     $('#total').innerHTML = estim[taille] ? `<div style="font:700 26px var(--titres)">${eur(estim[taille].prix)} <span class="muted petit" style="font:600 14px var(--texte)">· ${estim[taille].distance_km} km environ</span></div>` : '';
@@ -65,7 +73,8 @@ APP.pages.express = async () => {
     const d = Object.fromEntries(new FormData(ev.target)), b = $('#envoyer'); b.disabled = true;
     try {
       const id = await q(sb.rpc('envoyer_colis', { terr, taille_c: taille, quoi: d.quoi, retrait: $('#retrait').value.trim(), dlat: pts.retrait.lat, dlng: pts.retrait.lng, tel_retrait: d.tel.trim(),
-        depot: $('#depot').value.trim(), alat: pts.depot.lat, alng: pts.depot.lng, nom_dest: d.nom.trim(), tel_dest: d.tel_dest.trim(), payeur: d.payeur, note_c: d.note || null }));
+        depot: $('#depot').value.trim(), alat: pts.depot.lat, alng: pts.depot.lng, nom_dest: d.nom.trim(), tel_dest: d.tel_dest.trim(), payeur: d.payeur, note_c: d.note || null,
+        ...(colisV2() ? { valeur_c: Number(d.valeur), sans_interdit: !!d.sans_interdit } : {}) }));
       toast('📦 Colis envoyé : nous prévenons les livreurs !'); aller('#/colis/' + id);
     } catch (err) { toast(erreur(err), true); b.disabled = false; }
   });
@@ -88,6 +97,7 @@ APP.pages.colis = async id => {
       ${['annule', 'echec'].includes(c.statut) ? '' : `<div class="quetes" style="margin:12px 0">${ETAPES_COLIS.map((e, i) => `<div class="quete ${i < pos || c.statut === 'livre' ? 'faite' : i === pos ? 'actuelle' : ''}"><span class="q-coche">${i <= pos ? '✓' : ''}</span><span class="q-ico">${e[1]}</span><span class="q-titre">${e[2]}</span></div>`).join('')}</div>`}
       <p class="petit">📦 ${esc(c.retrait_txt)}<br>🏁 ${esc(c.depot_txt)} · pour <b>${esc(c.depot_nom)}</b></p>
       <div style="font:700 22px var(--titres)">${eur(c.prix)} <span class="muted petit" style="font:600 13px var(--texte)">· ${c.distance_km} km · payé par ${c.paye_par === 'expediteur' ? 'l’expéditeur au retrait' : 'le destinataire à la livraison'}</span></div>
+      ${c.valeur_declaree != null ? `<p class="petit muted" style="margin:4px 0 0">Valeur déclarée du contenu : ${eur(c.valeur_declaree)} · l’expéditeur a attesté qu’il ne contient aucun objet interdit.</p>` : ''}
       ${c.client && c.code && !fini ? `<div class="panneau" style="margin:12px 0;padding:12px;border-color:var(--jaune)"><span class="petit">Code à donner au destinataire (il le dit au livreur à la remise) :</span> <b class="code-remise">${esc(c.code)}</b>
         <div class="actions" style="margin-top:8px"><a class="btn btn-s btn-wa" target="_blank" rel="noopener" href="${wa(c.depot_tel, `Bonjour ${c.depot_nom}, un colis Woulib arrive pour vous (${c.description}). Code à donner au livreur : ${c.code}. Suivez-le avec l’expéditeur.`)}">Envoyer le code au destinataire</a></div></div>` : ''}
       ${lv ? `<p><b>🛵 ${esc(lv.prenom || 'Votre livreur')}</b> · ${esc(lv.vehicule || '')}${lv.telephone && c.client ? ` · <a href="tel:${esc(lv.telephone)}">📞 Appeler</a>` : ''}</p>` : c.statut === 'recherche' ? '<p class="muted">🔎 Nous prévenons les livreurs disponibles près du point de retrait…</p>' : ''}
@@ -125,7 +135,7 @@ async function blocColisLivreur(ch) {
   const actifs = miens.filter(c => c.role === 'livreur' && ['acceptee', 'recupere'].includes(c.statut));
   return `${actifs.length ? `<h2>📦 Mes colis en cours</h2>${actifs.map(c => `<a class="ligne-l" style="grid-template-columns:minmax(0,1fr) auto;text-decoration:none;color:inherit" href="#/colis/${c.id}"><div><b>Pour ${esc(c.depot_nom)}</b> ${tag(ST_COLIS[c.statut])}<div class="muted petit">${eur(c.prix)}</div></div><span class="btn btn-s btn-p">Ouvrir</span></a>`).join('')}` : ''}
     <h2>📦 Colis à livrer (${dispo.length})</h2>${dispo.length ? dispo.map(c => `<div class="ligne-l" style="grid-template-columns:48px 1fr auto"><span style="font-size:32px">${TAILLES[c.taille][0]}</span>
-      <div><b>${esc(c.depart.split(',').slice(0, 2).join(','))} → ${esc(c.arrivee)}</b><div class="muted petit">${esc(c.description)} · ${c.distance_km} km${c.jusqu_au_retrait != null ? ` · retrait à ${c.jusqu_au_retrait} km de vous` : ''}</div></div>
+      <div><b>${esc(c.depart.split(',').slice(0, 2).join(','))} → ${esc(c.arrivee)}</b><div class="muted petit">${esc(c.description)} · ${c.distance_km} km${c.jusqu_au_retrait != null ? ` · retrait à ${c.jusqu_au_retrait} km de vous` : ''}${c.valeur_declaree != null ? ` · valeur déclarée ${eur(c.valeur_declaree)}` : ''}</div></div>
       <div style="text-align:right"><div class="prix">${eur(c.prix)}</div><button class="btn btn-s btn-ok" data-colis-ok="${c.id}">Accepter</button></div></div>`).join('')
       : '<p class="muted petit">Aucun colis pour l’instant : vous serez notifié dès qu’un envoi part près de vous.</p>'}`;
 }

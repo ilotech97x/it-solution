@@ -743,7 +743,6 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
       <img class="logo" src="img/logo-ilo.png" alt="IloTech" width="64" height="38">
       <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">IT</em></b><span class="mono">Ducos · Le Robert — Martinique</span></span>
     </a>
-    <a class="studio-badge" href="https://studio.ilo-tech.com/" title="IloTech Studio : notre agence marketing et IA"><img src="img/studio-logo.svg" alt="" width="28" height="28"><span><b>IloTech Studio</b><small>Agence marketing &amp; IA</small></span></a>
     <div class="top-actions"><a class="btn btn-head" href="index.html?cat=${p.cat}">Prendre rendez-vous</a></div>
   </header>
 
@@ -853,11 +852,10 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
       <img class="logo" src="img/logo-ilo.png" alt="IloTech" width="64" height="38">
       <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">IT</em></b><span class="mono">Ducos · Le Robert — Martinique</span></span>
     </a>
-    <a class="studio-badge" href="https://studio.ilo-tech.com/" title="IloTech Studio : notre agence marketing et IA"><img src="img/studio-logo.svg" alt="" width="28" height="28"><span><b>IloTech Studio</b><small>Agence marketing &amp; IA</small></span></a>
     <div class="top-actions"><a class="btn btn-head" href="conseils.html">Conseils</a><a class="btn btn-head" href="index.html">Prendre rendez-vous</a></div>
   </header>
 `;
-const pied = () => `  <footer class="seo-pied">${reseauxHtml()}<p>IloTech — entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="https://studio.ilo-tech.com/">IloTech Studio, agence marketing</a> · <a href="https://immo.ilo-tech.com/">IloTech Immobilier</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
+const pied = () => `  <footer class="seo-pied">${reseauxHtml()}<p>IloTech — entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="https://ilo-tech.com/digital/">IloTech Studio, agence marketing</a> · <a href="https://immo.ilo-tech.com/">IloTech Immobilier</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
   <script src="config.js?v=1"></script>
   <script src="mesure.js?v=1"></script>
   <script src="data.js?v=${V}"></script>
@@ -985,7 +983,7 @@ fs.writeFileSync(svcHtml, sh);
 // sitemap : pages principales, pages service, guides
 const jour = new Date().toISOString().slice(0, 10);
 const urls = [['', '1.0', 'weekly'], ['services.html', '0.9', 'weekly'], ...PAGES.map(p => [lien(p), p.nouveau ? '0.9' : '0.8', 'monthly']),
-  ['conseils.html', '0.7', 'monthly'], ['outils-gratuits.html', '0.6', 'monthly'], ...GUIDES.map(g => [g.slug + '.html', '0.7', 'monthly']), ['plaquette.html', '0.6', 'monthly'], ['fiche-tarifs.html', '0.5', 'monthly'], ['evenements/', '0.6', 'weekly'], ['pass/', '0.8', 'daily']];
+  ['conseils.html', '0.7', 'monthly'], ['outils-gratuits.html', '0.6', 'monthly'], ...GUIDES.map(g => [g.slug + '.html', '0.7', 'monthly']), ['plaquette.html', '0.6', 'monthly'], ['fiche-tarifs.html', '0.5', 'monthly'], ['digital/', '0.9', 'weekly'], ['boutique.html', '0.8', 'weekly'], ['evenements/', '0.6', 'weekly'], ['pass/', '0.8', 'daily']];
 fs.writeFileSync(path.join(dir, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map(([u, pr, f]) => `  <url><loc>${SITE}${u}</loc><lastmod>${jour}</lastmod><changefreq>${f}</changefreq><priority>${pr}</priority></url>`).join('\n')}
@@ -1005,7 +1003,8 @@ ${CATEGORIES.map(c => `- ${c.nom} : ${c.services.map(id => svc(id)).filter(Boole
 
 ## Autres sites IloTech
 - [Kaz An Nou](https://immo.ilo-tech.com/) : réservation de villas, gîtes et appartements et services pour la maison (ménage, accueil, jardin, piscine), aux Antilles, en Guyane, à La Réunion, dans l’Hexagone et ailleurs ; propriétaires et prestataires vérifiés. Offres photo, drone et visite 3D d’IloTech Immobilier en Martinique.
-- [IloTech Studio](https://studio.ilo-tech.com/) : agence marketing et IA.
+- [IloTech Digital & Marketing](${SITE}digital/) : agence marketing et IA (IloTech Studio) : réseaux sociaux, contenus créés avec l’IA, sites, automatisation.
+- [Boutique IloTech](${SITE}boutique.html) : matériel (Starlink, Wi-Fi, caméras, onduleurs, PC reconditionnés) et mobilité électrique sur commande (vélos à assistance, trottinettes, motos électriques légères), retrait à Ducos ou au Robert.
 - [EventPass](${SITE}pass/) : billetterie et sorties aux Antilles, en Guyane, à La Réunion, dans l’Hexagone et ailleurs (billets QR code, paiement à l’entrée, organisateurs vérifiés, heure locale de chaque événement).
 - [Eventik](${SITE}evenements/) : location de matériel pour événements ; lancement en préparation, liste d’attente ouverte.
 

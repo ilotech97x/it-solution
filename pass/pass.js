@@ -64,13 +64,65 @@ async function envoyerPhoto(f) {
   await q(sb.storage.from('photos').upload(chemin, await reduire(f), { contentType: 'image/jpeg' })); return chemin;
 }
 const qrSvg = code => { const qr = window.qrcode(0, 'M'); qr.addData(code); qr.make(); return qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); };
+const ICO_DRAPEAU = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>';
+// base v3 (pass/eventpass3.sql : activités encadrées, annulation motivée) installée ? Sans elle, les écrans gardent l'ancienne façon de faire.
+let v3P = null;
+const baseV3 = () => v3P ??= (PRET ? sb.from('evenements').select('encadree').limit(1).then(r => !r.error, () => false) : Promise.resolve(false));
+const CATS_ENCADREES = ['nautique', 'randonnee'];   // toujours encadrées (la base l'impose aussi)
+
+// organisateur : SIRET (14 chiffres, clé de Luhn ; La Poste : somme des chiffres multiple de 5) ou RNA d'association (W + 9 caractères),
+// même règle que la base (identifiant_orga_valide)
+const identOrga = s => String(s || '').replace(/[\s.-]/g, '').toUpperCase();
+function identOrgaValide(s) {
+  const x = identOrga(s);
+  if (/^W[0-9A-Z]{9}$/.test(x)) return true;
+  if (!/^[0-9]{14}$/.test(x)) return false;
+  let somme = 0, chiffres = 0;
+  for (let i = 1; i <= 14; i++) { let d = Number(x[14 - i]); chiffres += d; if (i % 2 === 0) { d *= 2; if (d > 9) d -= 9; } somme += d; }
+  return somme % 10 === 0 || (x.startsWith('356000000') && chiffres % 5 === 0);
+}
+const identLisible = s => /^W/.test(s || '') ? 'RNA ' + s : 'SIRET ' + String(s || '').replace(/^(\d{3})(\d{3})(\d{3})(\d{5})$/, '$1 $2 $3 $4');
+
+// « Mes billets » sans réseau : la dernière liste reste sur cet appareil (les QR codes sont dessinés sur place), effacée à la déconnexion
+const CLE_BILLETS = 'evpBillets';
+function billetsLocaux() { try { const x = JSON.parse(localStorage.getItem(CLE_BILLETS)); return x && Array.isArray(x.b) ? x : null; } catch (e) { return null; } }
+function garderBillets(b) { try { localStorage.setItem(CLE_BILLETS, JSON.stringify({ uid: moi?.id, quand: Date.now(), b })); } catch (e) { /* stockage plein ou bloqué */ } }
+function oublierBillets() { try { localStorage.removeItem(CLE_BILLETS); } catch (e) { /* stockage indisponible */ } }
+
+// ---------------------------------------------------------------- signaler (règlement européen sur les services numériques) : commun/signalements.sql,
+// examiné dans ILO CONTROL (Modération) ; la décision motivée arrive dans les notifications. Bouton [data-signaler] : type, id, univers, nom
+const MOTIFS_SIG = [['arnaque', 'Arnaque, faux événement ou prix trompeur'], ['faux', 'Fausse information ou faux organisateur'], ['danger', 'Danger ou sécurité insuffisante'],
+  ['harcelement', 'Insulte, harcèlement ou menace'], ['illegal', 'Contenu ou vente illégale (alcool à des mineurs, revente de billets…)'], ['choquant', 'Contenu choquant'],
+  ['droits', 'Affiche, photo ou texte copiés sans droit'], ['autre', 'Autre chose']];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function signaler(d) {
+  const g = document.createElement('dialog'); g.className = 'dlg'; g.setAttribute('aria-labelledby', 'tSig');
+  g.innerHTML = `<form class="f" id="fSig"><div class="dlg-t"><h2 id="tSig">Signaler ${esc(d.nom || 'ce contenu')}</h2><button type="button" class="btn btn-s" data-fermer aria-label="Fermer">✕</button></div>
+    <p class="muted petit" style="margin:0">Notre équipe examine chaque signalement et vous envoie sa décision motivée dans vos notifications. En cas de danger immédiat, appelez le 17 ou le 112.</p>
+    <fieldset class="opt-g"><legend>Que se passe-t-il ?</legend>${MOTIFS_SIG.map(([k, t]) => `<label class="opt-c"><input type="radio" name="motif" value="${k}" required><span>${esc(t)}</span></label>`).join('')}</fieldset>
+    <label>Précisions <span class="aide">(facultatif)</span><textarea name="details" maxlength="1000" style="min-height:70px"></textarea></label>
+    <button class="btn btn-p">Envoyer le signalement</button></form>`;
+  document.body.append(g); g.showModal();
+  g.addEventListener('close', () => g.remove());
+  g.addEventListener('click', e => { if (e.target.closest('[data-fermer]') || e.target === g) g.close(); });
+  g.querySelector('form').addEventListener('submit', async e => {
+    e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)), b = e.target.querySelector('.btn-p'); b.disabled = true;
+    try {
+      await q(sb.rpc('signaler', { app: 'eventpass', univ: d.univers === 'experiences' ? 'experiences' : 'events', type_objet: d.signaler || 'evenement',
+        objet: UUID.test(d.id || '') ? d.id : null, motif_s: f.motif, texte: (f.details || '').trim() }));
+      g.close(); toast('Merci : le signalement est envoyé. La décision arrivera dans vos notifications.');
+    } catch (err) { toast(erreur(err), true); b.disabled = false; }
+  });
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-signaler]'); if (!b) return; e.preventDefault(); if (exigeCompte()) signaler(b.dataset); });
 
 // ---------------------------------------------------------------- session
 let moi = null, profil = null, joueur = null, nbNotifs = 0, favEv = new Set();
 async function chargerMoi() {
   moi = null; profil = null; joueur = null; nbNotifs = 0; favEv = new Set(); if (!PRET) return;
-  moi = (await sb.auth.getSession()).data.session?.user || null;
-  if (!moi) return;
+  const s = await sb.auth.getSession();
+  moi = s.data?.session?.user || null;
+  if (!moi) { if (!s.error) oublierBillets(); return; }   // vraiment déconnecté (pas seulement hors réseau) : la copie des billets part
   const [p, j, n, fv] = await Promise.all([
     q(sb.from('profiles').select('*').eq('id', moi.id).maybeSingle()),
     q(sb.rpc('mon_profil_joueur')).catch(() => []),
@@ -106,8 +158,9 @@ const exigeCompte = () => { if (moi) return true; aller('#/connexion?retour=' + 
 function nav() {
   const h = location.hash || '#/', on = p => h.startsWith(p) ? 'on' : '';
   const b = n => n ? `<span class="badge">${n}</span>` : '';
+  // l'administration (validation des organisateurs et des événements, signalements) se fait dans ILO CONTROL
   $('#nav').innerHTML = `<a href="#/" class="${h === '#/' ? 'on' : ''}">Sorties</a><a href="#/carte" class="${on('#/carte')}">Carte</a>
-    ${moi ? `<a href="#/billets" class="${on('#/billets')}">Billets</a><a href="#/agenda" class="${on('#/agenda')}">Agenda</a><a href="#/orga" class="${on('#/orga')}">${estOrga() ? 'Organisateur' : 'Organiser'}</a>${profil?.role === 'admin' ? `<a href="#/admin" class="${on('#/admin')}">Admin</a>` : ''}
+    ${moi ? `<a href="#/billets" class="${on('#/billets')}">Billets</a><a href="#/agenda" class="${on('#/agenda')}">Agenda</a><a href="#/orga" class="${on('#/orga')}">${estOrga() ? 'Organisateur' : 'Organiser'}</a>${profil?.role === 'admin' ? '<a href="../control/" title="Administration de l’écosystème IloTech">ILO CONTROL ↗</a>' : ''}
       <a class="cloche" href="#/notifs" aria-label="Notifications">🔔${b(nbNotifs)}</a>
       <a class="hud" href="#/profil" title="Mon niveau et mes badges"><span class="niv">${joueur?.niveau || 1}</span><span class="px">${joueur?.xp || 0} XP</span>${barreXp(joueur)}</a>`
       : `<a href="#/orga">Organiser</a><a href="#/connexion" class="${on('#/connexion')}">Connexion</a><a class="btn btn-p btn-s" href="#/inscription">Commencer</a>`}`;
@@ -199,26 +252,35 @@ async function pageEvenement(id) {
   const [types, rest, orga] = await Promise.all([
     q(sb.from('billets_types').select('*').eq('evenement_id', id).order('ordre').order('prix')),
     q(sb.rpc('places_restantes', { evt: id })),
-    q(sb.from('profiles').select('prenom, orga_nom, avatar').eq('id', e.orga_id).maybeSingle())]);
+    q(sb.from('profiles').select('prenom, orga_nom, avatar, siret').eq('id', e.orga_id).maybeSingle())]);
   const restant = Object.fromEntries(rest.map(r => [r.type_id, r.restantes]));
   const fini = new Date(e.fin || e.debut) < new Date(), ferme = fini || e.statut !== 'publie';
   const choix = {};
+  const xp = e.genre === 'experience', nomE = xp ? 'cette expérience' : 'cet événement';
   document.title = `${e.titre} — ${fmt(e.debut, { day: 'numeric', month: 'long' }, e.fuseau)} · ${e.commune} | EventPass`;
   const carte = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([e.lieu, e.adresse, e.commune, e.territoire === 'Autre pays' ? '' : e.territoire].filter(Boolean).join(', '))}`;
+  // activité encadrée (nautique, randonnée…) : qualification de l'encadrant, assurance et consignes, affichées avant la réservation (NORME 10.6)
+  const securite = xp && (e.encadree || CATS_ENCADREES.includes(e.categorie)) ? `<section class="securite" aria-labelledby="tSecu"><h2 id="tSecu">Activité encadrée : sécurité</h2>
+      <div><span aria-hidden="true">🎓</span><p><b>Encadrant</b>${e.encadrant_diplome ? esc(e.encadrant_diplome) : '<span class="muted">non renseigné : demandez-le à l’organisateur</span>'}</p></div>
+      <div><span aria-hidden="true">🛡️</span><p><b>Assurance responsabilité civile professionnelle</b>${e.assurance_rc ? esc(e.assurance_rc) : '<span class="muted">non renseignée</span>'}</p></div>
+      <div><span aria-hidden="true">⚠️</span><p><b>Consignes de sécurité</b>${e.consignes_securite ? `<span class="consignes">${esc(e.consignes_securite)}</span>` : '<span class="muted">non renseignées</span>'}</p></div></section>` : '';
+  const etatE = e.statut === 'annule' ? `<div class="bandeau-annule" role="status"><b>${xp ? 'Cette expérience est annulée' : 'Cet événement est annulé'}</b>${e.motif_annulation ? ` : ${esc(e.motif_annulation)}` : ''}.
+      Les billets sont annulés et leurs détenteurs prévenus ; l’organisateur rembourse les billets déjà payés.</div>` : fini ? '<div class="vide-etat">Cet événement est terminé.</div>' : '';
   vue(`<div class="wrap"><div class="fiche">
     <div class="affiche">${e.affiche ? `<img src="${esc(photo(e.affiche))}" alt="Affiche : ${esc(e.titre)}">` : `<span style="position:absolute;inset:0;display:grid;place-items:center;font-size:90px">${CATS[e.categorie]?.[0] || '🎉'}</span>`}</div>
     <div><span class="tag">${CATS[e.categorie]?.[0]} ${esc(CATS[e.categorie]?.[1])}</span> ${e.statut !== 'publie' ? tag(ST_EV[e.statut]) : ''}
       <h1 style="font-size:clamp(28px,4vw,44px);margin-top:10px">${esc(e.titre)}</h1>
       <div class="infos"><div><span>📅</span><span>${esc(quand(e.debut, e.fuseau))}${e.fin ? ` → ${esc(fmt(e.fin, { hour: '2-digit', minute: '2-digit' }, e.fuseau))}` : ''}</span></div>
         <div><span>📍</span><span>${lieuEv(e)}${e.adresse ? `<br><span class="muted petit">${esc(e.adresse)}</span>` : ''}<br><a class="petit" href="${carte}" target="_blank" rel="noopener">Itinéraire ↗</a></span></div>
-        <div><span>📣</span><span>Organisé par <b>${esc(orga?.orga_nom || orga?.prenom || 'un organisateur')}</b> <span class="tag ok">✓ Vérifié</span></span></div>
+        <div><span>📣</span><span>Organisé par <b>${esc(orga?.orga_nom || orga?.prenom || 'un organisateur')}</b> <span class="tag ok">✓ Vérifié</span>${orga?.siret ? `<br><span class="muted petit">${esc(identLisible(orga.siret))}</span>` : ''}</span></div>
         ${e.age_min ? `<div><span>🔞</span><span>À partir de ${e.age_min} ans</span></div>` : ''}
         ${e.genre === 'experience' ? `${e.duree_min ? `<div><span>⏱️</span><span>Durée : ${duree(e.duree_min)}</span></div>` : ''}${e.rdv ? `<div><span>🚩</span><span>Rendez-vous : ${esc(e.rdv)}</span></div>` : ''}
           ${e.inclus ? `<div><span>✅</span><span>Inclus : ${esc(e.inclus)}</span></div>` : ''}${e.langues?.length ? `<div><span>🗣️</span><span>Langues : ${esc(e.langues.join(', '))}</span></div>` : ''}` : ''}</div>
         <div id="autresDates"></div>
       <div class="actions" style="margin-bottom:18px">${moi ? `<button class="btn btn-s ${favEv.has(e.id) ? 'btn-p' : ''}" data-favev="${e.id}" data-texte="1">${favEv.has(e.id) ? '♥ En favori' : '♡ Favori'}</button>` : ''}<button class="btn btn-s" id="partager">↗ Partager</button><button class="btn btn-s" id="ics">📅 Ajouter à mon agenda</button></div>
+      ${securite}
       <h2 style="font-size:22px">Billets</h2>
-      ${e.statut === 'annule' ? '<div class="vide-etat">Cet événement est annulé.</div>' : fini ? '<div class="vide-etat">Cet événement est terminé.</div>' : ''}
+      ${etatE}
       <div class="types">${types.map(t => { const r = restant[t.id] ?? 0, venteFinie = t.vente_fin && new Date(t.vente_fin) < new Date(); return `<div class="type">
         <div><b>${esc(t.nom)}</b><span class="prix">${eur(t.prix)}</span>${t.description ? `<div class="muted petit">${esc(t.description)}</div>` : ''}
           <div class="petit ${r <= 10 ? '' : 'muted'}">${r <= 0 ? 'Complet' : venteFinie ? 'Vente terminée' : r <= 10 ? `Plus que ${r} place${r > 1 ? 's' : ''} !` : `${r} places`}${Number(t.prix) > 0 ? ' · paiement à l’entrée' : ''}</div></div>
@@ -227,9 +289,12 @@ async function pageEvenement(id) {
         <div style="display:flex;gap:8px"><input id="promo" maxlength="20" placeholder="Code promo" aria-label="Code promo" style="flex:1;background:var(--fond2);border:2px solid var(--ligne);padding:10px;text-transform:uppercase"><button type="button" class="btn btn-s" id="appliquer">OK</button></div>
         <label class="f" style="display:grid;gap:4px;font-size:14px">Nom sur les billets<input id="titulaire" maxlength="80" value="${esc(profil ? (profil.prenom + ' ' + profil.nom).trim() : '')}" autocomplete="name"></label>
         <button class="btn btn-p" id="reserver">Réserver mes billets</button>
-        <p class="muted petit" style="margin:0">Aucun paiement en ligne : les billets payants se règlent à l’entrée. Billet avec QR code dans « Mes billets ».</p></div>
+        <p class="muted petit" style="margin:0">Aucun paiement en ligne : les billets payants se règlent à l’entrée. Billet avec QR code dans « Mes billets », lisible même sans réseau.</p>
+        <p class="mention">Pas de droit de rétractation pour un loisir à date déterminée (art. L221-28 12° du Code de la consommation). Billet personnel : revente interdite sans l’accord de l’organisateur.
+          Si l’organisateur annule, vos billets sont annulés et ceux déjà payés remboursés par lui. <a href="cgu.html" target="_blank" rel="noopener">Conditions</a></p></div>
       <h2 style="font-size:22px;margin-top:26px">À propos</h2><p style="white-space:pre-line">${esc(e.description) || '<span class="muted">—</span>'}</p>
-      ${e.lat != null && e.lng != null ? '<div class="minicarte" id="miniCarte"></div>' : ''}</div></div></div>`);
+      ${e.lat != null && e.lng != null ? '<div class="minicarte" id="miniCarte"></div>' : ''}
+      <p class="petit signaler"><button type="button" class="lien" data-signaler="evenement" data-id="${e.id}" data-univers="${xp ? 'experiences' : 'events'}" data-nom="${nomE}">${ICO_DRAPEAU} Signaler ${nomE}</button></p></div></div></div>`);
   let promo = null;   // { code, remise_pct, remise_eur } validé par le serveur
   if (e.lat != null && e.lng != null) chargerCarte().then(L => { const m = fondCarte(L, 'miniCarte', [e.lat, e.lng], 14); L.marker([e.lat, e.lng]).addTo(m).bindPopup(esc(e.lieu)); }).catch(() => {});
   document.querySelectorAll('[data-attente]').forEach(bt => bt.addEventListener('click', async () => {
@@ -282,24 +347,47 @@ function telechargerIcs(e) {
 }
 
 // ---------------------------------------------------------------- mes billets
+// La liste s'affiche d'abord depuis la copie de cet appareil (aussitôt, même sans réseau à l'entrée), puis la version du serveur la remplace
+// et devient la nouvelle copie. Hors connexion, la copie reste, avec ses QR codes ; annuler et le PDF attendent le réseau.
 async function pageBillets() {
-  if (!PRET || !exigeCompte()) return;
-  vue('<div class="chargement">Chargement…</div>');
-  const b = await q(sb.from('billets').select('*, billets_types(nom), evenements(id, titre, debut, lieu, commune, territoire, fuseau, statut)').eq('acheteur', moi.id).order('created_at', { ascending: false }));
-  const parEv = {}; b.forEach(x => { (parEv[x.evenement_id] = parEv[x.evenement_id] || { e: x.evenements, l: [] }).l.push(x); });
+  const local = billetsLocaux(), copie = local && (!moi || local.uid === moi.id) ? local : null;
+  if (copie) dessinerBillets(copie.b, copie.quand, !moi);
+  if (!PRET || !moi) { if (!copie) exigeCompte(); return; }
+  if (!copie) vue('<div class="chargement">Chargement…</div>');
+  let b;
+  try {
+    b = await q(sb.from('billets').select(`id, code, statut, prix, titulaire, created_at, evenement_id, billets_types(nom), evenements(id, titre, debut, fin, lieu, commune, territoire, fuseau, statut${await baseV3() ? ', motif_annulation' : ''})`)
+      .eq('acheteur', moi.id).order('created_at', { ascending: false }).limit(200));
+  } catch (err) {
+    if (!copie) throw err;
+    if (location.hash.startsWith('#/billets')) dessinerBillets(copie.b, copie.quand, true);
+    return;
+  }
+  garderBillets(b);
+  if (location.hash.startsWith('#/billets')) dessinerBillets(b);
+}
+function dessinerBillets(b, copieDu = null, horsLigne = false) {
+  const parEv = {}; b.forEach(x => { if (x.evenements) (parEv[x.evenement_id] = parEv[x.evenement_id] || { e: x.evenements, l: [] }).l.push(x); });
   const groupes = Object.values(parEv).sort((a, c) => new Date(a.e.debut) - new Date(c.e.debut));
   const avenir = groupes.filter(g => new Date(g.e.debut) > new Date(Date.now() - 12 * 36e5)), passes = groupes.filter(g => !avenir.includes(g));
-  const bloc = g => `<h2 style="font-size:20px;margin-top:22px"><a href="#/evenement/${g.e.id}">${esc(g.e.titre)}</a></h2><p class="muted" style="margin-top:-6px">${esc(quand(g.e.debut, g.e.fuseau))} · ${lieuEv(g.e)}${g.e.statut === 'annule' ? ' · <b style="color:var(--ko)">Événement annulé</b>' : ''}</p>
+  const bloc = g => `<h2 style="font-size:20px;margin-top:22px"><a href="#/evenement/${g.e.id}">${esc(g.e.titre)}</a></h2><p class="muted" style="margin-top:-6px">${esc(quand(g.e.debut, g.e.fuseau))} · ${lieuEv(g.e)}</p>
+    ${g.e.statut === 'annule' ? `<div class="bandeau-annule petit" role="status"><b>Événement annulé par l’organisateur</b>${g.e.motif_annulation ? ` : ${esc(g.e.motif_annulation)}` : ''}. Vos billets sont annulés ; les billets déjà payés vous sont remboursés par l’organisateur.</div>` : ''}
     ${g.l.map(x => `<div class="billet ${x.statut}"><div class="qr" data-plein="${esc(x.code)}" title="Agrandir">${x.statut === 'annule' ? '' : qrSvg(x.code)}</div>
       <div><h3>${esc(x.billets_types?.nom || 'Billet')} · ${eur(x.prix)}</h3><div class="muted">${esc(x.titulaire)}</div><div class="code">${esc(x.code)}</div>
         <div style="margin:6px 0">${tag(ST_BILLET[x.statut])}</div>
-        <div class="actions">${x.statut !== 'annule' && x.statut !== 'utilise' ? `<button class="btn btn-s" data-plein="${esc(x.code)}" style="background:#14121f;color:#fff">Agrandir pour l’entrée</button><a class="btn btn-s" href="#/imprimer/${x.id}" style="background:#fff;color:#000">⬇ PDF</a><button class="btn btn-s btn-ko" data-annuler="${x.id}">Annuler</button>` : ''}</div></div></div>`).join('')}`;
+        <div class="actions">${x.statut !== 'annule' && x.statut !== 'utilise' ? `<button class="btn btn-s btn-noir" data-plein="${esc(x.code)}">Agrandir pour l’entrée</button>${copieDu ? '' : `<a class="btn btn-s" href="#/imprimer/${x.id}">⬇ PDF</a><button class="btn btn-s btn-ko" data-annuler="${x.id}">Annuler</button>`}` : ''}</div></div></div>`).join('')}`;
+  const date = copieDu ? new Date(copieDu).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
   vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><h1>Mes billets</h1>
+    ${copieDu ? `<p class="copie-locale${horsLigne ? ' hors' : ''}" role="status">${horsLigne ? `<b>Hors connexion</b> : vos billets enregistrés sur ce téléphone (le ${esc(date)}). Ils restent valables : montrez le QR code à l’entrée.` : `Billets enregistrés sur ce téléphone le ${esc(date)} · mise à jour…`}</p>` : ''}
     ${b.length ? avenir.map(bloc).join('') + (passes.length ? '<h2 style="margin-top:34px" class="muted">Événements passés</h2>' + passes.map(bloc).join('') : '') : '<div class="vide-etat"><div class="ico">🎟️</div><h3>Aucun billet pour l’instant</h3><a class="btn btn-p" href="#/">Trouver une sortie</a></div>'}
-    <p class="muted petit">Montrez le QR code à l’entrée, écran à fond. Pas de réseau sur place ? Faites une capture d’écran avant de partir.</p></div>`);
+    <p class="muted petit">Montrez le QR code à l’entrée, écran à fond. Une fois cette page ouverte, vos billets restent lisibles sur ce téléphone, même sans réseau.</p></div>`);
   $('#app').onclick = async ev => {
     const p = ev.target.closest('[data-plein]'), a = ev.target.closest('[data-annuler]');
-    if (p) { const d = document.createElement('div'); d.className = 'plein'; d.innerHTML = `<div><div class="qr">${qrSvg(p.dataset.plein)}</div><p style="font:800 28px monospace;letter-spacing:3px">${esc(p.dataset.plein)}</p><p>Touchez pour fermer</p></div>`; d.onclick = () => d.remove(); document.body.appendChild(d); }
+    if (p) {
+      const d = document.createElement('div'); d.className = 'plein'; d.tabIndex = -1; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'Billet ' + p.dataset.plein);
+      d.innerHTML = `<div><div class="qr">${qrSvg(p.dataset.plein)}</div><p style="font:800 28px monospace;letter-spacing:3px">${esc(p.dataset.plein)}</p><p>Touchez pour fermer</p></div>`;
+      d.onclick = () => d.remove(); d.onkeydown = k => { if (k.key === 'Escape') d.remove(); }; document.body.appendChild(d); d.focus();
+    }
     if (a && confirm('Annuler ce billet ? La place sera remise en vente.')) { try { await q(sb.rpc('annuler_billet', { billet: a.dataset.annuler })); toast('Billet annulé.'); pageBillets(); } catch (err) { toast(erreur(err), true); } }
   };
 }
@@ -349,8 +437,11 @@ async function dupliquer(id) {
   const e = await q(sb.from('evenements').select('*').eq('id', id).single());
   const types = await q(sb.from('billets_types').select('*').eq('evenement_id', id).eq('cache', false).order('ordre'));
   const decale = d => d ? new Date(new Date(d).getTime() + 7 * 864e5).toISOString() : null;
+  // la copie reprend tout le contenu (une expérience reste une expérience, avec son encadrement) ; elle part en brouillon
   const copie = await q(sb.from('evenements').insert({ titre: (e.titre + ' (copie)').slice(0, 120), categorie: e.categorie, debut: decale(e.debut), fin: decale(e.fin), lieu: e.lieu, commune: e.commune, adresse: e.adresse,
-    territoire: e.territoire, fuseau: e.fuseau, lat: e.lat, lng: e.lng, affiche: e.affiche, age_min: e.age_min, description: e.description, statut: 'brouillon' }).select('id').single());
+    territoire: e.territoire, fuseau: e.fuseau, lat: e.lat, lng: e.lng, affiche: e.affiche, age_min: e.age_min, description: e.description, statut: 'brouillon',
+    ...('genre' in e ? { genre: e.genre, duree_min: e.duree_min, rdv: e.rdv, inclus: e.inclus, langues: e.langues } : {}),
+    ...('encadree' in e ? { encadree: e.encadree, encadrant_diplome: e.encadrant_diplome, assurance_rc: e.assurance_rc, consignes_securite: e.consignes_securite } : {}) }).select('id').single());
   for (const t of types) await q(sb.from('billets_types').insert({ evenement_id: copie.id, nom: t.nom, description: t.description, prix: t.prix, quantite: t.quantite, max_commande: t.max_commande, ordre: t.ordre }));
   toast('Copie créée (une semaine plus tard) : vérifiez la date.'); aller('#/orga/evenement/' + copie.id);
 }
@@ -376,11 +467,11 @@ async function pageOrga(sous, id) {
     ${cm ? `<details class="panneau" style="margin-bottom:16px;padding:14px 16px"><summary><b>💶 Commission EventPass</b> · à régler : <b>${eur(cm.due)}</b> <span class="muted petit">· billets payants réglés ce mois : ${eur(cm.ventes_mois)}</span></summary>
       <p class="petit muted">5 % du prix des billets payants (0 % sur les gratuits). Les participants vous paient directement ; la commission est réglée chaque mois.</p>
       ${cm.lignes.map(x => `<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0"><span>🎟️ Billet de ${eur(x.base)} · ${new Date(x.created_at).toLocaleDateString('fr-FR')}</span><b style="${x.statut === 'annulee' ? 'text-decoration:line-through;opacity:.5' : ''}">${eur(x.montant)}${x.statut === 'payee' ? ' ✓' : ''}</b></div>`).join('')}</details>` : ''}
-    ${ev.length ? ev.map(e => { const s = stats[e.id]; return `<div class="ligne-l">${e.affiche ? `<img class="mini" src="${esc(photo(e.affiche))}" alt="">` : '<div class="mini"></div>'}
+    ${ev.length ? ev.map(e => { const s = stats[e.id], annuleE = e.statut === 'annule'; return `<div class="ligne-l">${e.affiche ? `<img class="mini" src="${esc(photo(e.affiche))}" alt="">` : '<div class="mini"></div>'}
       <div><b>${esc(e.titre)}</b> ${tag(ST_EV[e.statut])}<div class="muted petit">${esc(quand(e.debut, e.fuseau))} · ${lieuEv(e)}</div>
         <div class="petit">🎟️ ${s.vendus} / ${s.places} réservés · ✅ ${s.entres} entrés${s.aEncaisser ? ` · 💶 ${eur(s.aEncaisser)} à encaisser` : ''}</div>
-        ${e.statut === 'refuse' && e.motif_refus ? `<div class="petit" style="color:#fca5a5">Motif : ${esc(e.motif_refus)}</div>` : ''}</div>
-      <div class="actions"><a class="btn btn-s" href="#/orga/evenement/${e.id}">Modifier</a>${e.genre === 'experience' ? `<button class="btn btn-s btn-j" data-dates="${e.id}">📅 Ajouter des dates</button>` : ''}<a class="btn btn-s" href="#/orga/participants/${e.id}">Participants</a><a class="btn btn-s btn-p" href="#/controle/${e.id}">Contrôle entrée</a><a class="btn btn-s" href="#/orga/agents/${e.id}">Agents</a><a class="btn btn-s" href="#/orga/promo/${e.id}">Promo & invitations</a><button class="btn btn-s" data-dupliquer="${e.id}">Dupliquer</button><a class="btn btn-s" href="#/evenement/${e.id}">Voir</a></div></div>`; }).join('')
+        ${e.statut === 'refuse' && e.motif_refus ? `<div class="petit motif">Motif : ${esc(e.motif_refus)}</div>` : ''}${annuleE && e.motif_annulation ? `<div class="petit motif">Annulé : ${esc(e.motif_annulation)}</div>` : ''}</div>
+      <div class="actions">${annuleE ? '' : `<a class="btn btn-s" href="#/orga/evenement/${e.id}">Modifier</a>${e.genre === 'experience' ? `<button class="btn btn-s btn-j" data-dates="${e.id}">📅 Ajouter des dates</button>` : ''}`}<a class="btn btn-s" href="#/orga/participants/${e.id}">Participants</a>${annuleE ? '' : `<a class="btn btn-s btn-p" href="#/controle/${e.id}">Contrôle entrée</a><a class="btn btn-s" href="#/orga/agents/${e.id}">Agents</a><a class="btn btn-s" href="#/orga/promo/${e.id}">Promo & invitations</a>`}<button class="btn btn-s" data-dupliquer="${e.id}">Dupliquer</button><a class="btn btn-s" href="#/evenement/${e.id}">Voir</a></div></div>`; }).join('')
       : '<div class="vide-etat"><div class="ico">📣</div><h3>Créez votre premier événement</h3><p class="muted">Affiche, date, lieu, types de billets : 5 minutes. Nous le vérifions puis il est en ligne.</p><a class="btn btn-p" href="#/orga/evenement/nouveau">Créer un événement</a></div>'}</div>`);
   $('#app').onclick = async ev => {
     const dt = ev.target.closest('[data-dates]');
@@ -401,21 +492,27 @@ async function pageOrga(sous, id) {
     }
     const d = ev.target.closest('[data-dupliquer]'); if (!d) return; d.disabled = true; try { await dupliquer(d.dataset.dupliquer); } catch (err) { toast(erreur(err), true); d.disabled = false; } };
 }
+// devenir organisateur : nom, SIRET ou RNA (obligatoire, vérifié par la base), présentation ; la demande est examinée dans ILO CONTROL
 function pageDevenirOrga() {
-  const enCours = profil?.orga === 'demande';
+  const enCours = profil?.orga === 'demande', refuse = profil?.orga === 'refuse';
   vue(`<div class="wrap"><div class="carte-f" style="max-width:640px"><h1>Vendez vos billets avec EventPass</h1>
-    <p class="muted">Gratuit pour démarrer. Billets avec QR code, paiement à l’entrée, contrôle avec votre téléphone, liste des participants. Chaque organisateur est vérifié avant sa première publication.</p>
-    ${enCours ? '<div class="vide-etat" style="text-align:left">⏳ Votre demande est en cours de vérification. Réponse sous 48 h.</div>' : profil?.orga === 'refuse' ? '<div class="vide-etat" style="text-align:left">Votre demande n’a pas été acceptée. Écrivez-nous pour en parler.</div>' : `
-    <form class="f" id="fOrga"><label>Nom de l’organisateur (association, collectif, entreprise)<input name="orga_nom" required maxlength="80" value="${esc(profil?.orga_nom || '')}"></label>
-      <label>SIRET ou numéro RNA (association) <span class="aide">(facultatif mais accélère la vérification)</span><input name="siret" maxlength="20" value="${esc(profil?.siret || '')}"></label>
+    <p class="muted">Gratuit pour démarrer. Billets avec QR code, paiement à l’entrée, contrôle avec votre téléphone, liste des participants. Chaque organisateur est vérifié par l’équipe IloTech avant sa première publication.</p>
+    ${enCours ? '<div class="vide-etat" style="text-align:left">⏳ Votre demande est en cours de vérification. La réponse arrive sous 48 h dans vos <a href="#/notifs">notifications</a>.</div>' : `
+    ${refuse ? '<div class="bandeau-annule" style="margin-bottom:16px">Votre demande n’a pas été acceptée : le motif est dans vos <a href="#/notifs">notifications</a>. Corrigez ce qui manque, puis renvoyez-la.</div>' : ''}
+    <form class="f" id="fOrga"><label>Nom de l’organisateur (association, collectif, entreprise)<input name="orga_nom" required minlength="2" maxlength="80" value="${esc(profil?.orga_nom || '')}" autocomplete="organization"></label>
+      <label>SIRET ou numéro RNA<input name="siret" required maxlength="20" value="${esc(profil?.siret || '')}" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="aideSiret">
+        <span class="aide" id="aideSiret">Entreprise : SIRET à 14 chiffres. Association : numéro RNA (W suivi de 9 caractères). Il est vérifié, puis affiché sur vos événements pour informer les participants.</span></label>
       <label>Vos événements en quelques lignes<textarea name="bio" maxlength="1500" required>${esc(profil?.bio || '')}</textarea></label>
       <label style="display:flex;gap:8px;font-weight:400"><input type="checkbox" required style="width:auto"> <span>Je m’engage à publier des événements réels, déclarés, et à respecter les participants (<a href="cgu.html" target="_blank">conditions</a>).</span></label>
       <button class="btn btn-p">Envoyer ma demande</button></form>`}</div></div>`);
-  $('#fOrga')?.addEventListener('submit', async e => {
-    e.preventDefault(); const d = Object.fromEntries(new FormData(e.target));
-    const siret = d.siret.replace(/\s/g, '');
-    try { await q(sb.from('profiles').update({ orga: 'demande', orga_nom: d.orga_nom.trim(), bio: d.bio.trim(), ...(/^[0-9]{9,14}$/.test(siret) ? { siret } : {}) }).eq('id', moi.id)); await chargerMoi(); toast('Demande envoyée !'); pageDevenirOrga(); }
-    catch (err) { toast(erreur(err), true); }
+  const f = $('#fOrga'); if (!f) return;
+  f.siret.addEventListener('input', () => f.siret.setCustomValidity(''));
+  f.addEventListener('submit', async e => {
+    e.preventDefault(); const d = Object.fromEntries(new FormData(f));
+    if (!identOrgaValide(d.siret)) { f.siret.setCustomValidity('Vérifiez le numéro : un SIRET a 14 chiffres (avec une clé de contrôle), un numéro RNA commence par W et compte 10 caractères.'); f.siret.reportValidity(); return; }
+    const b = f.querySelector('.btn-p'); b.disabled = true;
+    try { await q(sb.from('profiles').update({ orga: 'demande', orga_nom: d.orga_nom.trim(), bio: d.bio.trim(), siret: identOrga(d.siret) }).eq('id', moi.id)); await chargerMoi(); toast('Demande envoyée !'); pageDevenirOrga(); }
+    catch (err) { toast(erreur(err), true); b.disabled = false; }
   });
 }
 async function formEvenement(id) {
@@ -423,6 +520,24 @@ async function formEvenement(id) {
   let types = id ? await q(sb.from('billets_types').select('*').eq('evenement_id', id).order('ordre')) : [{ nom: 'Prévente', prix: 10, quantite: 100, max_commande: 6 }];
   let affiche = e.affiche;
   const supprimes = [];   // types retirés à effacer à l'enregistrement
+  const v3 = await baseV3(), xpE = e.genre === 'experience', forceE = xpE && CATS_ENCADREES.includes(e.categorie), avecEnc = forceE || !!e.encadree;
+  const annuleE = e.statut === 'annule', finiE = !!id && new Date(e.fin || e.debut) < new Date();
+  // activité encadrée : qualification, assurance et consignes, exigées par la base avant la validation (pass/eventpass3.sql)
+  const blocEnc = v3 ? `<fieldset class="encadre-f" id="encadreF" ${xpE ? '' : 'hidden'}><legend>Sécurité de l’activité</legend>
+      <label class="case"><input type="checkbox" name="encadree" id="encadreeC" ${avecEnc ? 'checked' : ''} ${forceE ? 'disabled' : ''}> <span>Activité encadrée : sport, mer ou nature (kayak, plongée, randonnée, quad, canyoning…)</span></label>
+      <p class="aide" id="aideEnc" style="margin:0"></p>
+      <div class="f" id="champsEnc" ${avecEnc ? '' : 'hidden'}>
+        <label>Qualification de l’encadrant <span class="aide">(diplôme ou brevet, n° de carte professionnelle)</span><input name="encadrant_diplome" maxlength="200" value="${esc(e.encadrant_diplome || '')}" placeholder="BPJEPS activités nautiques, carte professionnelle n° …"></label>
+        <label>Assurance responsabilité civile professionnelle <span class="aide">(assureur et n° de contrat)</span><input name="assurance_rc" maxlength="160" value="${esc(e.assurance_rc || '')}" placeholder="Nom de l’assureur, contrat n° …"></label>
+        <label>Consignes de sécurité <span class="aide">(âge, savoir nager, santé, météo, équipement fourni)</span><textarea name="consignes_securite" maxlength="2000" placeholder="Savoir nager 25 m, gilet fourni et obligatoire, sortie annulée en vigilance orange…">${esc(e.consignes_securite || '')}</textarea></label></div></fieldset>` : '';
+  const actions = annuleE ? `<div class="bandeau-annule">${xpE ? 'Cette expérience est annulée' : 'Cet événement est annulé'}${e.motif_annulation ? ` : ${esc(e.motif_annulation)}` : ''}. Il ne se modifie plus : dupliquez-le pour le reprogrammer.</div>
+      <div class="actions"><button type="button" class="btn btn-p" id="dupliquerEv">Dupliquer</button><a class="btn" href="#/orga/participants/${id}">Participants</a></div>`
+    : `<div class="actions"><button class="btn btn-p" value="en_attente">${id && e.statut === 'publie' ? 'Enregistrer' : 'Enregistrer et envoyer en validation'}</button>${!id || e.statut !== 'publie' ? '<button class="btn" value="brouillon">Garder en brouillon</button>' : ''}
+        ${id && ['publie', 'en_attente'].includes(e.statut) && !finiE ? `<button type="button" class="btn btn-ko" id="annulerEv">Annuler ${xpE ? 'cette date' : 'l’événement'}</button>` : ''}</div>
+      <div class="annul-f" id="annulF" hidden><label>Motif de l’annulation <span class="aide">(envoyé aux participants)</span><textarea id="motifAnnul" maxlength="300" placeholder="Alerte météo, artiste malade, salle indisponible…"></textarea></label>
+        <p class="aide" style="margin:0">Les billets non utilisés sont annulés et leurs détenteurs prévenus dans l’appli. Vous remboursez vous-même les billets déjà payés.</p>
+        <div class="actions"><button type="button" class="btn btn-ko" id="confirmerAnnul">Confirmer l’annulation</button><button type="button" class="btn" id="garderEv">Ne pas annuler</button></div></div>
+      <p class="muted petit">Changer le titre, la description ou l’affiche d’un événement en ligne le renvoie en validation (sous 48 h).</p>`;
   const ligneType = (t, i) => `<div class="ltype" data-i="${i}"><label>Nom<input name="nom" value="${esc(t.nom)}" required maxlength="60"></label><label>Prix €<input name="prix" type="number" min="0" max="5000" step="0.5" value="${t.prix}"></label>
     <label>Places<input name="quantite" type="number" min="1" max="50000" value="${t.quantite}"></label><label>Max / pers.<input name="max_commande" type="number" min="1" max="20" value="${t.max_commande}"></label>
     <button type="button" class="btn btn-s btn-ko" data-suppr="${i}" aria-label="Retirer">×</button></div>`;
@@ -435,6 +550,7 @@ async function formEvenement(id) {
         <label>Point de rendez-vous<input name="rdv" maxlength="200" value="${esc(e.rdv || '')}" placeholder="Ponton de la marina, devant l’office du tourisme…"></label>
         <label>Inclus<input name="inclus" maxlength="1000" value="${esc(e.inclus || '')}" placeholder="Masque et tuba, déjeuner créole, rhum arrangé…"></label>
         <label>Langues<input name="langues" maxlength="120" value="${esc((e.langues || ['français']).join(', '))}" placeholder="français, anglais, créole"></label></div>
+      ${blocEnc}
       <div class="ligne2"><label>Début <span class="aide">(heure locale du lieu)</span><input type="datetime-local" name="debut" required value="${utcVersLocal(e.debut, e.fuseau || fuseauDe(e.territoire))}"></label><label>Fin <span class="aide">(facultatif)</span><input type="datetime-local" name="fin" value="${utcVersLocal(e.fin, e.fuseau || fuseauDe(e.territoire))}"></label></div>
       <div class="ligne3"><label>Lieu<input name="lieu" required maxlength="120" value="${esc(e.lieu)}" placeholder="ex. Plage de l’Anse Mitan"></label></div>
       <div class="ligne3"><label>Territoire<select name="territoire" required data-villes="villesE">${optsTerritoires(e.territoire)}</select></label><label>Ville<input name="commune" required maxlength="60" list="villesE" value="${esc(e.commune)}">${listeVilles('villesE', e.territoire)}</label><label>Adresse <span class="aide">(facultatif)</span><input name="adresse" maxlength="200" value="${esc(e.adresse || '')}"></label></div>
@@ -444,9 +560,7 @@ async function formEvenement(id) {
       <div><b>Affiche</b> <span class="aide">(format portrait conseillé)</span><div id="affApercu" style="max-width:200px;margin:8px 0"></div><input type="file" id="affFichier" accept="image/*"></div>
       <div><b>Billets</b> <span class="aide">(prix 0 = gratuit ; ajoutez par ex. « VIP » ou « Navette aller-retour depuis Fort-de-France »)</span><div class="lignes-types" id="types" style="margin-top:8px"></div>
         <button type="button" class="btn btn-s" id="ajType" style="margin-top:8px">+ Ajouter un type de billet</button></div>
-      <div class="actions"><button class="btn btn-p" value="en_attente">${id && e.statut === 'publie' ? 'Enregistrer' : 'Enregistrer et envoyer en validation'}</button>${!id || e.statut !== 'publie' ? '<button class="btn" value="brouillon">Garder en brouillon</button>' : ''}
-        ${id && e.statut === 'publie' ? '<button type="button" class="btn btn-ko" id="annulerEv">Annuler l’événement</button>' : ''}</div>
-      <p class="muted petit">Changer le titre, la description ou l’affiche d’un événement en ligne le renvoie en validation (sous 48 h).</p></form></div>`);
+      ${actions}</form></div>`);
   const dessinerAff = () => { $('#affApercu').innerHTML = affiche ? `<img src="${esc(photo(affiche))}" alt="Affiche" style="border-radius:12px">` : ''; };
   const lireTypes = () => [...document.querySelectorAll('.ltype')].map(l => { const i = Number(l.dataset.i); const g = n => l.querySelector(`[name=${n}]`).value; return { ...types[i], nom: g('nom').trim(), prix: Number(g('prix')) || 0, quantite: Number(g('quantite')), max_commande: Number(g('max_commande')) }; });
   const dessinerTypes = () => { $('#types').innerHTML = types.map(ligneType).join(''); };
@@ -463,17 +577,52 @@ async function formEvenement(id) {
   $('#ajType').addEventListener('click', () => { types = lireTypes(); types.push({ nom: 'VIP', prix: 25, quantite: 50, max_commande: 4 }); dessinerTypes(); });
   $('#types').addEventListener('click', ev => { const b = ev.target.closest('[data-suppr]'); if (!b) return; types = lireTypes(); const t = types.splice(Number(b.dataset.suppr), 1)[0]; if (t.id) supprimes.push(t.id); dessinerTypes(); });
   $('#affFichier').addEventListener('change', async ev => { const f = ev.target.files[0]; if (!f) return; toast('Envoi de l’affiche…'); try { affiche = await envoyerPhoto(f); dessinerAff(); } catch (err) { toast(erreur(err), true); } });
-  $('#annulerEv')?.addEventListener('click', async () => { if (!confirm('Annuler l’événement ? Les participants le verront dans leurs billets.')) return; try { await q(sb.from('evenements').update({ statut: 'annule' }).eq('id', id)); toast('Événement annulé.'); aller('#/orga'); } catch (err) { toast(erreur(err), true); } });
-  $('#genreEv').addEventListener('change', ev => { const x = ev.target.value === 'experience'; $('#champsXp').hidden = !x; $('#catEv').innerHTML = optsCats(x ? 'excursion' : 'soiree', x ? 'experience' : 'evenement'); });
+  // annulation motivée (pass/eventpass3.sql) : billets annulés, détenteurs prévenus ; sans la base v3, l'ancienne annulation simple
+  $('#annulerEv')?.addEventListener('click', () => { $('#annulF').hidden = false; $('#annulerEv').hidden = true; $('#motifAnnul').focus(); });
+  $('#garderEv')?.addEventListener('click', () => { $('#annulF').hidden = true; $('#annulerEv').hidden = false; });
+  $('#motifAnnul')?.addEventListener('input', ev => ev.target.setCustomValidity(''));
+  $('#confirmerAnnul')?.addEventListener('click', async ev => {
+    const m = $('#motifAnnul'), motif = m.value.trim();
+    if (motif.length < 5) { m.setCustomValidity('Indiquez le motif (5 caractères au moins) : il est envoyé aux participants.'); m.reportValidity(); return; }
+    ev.target.disabled = true;
+    try {
+      if (v3) { const r = await q(sb.rpc('annuler_evenement', { ev: id, motif })); toast(`Annulé : ${r.billets} billet${r.billets > 1 ? 's' : ''} annulé${r.billets > 1 ? 's' : ''}, ${r.personnes} personne${r.personnes > 1 ? 's' : ''} prévenue${r.personnes > 1 ? 's' : ''}.`); }
+      else { await q(sb.from('evenements').update({ statut: 'annule' }).eq('id', id)); toast('Événement annulé.'); }
+      aller('#/orga');
+    } catch (err) { toast(erreur(err), true); ev.target.disabled = false; }
+  });
+  $('#dupliquerEv')?.addEventListener('click', async ev => { ev.target.disabled = true; try { await dupliquer(id); } catch (err) { toast(erreur(err), true); ev.target.disabled = false; } });
+  // encadrement : visible pour une expérience, imposé pour le nautique et la randonnée
+  const majEnc = () => {
+    const c = $('#encadreeC'); if (!c) return;
+    const x = $('#genreEv').value === 'experience', force = x && CATS_ENCADREES.includes($('#catEv').value);
+    $('#encadreF').hidden = !x; if (force) c.checked = true; c.disabled = force;
+    $('#aideEnc').textContent = (force ? 'Obligatoire pour les activités nautiques et les randonnées. ' : 'Cochez si un encadrant guide une activité physique. ')
+      + 'Ces informations sont vérifiées par l’équipe, puis affichées sur la fiche, avant la réservation.';
+    $('#champsEnc').hidden = !c.checked;
+  };
+  majEnc();
+  $('#encadreeC')?.addEventListener('change', majEnc);
+  $('#catEv').addEventListener('change', majEnc);
+  $('#genreEv').addEventListener('change', ev => { const x = ev.target.value === 'experience'; $('#champsXp').hidden = !x; $('#catEv').innerHTML = optsCats(x ? 'excursion' : 'soiree', x ? 'experience' : 'evenement'); majEnc(); });
+  $('#fEv').addEventListener('input', ev => { if (ev.target.name) ev.target.setCustomValidity?.(''); });
   $('#fEv').addEventListener('submit', async ev => {
     ev.preventDefault(); const f = ev.target, d = Object.fromEntries(new FormData(f)), envoi = ev.submitter?.value || 'en_attente';
     const lt = lireTypes(), fz = fuseauDe(d.territoire);
     if (!lt.length) return toast('Ajoutez au moins un type de billet.', true);
     if (d.fin && d.fin <= d.debut) return toast('La fin doit être après le début.', true);
-    const xpF = d.genre === 'experience';
+    const xpF = d.genre === 'experience', enc = v3 && xpF && (CATS_ENCADREES.includes(d.categorie) || !!$('#encadreeC')?.checked);
+    // ce qui manque à une activité encadrée, signalé à côté du champ (la base refuse de toute façon l'envoi en validation ; un brouillon peut rester incomplet)
+    if (enc && ((id && e.statut === 'publie') || envoi !== 'brouillon')) {
+      const manque = [['encadrant_diplome', 5, 'Indiquez la qualification de l’encadrant (diplôme, carte professionnelle).'], ['assurance_rc', 5, 'Indiquez l’assureur et le numéro du contrat d’assurance.'],
+        ['consignes_securite', 20, 'Écrivez les consignes de sécurité (20 caractères au moins).']].find(([k, n]) => (d[k] || '').trim().length < n || (k === 'assurance_rc' && !/\d/.test(d[k])));
+      if (manque) { f[manque[0]].setCustomValidity(manque[2]); f[manque[0]].reportValidity(); return; }
+    }
     const ligne = { genre: xpF ? 'experience' : 'evenement', duree_min: xpF && d.duree_h ? Math.round(Number(d.duree_h) * 60) : null, rdv: xpF ? d.rdv.trim() || null : null, inclus: xpF ? d.inclus.trim() || null : null,
       langues: xpF ? d.langues.split(',').map(x => x.trim()).filter(Boolean).slice(0, 6) : ['français'],
       titre: d.titre.trim(), categorie: d.categorie, age_min: Number(d.age_min) || 0, debut: localVersUTC(d.debut, fz), fin: localVersUTC(d.fin, fz), fuseau: fz, territoire: d.territoire, lat: d.lat === '' ? null : Number(d.lat), lng: d.lng === '' ? null : Number(d.lng), lieu: d.lieu.trim(), commune: d.commune.trim(), adresse: d.adresse.trim() || null, description: d.description.trim(), affiche };
+    if (v3) Object.assign(ligne, { encadree: enc, encadrant_diplome: enc ? (d.encadrant_diplome || '').trim() || null : null, assurance_rc: enc ? (d.assurance_rc || '').trim() || null : null,
+      consignes_securite: enc ? (d.consignes_securite || '').trim() || null : null });
     if (!(id && e.statut === 'publie')) ligne.statut = envoi;
     try {
       const evId = id ? (await q(sb.from('evenements').update(ligne).eq('id', id).select('id').single())).id : (await q(sb.from('evenements').insert(ligne).select('id').single())).id;
@@ -488,15 +637,16 @@ async function formEvenement(id) {
 }
 async function pageParticipants(id) {
   vue('<div class="chargement">Chargement…</div>');
-  const [e, p] = await Promise.all([q(sb.from('evenements').select('titre, debut, fuseau, lieu, commune, territoire').eq('id', id).single()), q(sb.rpc('participants', { evt: id }))]);
-  const actifs = p.filter(x => x.statut !== 'annule');
+  const [e, p] = await Promise.all([q(sb.from('evenements').select('titre, debut, fuseau, lieu, commune, territoire, statut').eq('id', id).single()), q(sb.rpc('participants', { evt: id }))]);
+  const actifs = p.filter(x => x.statut !== 'annule'), annuleE = e.statut === 'annule';
   vue(`<div class="wrap" style="padding-top:22px"><a href="#/orga" class="petit">← Espace organisateur</a><h1>${esc(e.titre)}</h1><p class="muted">${esc(quand(e.debut, e.fuseau))} · ${lieuEv(e)}</p>
+    ${annuleE ? '<div class="bandeau-annule" style="margin-bottom:14px"><b>Événement annulé</b> : les billets non utilisés sont annulés et leurs détenteurs prévenus. Remboursez les billets déjà payés (téléphones ci-dessous).</div>' : ''}
     <div class="stat"><div><b>${actifs.length}</b>billets</div><div><b>${actifs.filter(x => x.statut === 'utilise').length}</b>entrés</div><div><b>${eur(actifs.filter(x => x.statut === 'reserve').reduce((s, x) => s + Number(x.prix), 0)).replace('Gratuit', '0 €')}</b>à encaisser</div><div><b>${eur(actifs.filter(x => x.statut !== 'reserve').reduce((s, x) => s + Number(x.prix), 0)).replace('Gratuit', '0 €')}</b>encaissés</div></div>
-    <div class="actions" style="margin-bottom:14px"><a class="btn btn-p" href="#/orga/controle/${id}">📷 Contrôle à l’entrée</a><button class="btn" id="csv">⬇ Exporter (CSV)</button></div>
+    <div class="actions" style="margin-bottom:14px">${annuleE ? '' : `<a class="btn btn-p" href="#/orga/controle/${id}">📷 Contrôle à l’entrée</a>`}<button class="btn" id="csv">⬇ Exporter (CSV)</button></div>
     <div class="tableau"><table class="t"><thead><tr><th>Code</th><th>Titulaire</th><th>Billet</th><th>Prix</th><th>Statut</th><th>Acheteur</th><th></th></tr></thead><tbody>
       ${p.map(x => `<tr><td style="font-family:monospace">${esc(x.code)}</td><td>${esc(x.titulaire)}</td><td>${esc(x.type_nom)}</td><td>${eur(x.prix)}</td><td>${tag(ST_BILLET[x.statut])}</td>
         <td>${esc(x.acheteur_nom)}${x.telephone ? `<br><a class="petit" href="${wa(x.telephone, `Bonjour, à propos de « ${e.titre} » (EventPass).`)}" target="_blank" rel="noopener">${esc(x.telephone)}</a>` : ''}</td>
-        <td>${x.statut === 'reserve' ? `<button class="btn btn-s btn-ok" data-st="paye" data-b="${x.id}">Payé</button>` : ''}${['reserve', 'paye'].includes(x.statut) ? ` <button class="btn btn-s btn-ko" data-st="annule" data-b="${x.id}">Annuler</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">Aucun billet pour l’instant.</td></tr>'}</tbody></table></div></div>`);
+        <td>${annuleE ? '' : `${x.statut === 'reserve' ? `<button class="btn btn-s btn-ok" data-st="paye" data-b="${x.id}">Payé</button>` : ''}${['reserve', 'paye'].includes(x.statut) ? ` <button class="btn btn-s btn-ko" data-st="annule" data-b="${x.id}">Annuler</button>` : ''}`}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">Aucun billet pour l’instant.</td></tr>'}</tbody></table></div></div>`);
   $('#app').onclick = async ev => {
     const b = ev.target.closest('[data-st]'); if (!b) return;
     if (b.dataset.st === 'annule' && !confirm('Annuler ce billet ?')) return;
@@ -509,17 +659,39 @@ async function pageParticipants(id) {
   });
 }
 let flux = null;
+// lecteur de QR code : BarcodeDetector quand le navigateur l'a (Chrome sur Android), sinon jsQR 1.4.0 (licence Apache-2.0, hébergé sur le site
+// dans lib/jsqr/, chargé seulement ici) : Safari, Firefox, ordinateurs
+function chargerJsQR() {
+  if (window.jsQR) return Promise.resolve(window.jsQR);
+  return new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'lib/jsqr/jsQR.js?v=1.4.0'; s.onload = () => ok(window.jsQR); s.onerror = ko; document.head.appendChild(s); });
+}
+async function lecteurQR() {
+  if ('BarcodeDetector' in window) {
+    try {
+      if ((await window.BarcodeDetector.getSupportedFormats()).includes('qr_code')) { const det = new window.BarcodeDetector({ formats: ['qr_code'] }); return async v => (await det.detect(v))[0]?.rawValue || null; }
+    } catch (e) { /* lecteur du navigateur indisponible : jsQR */ }
+  }
+  const jsQR = await chargerJsQR(), c = document.createElement('canvas'), ctx = c.getContext('2d', { willReadFrequently: true });
+  return async v => {
+    if (!v.videoWidth) return null;
+    const k = Math.min(1, 640 / Math.max(v.videoWidth, v.videoHeight));   // image réduite : rapide sur un petit téléphone
+    c.width = Math.round(v.videoWidth * k); c.height = Math.round(v.videoHeight * k);
+    ctx.drawImage(v, 0, 0, c.width, c.height);
+    return jsQR(ctx.getImageData(0, 0, c.width, c.height).data, c.width, c.height, { inversionAttempts: 'dontInvert' })?.data || null;
+  };
+}
 async function pageControle(id) {
-  const e = await q(sb.from('evenements').select('titre, fuseau').eq('id', id).single());
-  const peutScanner = 'BarcodeDetector' in window && navigator.mediaDevices?.getUserMedia;
+  const e = await q(sb.from('evenements').select('titre, fuseau, statut').eq('id', id).single());
+  const camera = !!navigator.mediaDevices?.getUserMedia;
   let entres = 0;
   vue(`<div class="wrap" style="padding-top:20px"><a href="${estOrga() ? '#/orga/participants/' + id : '#/controle'}" class="petit">← Retour</a><h1 style="font-size:20px">Contrôle · ${esc(e.titre)}</h1>
-    <div class="scan">${peutScanner ? '<video id="cam" playsinline muted></video>' : '<p class="muted">La caméra n’est pas disponible sur ce navigateur : tapez le code du billet (Chrome sur Android permet de scanner).</p>'}
-      <form id="fCode" class="recherche" style="grid-template-columns:1fr auto"><input name="code" placeholder="Code du billet (10 caractères)" autocomplete="off" autocapitalize="characters" required><button class="btn btn-p">Valider</button></form>
-      <div id="verdict"></div><p class="muted petit" id="compteur"></p><h2>Derniers scans</h2><div id="histo" class="petit muted">—</div></div></div>`);
+    <div class="scan">${e.statut === 'annule' ? '<div class="bandeau-annule" role="alert"><b>Événement annulé</b> : aucun billet ne donne l’entrée.</div>' : ''}
+      ${camera ? '<video id="cam" playsinline muted></video><p class="muted petit" id="etatCam" role="status">Ouverture de la caméra…</p>' : '<p class="muted">La caméra n’est pas disponible sur cet appareil : tapez le code du billet.</p>'}
+      <form id="fCode" class="recherche" style="grid-template-columns:1fr auto"><input name="code" placeholder="Code du billet (10 caractères)" aria-label="Code du billet" autocomplete="off" autocapitalize="characters" required><button class="btn btn-p">Valider</button></form>
+      <div id="verdict" aria-live="assertive"></div><p class="muted petit" id="compteur"></p><h2>Derniers scans</h2><div id="histo" class="petit muted">—</div></div></div>`);
   const histo = async () => {
     const l = await q(sb.from('scans').select('code, resultat, created_at').eq('evenement_id', id).order('created_at', { ascending: false }).limit(12)).catch(() => []);
-    const lib = { ok: '✅ OK', a_payer: '💶 à encaisser', deja: '⛔ déjà utilisé', annule: '⛔ annulé', inconnu: '❓ inconnu' };
+    const lib = { ok: '✅ OK', a_payer: '💶 à encaisser', deja: '⛔ déjà utilisé', annule: '⛔ annulé', inconnu: '❓ inconnu', evenement_annule: '⛔ événement annulé' };
     $('#histo') && ($('#histo').innerHTML = l.map(s => `<div>${esc(fmt(s.created_at, { hour: '2-digit', minute: '2-digit', second: '2-digit' }, e.fuseau))} · <b>${esc(s.code)}</b> · ${lib[s.resultat] || esc(s.resultat)}</div>`).join('') || 'Aucun scan pour l’instant.');
   };
   histo();
@@ -528,7 +700,8 @@ async function pageControle(id) {
     code = String(code || '').trim().toUpperCase(); if (!code || occupe || code === dernier) return; occupe = true; dernier = code; setTimeout(() => { if (dernier === code) dernier = ''; }, 4000);
     try {
       const [r] = await q(sb.rpc('valider_billet', { evt: id, code_billet: code }));
-      const v = { ok: ['ok', '✅', 'Entrée validée'], a_payer: ['att', '💶', `À encaisser : ${eur(r.prix)}`], deja: ['ko', '⛔', 'Déjà utilisé'], annule: ['ko', '⛔', 'Billet annulé'], inconnu: ['ko', '❓', 'Billet inconnu pour cet événement'] }[r.resultat];
+      const v = { ok: ['ok', '✅', 'Entrée validée'], a_payer: ['att', '💶', `À encaisser : ${eur(r.prix)}`], deja: ['ko', '⛔', 'Déjà utilisé'], annule: ['ko', '⛔', 'Billet annulé'],
+        inconnu: ['ko', '❓', 'Billet inconnu pour cet événement'], evenement_annule: ['ko', '⛔', 'Événement annulé : entrée refusée'] }[r.resultat] || ['ko', '⛔', 'Entrée refusée'];
       if (['ok', 'a_payer'].includes(r.resultat)) entres++;
       $('#verdict').innerHTML = `<div class="verdict ${v[0]}"><big>${v[1]}</big>${esc(v[2])}${r.titulaire ? `<div class="sous">${esc(r.titulaire)} · ${esc(r.type_nom)}${r.resultat === 'deja' ? ` · entré à ${esc(fmt(r.utilise_le, { hour: '2-digit', minute: '2-digit' }, e.fuseau))}` : ''}</div>` : ''}</div>`;
       $('#compteur').textContent = `${entres} entrée${entres > 1 ? 's' : ''} validée${entres > 1 ? 's' : ''} sur cet appareil`; histo();
@@ -537,41 +710,22 @@ async function pageControle(id) {
     occupe = false;
   };
   $('#fCode').addEventListener('submit', ev => { ev.preventDefault(); dernier = ''; valider(ev.target.code.value); ev.target.reset(); });
-  if (peutScanner) {
+  if (camera && e.statut !== 'annule') {
+    const etat = t => { if ($('#etatCam')) $('#etatCam').textContent = t; };
     try {
-      flux = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      const v = $('#cam'); v.srcObject = flux; await v.play();
-      const det = new window.BarcodeDetector({ formats: ['qr_code'] });
-      const boucle = async () => { if (!document.body.contains(v)) { flux.getTracks().forEach(t => t.stop()); return; } try { const r = await det.detect(v); if (r[0]) await valider(r[0].rawValue); } catch (x) { /* image pas prête */ } setTimeout(boucle, 350); };
+      const [lire, f] = await Promise.all([lecteurQR(), navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })]);
+      flux = f;
+      const v = $('#cam'); if (!v) { f.getTracks().forEach(t => t.stop()); return; }   // page quittée pendant l'ouverture
+      v.srcObject = f; await v.play(); etat('Visez le QR code du billet, ou tapez son code.');
+      const boucle = async () => { if (!document.body.contains(v)) { f.getTracks().forEach(t => t.stop()); return; } try { const c = await lire(v); if (c) await valider(c); } catch (x) { /* image pas prête */ } setTimeout(boucle, 300); };
       boucle();
-    } catch (err) { toast('Caméra refusée : tapez les codes à la main.', true); }
-  }
+    } catch (err) { $('#cam')?.remove(); etat('Caméra indisponible ou refusée : tapez le code du billet.'); }
+  } else if (camera) { $('#cam')?.remove(); $('#etatCam')?.remove(); }
 }
 
-// ---------------------------------------------------------------- administration
-async function pageAdmin() {
-  if (!exigeCompte()) return; await chargerMoi();
-  if (profil?.role !== 'admin') return vue('<div class="wrap"><p>Réservé à l’administration.</p></div>');
-  const [orgas, evs] = await Promise.all([q(sb.from('profiles').select('*').eq('orga', 'demande')), q(sb.from('evenements').select('*').eq('statut', 'en_attente').order('debut'))]);
-  const ids = [...new Set([...orgas.map(o => o.id), ...evs.map(e => e.orga_id)])];
-  const ct = ids.length ? await q(sb.from('contacts').select('*').in('id', ids)) : [];
-  const contact = id => { const c = ct.find(x => x.id === id); return c ? `${esc(c.email || '')}${c.telephone ? ' · ' + esc(c.telephone) : ''}` : ''; };
-  vue(`<div class="wrap" style="padding-top:22px"><h1>Administration EventPass</h1>
-    <h2 style="font-size:20px">Organisateurs à valider (${orgas.length})</h2>
-    ${orgas.map(o => `<div class="ligne-l"><div class="mini" style="display:grid;place-items:center;font-size:30px">📣</div><div><b>${esc(o.orga_nom || '')}</b> — ${esc(o.prenom)} ${esc(o.nom)}<div class="muted petit">${contact(o.id)}${o.siret ? ' · SIRET/RNA ' + esc(o.siret) : ''}</div><div class="petit">${esc(o.bio || '')}</div></div>
-      <div class="actions"><button class="btn btn-s btn-ok" data-orga="${o.id}" data-v="valide">Valider</button><button class="btn btn-s btn-ko" data-orga="${o.id}" data-v="refuse">Refuser</button></div></div>`).join('') || '<p class="muted">Aucun.</p>'}
-    <h2 style="font-size:20px;margin-top:24px">Événements à valider (${evs.length})</h2>
-    ${evs.map(e => `<div class="ligne-l">${e.affiche ? `<img class="mini" src="${esc(photo(e.affiche))}" alt="">` : '<div class="mini"></div>'}<div><b><a href="#/evenement/${e.id}">${esc(e.titre)}</a></b><div class="muted petit">${esc(quand(e.debut, e.fuseau))} · ${lieuEv(e)} · ${contact(e.orga_id)}</div><div class="petit">${esc(e.description.slice(0, 240))}</div></div>
-      <div class="actions"><button class="btn btn-s btn-ok" data-ev="${e.id}" data-v="publie">Publier</button><button class="btn btn-s btn-ko" data-ev="${e.id}" data-v="refuse">Refuser</button></div></div>`).join('') || '<p class="muted">Aucun.</p>'}</div>`);
-  $('#app').onclick = async ev => {
-    const b = ev.target.closest('[data-v]'); if (!b) return;
-    try {
-      if (b.dataset.orga) await q(sb.from('profiles').update({ orga: b.dataset.v }).eq('id', b.dataset.orga));
-      else { const motif = b.dataset.v === 'refuse' ? prompt('Motif du refus (visible par l’organisateur) :', '') : null; if (b.dataset.v === 'refuse' && motif === null) return; await q(sb.from('evenements').update({ statut: b.dataset.v, motif_refus: motif }).eq('id', b.dataset.ev)); }
-      toast('C’est fait.'); pageAdmin();
-    } catch (err) { toast(erreur(err), true); }
-  };
-}
+// ---------------------------------------------------------------- administration : dans ILO CONTROL (../control/), l'administration centrale de l'écosystème
+// (validation motivée des organisateurs et des événements, signalements, double authentification). Les anciennes adresses #/admin y mènent.
+const ADMIN_VERS = { signalements: 'moderation', organisateurs: 'partenaires?type=orga', evenements: 'partenaires?type=evenement' };
 
 // ---------------------------------------------------------------- carte des événements
 async function pageCarte() {
@@ -747,7 +901,7 @@ async function rendre() {
     if (a === 'profil') return await pageProfil();
     if (a === 'notifs') return await pageNotifs();
     if (a === 'imprimer' && b) return await pageImprimer(b);
-    if (a === 'admin') return await pageAdmin();
+    if (a === 'admin') { location.replace('../control/#/' + (ADMIN_VERS[b] || '')); return; }
     if (a === 'connexion') return pageConnexion();
     if (a === 'inscription') return pageInscription();
     if (a === 'compte') return await pageCompte();
@@ -755,6 +909,8 @@ async function rendre() {
     vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Page introuvable</h3><a href="#/">Accueil</a></div>');
   } catch (e) { vue(`<div class="wrap"><p>${esc(erreur(e))}</p></div>`); }
 }
+// appli installable (écran d'accueil) : les fichiers du site restent lisibles sans réseau, jamais les données (sw.js)
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 (async () => {
   window.addEventListener('hashchange', rendre);
   if (PRET) { sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { moi = null; profil = null; nav(); } }); await chargerMoi().catch(() => {}); }

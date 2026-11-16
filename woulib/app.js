@@ -10,20 +10,24 @@ function declarerUnivers(code, m) { MODULES[code] = m; }
 // registre lu dans la base (statut, ouverture par territoire) ; repli si la base ne répond pas.
 // BASE_V2 : la base a reçu univers.sql, move.sql et food.sql à jour (sinon les fonctions qui en dépendent restent masquées)
 let REGISTRE = null, BASE_V2 = false, BOUTIQUES = false;   // BOUTIQUES : boutique.sql installé
-const REPLI = [['food', '🍛', 'Woulib Food', 'actif'], ['move', '🚗', 'Woulib Move', 'actif'], ['express', '📦', 'Woulib Express', 'actif'], ['market', '🛍️', 'Woulib Market', 'bientot'],
-  ['daily', '🧺', 'Woulib Daily', 'bientot'], ['services', '🔧', 'Woulib Services', 'externe', 'https://immo.ilo-tech.com/#/services'], ['experiences', '🌴', 'Woulib Experiences', 'externe', '../pass/#/?genre=experience'], ['events', '🎟️', 'Woulib Events', 'externe', '../pass/'],
+// « market » et « daily » (doublons de la rubrique Commerce) sont masqués dans la base (univers.sql) et absents d'ici
+const REPLI = [['food', '🍛', 'Woulib Food', 'actif'], ['move', '🚗', 'Woulib Move', 'actif'], ['express', '📦', 'Woulib Express', 'actif'],
+  ['services', '🔧', 'Woulib Services', 'externe', 'https://immo.ilo-tech.com/#/services'], ['experiences', '🌴', 'Woulib Experiences', 'externe', '../pass/#/?genre=experience'], ['events', '🎟️', 'Woulib Events', 'externe', '../pass/'],
   ['rental', '🚙', 'Woulib Rental', 'bientot'], ['living', '🏡', 'Woulib Living', 'externe', 'https://immo.ilo-tech.com/'], ['ai', '🤖', 'Woulib AI', 'bientot']]
-  .map(([code, icone, nom, statut, lien], i) => ({ code, icone, nom, statut, lien, description: '', ordre: i, fermes: [] }));
+  .map(([code, icone, nom, statut, lien], i) => ({ code, icone, nom, statut, lien, description: '', ordre: i, fermes: [], reglages: {} }));
 async function chargerRegistre() {
   if (REGISTRE) return REGISTRE;
   try {
-    const [u, t] = await Promise.all([q(sb.from('univers').select('*').order('ordre')), q(sb.from('univers_territoires').select('univers, territoire, actif'))]);
-    REGISTRE = u.map(x => ({ ...x, fermes: t.filter(y => y.univers === x.code && !y.actif).map(y => y.territoire) })); BASE_V2 = true;
+    const [u, t] = await Promise.all([q(sb.from('univers').select('*').order('ordre')), q(sb.from('univers_territoires').select('univers, territoire, actif, parametres'))]);
+    REGISTRE = u.filter(x => x.statut !== 'masque').map(x => ({ ...x, fermes: t.filter(y => y.univers === x.code && !y.actif).map(y => y.territoire),
+      reglages: Object.fromEntries(t.filter(y => y.univers === x.code && y.parametres).map(y => [y.territoire, y.parametres])) })); BASE_V2 = true;
     BOUTIQUES = await q(sb.from('restaurants').select('genre').limit(1)).then(() => true, () => false);
   } catch (e) { REGISTRE = REPLI; }
   return REGISTRE;
 }
 const univers = code => (REGISTRE || REPLI).find(u => u.code === code);
+// réglage d'un univers pour un territoire (comme parametre_univers() dans la base : celui du territoire, sinon celui de l'univers)
+const reglage = (code, terr, cle) => { const u = univers(code); return u?.reglages?.[terr]?.[cle] ?? u?.parametres?.[cle]; };
 // ouvert pour ce territoire ? (sans territoire choisi : ouvert s'il est actif quelque part)
 const universOuvert = (code, terr) => { const u = univers(code); return !!u && u.statut === 'actif' && !(terr && u.fermes.includes(terr)); };
 // page d'un univers fermé (pas encore lancé, ou pas sur ce territoire)
@@ -83,7 +87,7 @@ const APP = {
     const t = territoireActif(); b.innerHTML = `${ICO.pin}<span>${esc(t)}</span>${ICO.bas}`; b.setAttribute('aria-label', `Choisir le territoire, actuellement ${t}`);
   },
   icones: () => ICO,
-  differes: { gps: 'gps.js?v=5', projets: 'projets.js?v=3', projet: 'projets.js?v=3', assistance: 'compte.js?v=3', recherche: 'recherche.js?v=2', pro: 'pro.js?v=1' },   // chargés à la première ouverture
+  differes: { gps: 'gps.js?v=5', projets: 'projets.js?v=3', projet: 'projets.js?v=3', assistance: 'compte.js?v=3', recherche: 'recherche.js?v=2', pro: 'pro.js?v=2' },   // chargés à la première ouverture
   // bouton retour d'une page ouverte directement (lien partagé) : l'accueil de son univers
   parent: h => Object.values(MODULES).find(m => m.routes.test(h.split('?')[0]))?.accueil || '#/',
   // à chaque changement de page : arrêter les rafraîchissements, couper le GPS hors des pages qui guident, couleurs de l'univers visité
@@ -101,7 +105,7 @@ const APP = {
 };
 
 // commission de la plateforme vue par le pro : ce qu'il doit, ses ventes du mois, le détail (commun/commissions.sql)
-const SOURCES_CM = { commande: '🍛 Repas', course: '🚗 Course', livraison: '🛵 Livraison', reservation: '🏡 Séjour', prestation: '🔧 Prestation', billet: '🎟️ Billet' };
+const SOURCES_CM = { commande: '🍛 Repas', course: '🚗 Course', livraison: '🛵 Livraison', colis: '📦 Colis', reservation: '🏡 Séjour', prestation: '🔧 Prestation', billet: '🎟️ Billet' };
 async function blocCommission() {
   await chargerRegistre();
   if (!BASE_V2) return '';

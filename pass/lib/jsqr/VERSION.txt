@@ -1,0 +1,3 @@
+jsQR 1.4.0 (https://github.com/cozmo/jsQR), licence Apache-2.0, fichier dist/jsQR.js du paquet npm jsqr@1.4.0
+sha512 du tarball : dxLob7q65Xg2DvstYkRpkYtmKm2sPJ9oFhrhmudT1dZvNFFTlroai3AWSpLey/w5vMcLBXRgOJsbXpdN9HzU/A==
+Lecteur de QR code de secours du controle a l entree (pass.js, lecteurQR) quand le navigateur n a pas BarcodeDetector.

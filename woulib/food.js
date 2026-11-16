@@ -15,6 +15,18 @@ const TYPES_BOUTIQUE = ['boissons', 'epicerie', 'autre'];
 const estBoutique = r => r?.genre === 'boutique';
 const cuisinesVisibles = () => Object.entries(CUISINES).filter(([k]) => BOUTIQUES || !TYPES_BOUTIQUE.slice(0, 2).includes(k));
 const MODERATION = 'L’abus d’alcool est dangereux pour la santé, à consommer avec modération. Vente d’alcool interdite aux mineurs.';
+// alcool (boutique.sql, contrôlé par la base) : licence déclarée par le vendeur ; vendu dans la plage horaire du territoire (8 h - 22 h par défaut),
+// à toute heure d'ouverture avec un permis de vente de nuit. alcoolV2 : la base a reçu ces règles (sinon l'écran reste comme avant)
+const alcoolV2 = () => reglage('food', null, 'heure_debut_alcool') != null;
+const plageAlcool = terr => [Number(reglage('food', terr, 'heure_debut_alcool') ?? 8), Number(reglage('food', terr, 'heure_fin_alcool') ?? 22)];
+const hNum = h => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;   // 8 → « 08:00 »
+const textePlage = terr => { const [d, f] = plageAlcool(terr); return `de ${hFr(hNum(d))} à ${hFr(hNum(f))}`; };
+// « HH:MM » (heure du territoire) dans la plage ? même calcul que vente_alcool_ok() ; sans heure : maintenant
+const alcoolPermisA = (terr, hm = utcVersLocal(new Date().toISOString(), fuseauDe(terr)).split('T')[1]) => {
+  const [d, f] = plageAlcool(terr), x = Number(hm.slice(0, 2)) + Number(hm.slice(3, 5)) / 60;
+  return d === f ? false : d < f ? x >= d && x < f : x >= d || x < f;
+};
+const sansLicence = r => alcoolV2() && 'licence_alcool' in r && !r.licence_alcool;   // ses articles 18+ ne sont pas en vente
 // une vignette d'article : on l'ajoute d'un geste (+), le compteur apparaît ensuite ; le stock limite la quantité
 const finArticle = p => !p.dispo || p.stock === 0;
 const carteArticle = (p, n, ok) => `<div class="article ${finArticle(p) ? 'fini' : ''}" id="p-${p.id}">
@@ -44,13 +56,13 @@ async function afficherBoutiqueAccueil(terr) {
   const b = (await memo('acc-boutiques:' + terr, () => q(r))).find(x => etatOuverture(x).ouvert);
   if (!b || !$('#boutiqueAcc')) return;
   const arts = (await memo('acc-articles:' + b.id, () => q(sb.from('plats').select('*').eq('restaurant_id', b.id).eq('dispo', true).order('ordre').order('created_at').limit(16)), 15000))
-    .filter(p => p.stock !== 0 && !p.options?.length);
+    .filter(p => p.stock !== 0 && !p.options?.length && !(p.majeur && sansLicence(b)));
   const el = $('#boutiqueAcc'); if (!arts.length || !el) return;
   const cart = lirePanier(b.id), nb = k => cart[k]?.n || 0;
   el.innerHTML = `<div class="titre-s"><h2>Boissons et dépannage</h2><a href="#/resto/${b.id}">Tout voir</a></div>
     <p class="muted petit" style="margin:-4px 0 10px">${esc(b.nom)} · ${b.delai_min} min${b.livraison ? ` · livraison ${Number(b.frais_livraison) ? eur(b.frais_livraison) : 'offerte'}` : ''}${b.emporter ? ' · retrait sur place' : ''}</p>
     <div class="defile rayon-defile">${arts.map(p => carteArticle(p, nb(p.id), true)).join('')}</div>
-    ${arts.some(p => p.majeur) ? `<p class="petit muted" style="margin:6px 0 0">${MODERATION}</p>` : ''}<button type="button" class="barre-vite" id="barreVite" hidden></button>`;
+    ${arts.some(p => p.majeur) ? `<p class="petit muted" style="margin:6px 0 0">${MODERATION}${alcoolV2() && !b.permis_nuit ? ` Alcool vendu ${textePlage(b.territoire)}.` : ''}</p>` : ''}<button type="button" class="barre-vite" id="barreVite" hidden></button>`;
   el.hidden = false;
   const maj = () => { const n = Object.values(cart).reduce((t, x) => t + x.n, 0); $('#barreVite').hidden = !n; $('#barreVite').innerHTML = `<span>${n} article${n > 1 ? 's' : ''}</span><b>Valider mon panier</b>`; };
   el.addEventListener('click', e => {
@@ -184,7 +196,8 @@ APP.pages.resto = async id => {
   attente(); await chargerRegistre();
   const r = await memo('resto:' + id, () => q(sb.from('restaurants').select('*').eq('id', id).maybeSingle()), 20000);
   if (!r) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Restaurant introuvable</h3><a href="#/manger">Tous les restaurants</a></div>');
-  const [plats, n] = await memo('resto-carte:' + id, () => Promise.all([q(sb.from('plats').select('*').eq('restaurant_id', id).order('ordre').order('created_at')), q(sb.from('notes_resto').select('*').eq('restaurant_id', id))]), 20000);
+  const [tous, n] = await memo('resto-carte:' + id, () => Promise.all([q(sb.from('plats').select('*').eq('restaurant_id', id).order('ordre').order('created_at')), q(sb.from('notes_resto').select('*').eq('restaurant_id', id))]), 20000);
+  const plats = sansLicence(r) ? tous.filter(p => !p.majeur) : tous;   // sans licence déclarée, l'alcool n'est pas en vente (la base le refuse aussi)
   const bq = estBoutique(r), CATS = bq ? CATS_BOUTIQUE : CATS_PLAT;
   const platDe = k => plats.find(p => p.id === k), aOptions = p => p.options?.length > 0;
   let cart = lirePanier(id);
@@ -221,7 +234,8 @@ APP.pages.resto = async id => {
       ${parCat.length > 1 ? `<nav class="onglets-cat onglets-s" aria-label="${bq ? 'Rayons' : 'Catégories de la carte'}">${parCat.map(([c], i) => `<button type="button" data-saut="${c}" class="${i ? '' : 'on'}">${esc(nomCat(c))}</button>`).join('')}</nav>` : ''}
       ${parCat.length ? parCat.map(([c, l]) => `<h2 class="cat-t" id="cat-${c}">${esc(nomCat(c))}</h2>${bq ? `<div class="rayon">${l.map(p => carteArticle(p, nbPlat(p.id), commandable)).join('')}</div>` : `<div class="plats-l">${l.map(ligneP).join('')}</div>`}`).join('')
         : `<div class="vide-etat"><p>${bq ? 'Les articles arrivent bientôt.' : 'La carte arrive bientôt.'}</p></div>`}
-      ${bq && plats.some(p => p.majeur) ? `<p class="petit muted">${MODERATION}</p>` : ''}
+      ${bq && plats.some(p => p.majeur) ? `<p class="petit muted">${MODERATION}${alcoolV2() ? (r.permis_nuit ? ' Permis de vente de nuit déclaré : alcool vendu pendant les heures d’ouverture.' : ` Alcool vendu ${textePlage(r.territoire)}.`)
+        + (r.licence_alcool ? ` Licence n° ${esc(r.licence_alcool)}, déclarée par le vendeur.` : '') : ''}</p>` : ''}
       <p class="petit" style="margin-top:22px"><button type="button" class="lien" data-signaler="restaurant" data-id="${r.id}" data-univers="food" data-nom="${bq ? 'ce commerce' : 'ce restaurant'}">Signaler ${bq ? 'ce commerce' : 'ce restaurant'}</button></p>
     </div>
     <aside id="panneauCmd" aria-label="Mon panier"><div class="panier colle" id="panier"><div class="panier-t"><h2>Mon panier</h2>
@@ -234,8 +248,9 @@ APP.pages.resto = async id => {
           <label>Quand ?<select name="quand">${programmable ? '' : '<option value="">Dès que possible</option>'}<option value="plus">Programmer pour plus tard</option></select></label><div id="heureCmd"></div>
           <div style="display:flex;gap:6px;align-items:flex-end"><label style="flex:1">Code promo<input name="code" maxlength="20" autocomplete="off" style="text-transform:uppercase"></label><button type="button" class="btn btn-s" id="appliquer">Appliquer</button></div>
           <label>Un mot pour le restaurant<input name="note" maxlength="500" placeholder="Sans piment, code du portail…"></label></details>
-        <div id="majeur"></div><div id="pourboire"></div><div id="totaux"></div><button class="btn btn-p" id="commander" ${commandable ? '' : 'disabled'}>${commandable ? (programmable ? 'Programmer ma commande' : 'Commander') : 'Restaurant fermé'}</button>
-        <p class="muted petit" style="margin:0">Allergènes : voir chaque ${bq ? 'article' : 'plat'} ; une question ? Contactez ${bq ? 'la boutique' : 'le restaurant'} avant de commander.</p><p class="muted petit" style="margin:0">${bq ? 'Paiement à la livraison ou au retrait (espèces ou carte, selon la boutique).' : 'Paiement au restaurant ou au livreur (espèces ou carte, selon le restaurant).'}</p></form></div></aside></div>
+        <div id="majeur"></div><div id="alcoolHeure" role="status"></div><div id="pourboire"></div><div id="totaux"></div><button class="btn btn-p" id="commander" ${commandable ? '' : 'disabled'}>${commandable ? (programmable ? 'Programmer ma commande' : 'Commander') : 'Restaurant fermé'}</button>
+        <p class="muted petit" style="margin:0">Allergènes : voir chaque ${bq ? 'article' : 'plat'} ; une question ? Contactez ${bq ? 'la boutique' : 'le restaurant'} avant de commander.</p><p class="muted petit" style="margin:0">${bq ? 'Paiement à la livraison ou au retrait (espèces ou carte, selon la boutique).' : 'Paiement au restaurant ou au livreur (espèces ou carte, selon le restaurant).'}</p>
+        <p class="muted petit" style="margin:0">${bq ? 'Repas, glaces, produits frais et autres denrées périssables : pas de droit de rétractation (art. L221-28 du Code de la consommation). Autres articles : 14 jours, auprès de la boutique.' : 'Repas : pas de droit de rétractation (art. L221-28 du Code de la consommation).'} <a href="cgu.html" target="_blank" rel="noopener">Conditions</a></p></form></div></aside></div>
     <button type="button" class="barre-panier" id="barrePanier" hidden></button><div class="voile-panier" id="voilePanier"></div></div>`);
   const majAdresse = () => {
     $('#adresse').innerHTML = mode === 'livraison' ? `<label>Adresse de livraison<input name="adresse" required maxlength="300" autocomplete="street-address"></label>
@@ -256,6 +271,11 @@ APP.pages.resto = async id => {
     // alcool dans le panier : le client confirme sa majorité ; le vendeur contrôle une pièce d'identité à la remise
     const majeur = l.some(x => x.p.majeur);
     if (majeur !== !!$('#majeur').childElementCount) $('#majeur').innerHTML = majeur ? `<label class="majeur-ok"><input type="checkbox" name="majeur" required> <span><b>J’ai 18 ans ou plus</b><small>Une pièce d’identité vous sera demandée à la remise.</small></span></label>` : '';
+    // alcool hors de la plage horaire du territoire, sans permis de vente de nuit : la base refusera la commande, on le dit avant
+    const hCmd = $('#fCmd')?.heure?.value || '', maintenantOk = alcoolPermisA(r.territoire);
+    const horsPlage = majeur && alcoolV2() && !r.permis_nuit && (!maintenantOk || (hCmd && !alcoolPermisA(r.territoire, hCmd.split('T')[1])));
+    $('#alcoolHeure').innerHTML = horsPlage ? `<div class="bandeau att"><span aria-hidden="true">🌙</span><span><b>Alcool vendu ${textePlage(r.territoire)} seulement ici</b> (pas de permis de vente de nuit).
+      ${maintenantOk ? 'Choisissez une heure de remise dans cette plage, ou retirez les articles 18+.' : 'Retirez les articles 18+ pour commander maintenant.'}</span></div>` : '';
     $('#pourboire').innerHTML = BASE_V2 && l.length && mode === 'livraison' ? `<div class="pourboire"><span class="petit"><b>Pourboire pour le livreur</b> <span class="aide">(facultatif, 100 % pour lui)</span></span>
       <div class="actions">${[0, 1, 2, 3, 5].map(v => `<button type="button" class="btn btn-s ${tip === v ? 'btn-p' : ''}" data-tip="${v}">${v ? eur(v) : 'Non merci'}</button>`).join('')}</div></div>` : '';
     $('#totaux').innerHTML = l.length ? `<div class="muted petit">Sous-total ${eur(st)}${remise ? ` · code ${esc(codeOk)} −${eur(remise)}` : ''}${mode === 'livraison' ? ` · livraison ${frais ? eur(frais) : 'offerte'}` : ''}${pb ? ` · pourboire ${eur(pb)}` : ''}</div><div class="total-p">Total ${eur(st - remise + frais + pb)}</div>
@@ -327,6 +347,7 @@ APP.pages.resto = async id => {
     $('#heureCmd').innerHTML = $('#fCmd').quand.value ? `<label>Pour le <span class="aide">(heure de ${esc(r.territoire)}${horairesSem ? ', pendant les heures d’ouverture' : ''}${etat.pause ? `, après ${esc(etat.texte.replace('rouvre à ', ''))}` : ''})</span><input name="heure" type="datetime-local" required min="${utcVersLocal(new Date(des).toISOString(), fuseauR)}" max="${utcVersLocal(new Date(Date.now() + 7 * 864e5).toISOString(), fuseauR)}"></label>` : '';
   };
   $('#fCmd').quand.addEventListener('change', champHeure); champHeure();
+  $('#fCmd').addEventListener('change', e => { if (['heure', 'quand'].includes(e.target.name)) majPanier(); });   // heure de remise et plage de vente de l'alcool
   $('#appliquer').addEventListener('click', async () => {
     const code = $('#fCmd').code.value.trim(); if (!code) { remise = 0; codeOk = null; return majPanier(); }
     if (!exigeCompte()) return;
@@ -349,7 +370,7 @@ APP.pages.resto = async id => {
       // position de l'adresse pour guider le livreur (facultative : la commande part même si la recherche échoue)
       const pos = mode === 'livraison' ? (await geocoder(`${d.adresse}, ${d.commune}`, r.territoire).catch(() => []))[0] : null;
       const c = await q(sb.rpc('passer_commande', { resto: id, mode_cmd: mode, lignes, adresse_cmd: d.adresse || null, commune_cmd: d.commune || null, telephone_cmd: d.telephone.trim(), note_cmd: d.note || null,
-        lat_cmd: pos?.lat ?? null, lng_cmd: pos?.lng ?? null, heure_cmd: d.heure ? localVersUTC(d.heure, fuseauR) : null, code_cmd: codeOk, ...(BASE_V2 ? { pourboire_cmd: mode === 'livraison' && tip ? tip : null } : {}) }));
+        lat_cmd: pos?.lat ?? null, lng_cmd: pos?.lng ?? null, heure_cmd: d.heure ? localVersUTC(d.heure, fuseauR) : null, code_cmd: codeOk, ...(BASE_V2 ? { pourboire_cmd: mode === 'livraison' && tip ? tip : null } : {}), ...(alcoolV2() ? { majeur_cmd: !!d.majeur } : {}) }));
       cart = {}; panier.ecrire(id, cart); oublier('resto'); oublier('acc-'); toast(`Commande envoyée à ${r.nom}. ${bq ? 'La boutique' : 'Le restaurant'} doit l’accepter : vous serez prévenu ici.`); aller('#/suivi/' + c.id);
     } catch (err) { toast(erreur(err).replace(/^[A-Z_]{4,}\s+/, ''), true); b.disabled = false; if (/stock|épuisé|PAUSE/i.test(err.message || '')) oublier('resto'); }
   });

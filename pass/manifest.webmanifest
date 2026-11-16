@@ -1,0 +1,25 @@
+{
+  "name": "EventPass — sorties, billets et expériences",
+  "short_name": "EventPass",
+  "description": "Concerts, soirées, festivals, excursions et activités aux Antilles et ailleurs : billets avec QR code sur le téléphone, lisibles même sans réseau.",
+  "lang": "fr",
+  "id": "./",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone"],
+  "orientation": "portrait",
+  "background_color": "#FFF8F2",
+  "theme_color": "#FF3D7F",
+  "categories": ["entertainment", "travel", "lifestyle"],
+  "icons": [
+    { "src": "img/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icone-512-masque.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Mes billets", "short_name": "Billets", "url": "./#/billets", "icons": [{ "src": "img/icone-192.png", "sizes": "192x192" }] },
+    { "name": "Trouver une sortie", "short_name": "Sortir", "url": "./#/", "icons": [{ "src": "img/icone-192.png", "sizes": "192x192" }] },
+    { "name": "Contrôle à l’entrée", "short_name": "Contrôle", "url": "./#/controle", "icons": [{ "src": "img/icone-192.png", "sizes": "192x192" }] }
+  ]
+}

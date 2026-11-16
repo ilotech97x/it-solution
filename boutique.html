@@ -4,63 +4,136 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://mocntvrlwdndyuiwrxen.supabase.co https://script.google.com https://script.googleusercontent.com https://formsubmit.co; form-action 'self' https://formsubmit.co; object-src 'none'; base-uri 'self'; upgrade-insecure-requests">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Boutique IloTech — bientôt en ligne | Martinique</title>
-  <meta name="description" content="Bientôt : la boutique en ligne IloTech, le matériel que nous installons en Martinique (Starlink, Wi-Fi, caméras, onduleurs, accessoires), avec retrait en agence à Ducos et au Robert.">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Boutique IloTech — vélos et trottinettes électriques, Starlink, caméras, onduleurs | Martinique</title>
+  <meta name="description" content="Boutique IloTech en Martinique : vélos à assistance électrique, trottinettes et motos électriques sur commande, kits Starlink, Wi-Fi mesh, caméras, alarmes, onduleurs, PC reconditionnés. Retrait à Ducos ou au Robert, livraison et pose possibles.">
   <link rel="canonical" href="https://ilo-tech.com/boutique.html">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Boutique IloTech — bientôt en ligne">
-  <meta property="og:description" content="Le matériel que nous installons en Martinique, bientôt en vente en ligne, retrait en agence.">
+  <meta property="og:title" content="Boutique IloTech — mobilité électrique et matériel tech en Martinique">
+  <meta property="og:description" content="Vélos, trottinettes et motos électriques sur commande, Starlink, caméras, onduleurs, PC reconditionnés. Retrait à Ducos ou au Robert.">
   <meta property="og:url" content="https://ilo-tech.com/boutique.html">
   <meta property="og:image" content="https://ilo-tech.com/img/og-ilotech.jpg">
   <meta name="theme-color" content="#05070d">
   <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
   <script>try{if(localStorage.getItem('itTheme')==='light')document.documentElement.dataset.theme='light'}catch(e){}</script>
   <link rel="stylesheet" href="style.css?v=103">
+  <link rel="stylesheet" href="boutique.css?v=1">
 </head>
-<body class="page-doc">
+<body class="page-doc page-boutique">
+<!--tn--><style>
+.tn{background:#050912;border-bottom:1px solid #16233d;font-family:inherit;position:relative;z-index:21}
+.tn-in{display:flex;gap:6px;max-width:1240px;margin:0 auto;padding:6px 12px}
+.tn-a{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:9px;min-height:40px;padding:5px 10px;border-radius:12px;color:#9fb0c8;text-decoration:none;
+  font-size:14px;font-weight:700;line-height:1.15;border:1px solid transparent;transition:background-color .18s,color .18s,border-color .18s}
+.tn-a svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tn-a small{display:block;font-size:11.5px;font-weight:500;color:#6f809b}
+.tn-a:hover{color:#fff;background:#0d1628;border-color:#1d2c48}
+.tn-a.on{color:#fff;background:linear-gradient(135deg,var(--tnc),color-mix(in srgb,var(--tnc) 55%,#050912));border-color:var(--tnc);box-shadow:0 4px 18px color-mix(in srgb,var(--tnc) 35%,transparent)}
+.tn-a.on small{color:rgba(255,255,255,.82)}
+.tn-a:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.tn-c{display:none}
+@media (max-width:640px){.tn-in{gap:4px;padding:5px 8px}.tn-a{flex-direction:column;gap:2px;min-height:46px;font-size:12.5px;padding:4px 4px;border-radius:10px}
+  .tn-a small,.tn-l{display:none}.tn-c{display:inline}.tn-a svg{width:19px;height:19px}}
+@media print{.tn{display:none}}
+</style><nav class="tn" aria-label="Les trois parties d’IloTech">
+<div class="tn-in"><a class="tn-a" href="/digital/" style="--tnc:#a855f7"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15V9l11-5v16L4 15z"/><path d="M15 9.5a3.5 3.5 0 0 1 0 5"/><path d="M7 15.5l1.5 4.5h3L10 16"/></svg><span><span class="tn-l">Digital &amp; Marketing<small>Réseaux, contenus IA, sites</small></span><span class="tn-c">Digital</span></span></a><a class="tn-a" href="/" style="--tnc:#2b8cff"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0-5.3 5.3L4 17l3 3 5.2-5.2a4 4 0 0 0 5.3-5.3l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><span><span class="tn-l">Services<small>Dépannage, Starlink, caméras</small></span><span class="tn-c">Services</span></span></a><a class="tn-a on" href="/boutique.html" style="--tnc:#22c55e" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span><span class="tn-l">Boutique<small>Matériel, mobilité électrique</small></span><span class="tn-c">Boutique</span></span></a></div></nav><!--/tn-->
   <header class="top">
     <a class="brand" href="index.html" aria-label="IloTech — accueil">
       <img class="logo" src="img/logo-ilo.png" alt="" width="64" height="38">
       <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">IT</em></b><span class="mono">Ducos · Le Robert — Martinique</span></span>
     </a>
-    <a class="studio-badge" href="https://studio.ilo-tech.com/" title="IloTech Studio : notre agence marketing et IA"><img src="img/studio-logo.svg" alt="" width="28" height="28"><span><b>IloTech Studio</b><small>Agence marketing &amp; IA</small></span></a>
-    <div class="top-actions"><a class="btn btn-head" href="index.html">Prendre rendez-vous</a></div>
+    <div class="top-actions"><button type="button" class="btn btn-head b-panier-btn" data-ouvrir aria-haspopup="dialog" aria-controls="bPanier"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span>Panier</span></button></div>
   </header>
 
-    <main class="doc doc-wide boutique-bientot">
-    <p class="mono boutique-tag">BIENTÔT</p>
-    <h1>La boutique IloTech</h1>
-    <p class="lead">Le matériel que nous installons tous les jours, choisi pour la chaleur, l’humidité et l’air salin de la Martinique, bientôt en vente en ligne : retrait dans nos agences de Ducos et du Robert, ou livraison.</p>
-    <div class="actions left">
-      <a class="btn btn-primary" href="https://wa.me/596696482678?text=Bonjour%20IloTech%2C%20pr%C3%A9venez-moi%20%C3%A0%20l%E2%80%99ouverture%20de%20la%20boutique%20en%20ligne." target="_blank" rel="noopener">Me prévenir à l’ouverture (WhatsApp)</a>
-      <a class="btn" href="mailto:ilotech.contact@gmail.com?subject=Boutique%20IloTech&amp;body=Pr%C3%A9venez-moi%20%C3%A0%20l%E2%80%99ouverture%20de%20la%20boutique%20en%20ligne.">Par email</a>
+  <main class="b-main" id="main">
+    <section class="b-hero" aria-labelledby="bTitre">
+      <div class="b-hero-txt">
+        <p class="b-sur">Boutique IloTech · Martinique</p>
+        <h1 id="bTitre">Le bon matériel, <em>choisi pour la Martinique</em>.</h1>
+        <p class="b-chapo">Vélos, trottinettes et motos électriques sur commande, et le matériel que nos techniciens installent chaque jour, choisi pour la chaleur, l’humidité et l’air salin.</p>
+        <ul class="b-atouts">
+          <li><b>Retrait</b> à Ducos ou au Robert</li>
+          <li><b>Livraison</b> en Martinique</li>
+          <li><b>Pose</b> par nos techniciens</li>
+          <li><b>Rien à payer en ligne</b></li>
+        </ul>
+      </div>
+      <a class="b-vedette" href="#mobilite" data-f="mobilite">
+        <span class="b-vedette-vis" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="5" cy="16" r="3.5"/><circle cx="19" cy="16" r="3.5"/><path d="M5 16l4-6h5l2 3h3M14 10l-2-4h3M9 10l3 6h4"/></svg></span>
+        <span><small>Nouveau</small><b>Mobilité électrique</b><span>Vélos à assistance, trottinettes, motos légères type Sur-Ron, scooters : sur commande, marque et modèle au choix.</span><i>Voir la mobilité électrique →</i></span>
+      </a>
+    </section>
+
+    <div class="b-outils">
+      <label class="b-cherche"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr-only">Rechercher un article</span><input id="bCherche" type="search" placeholder="Rechercher : vélo, Starlink, onduleur…" autocomplete="off"></label>
+      <div class="b-filtres" id="bFiltres" role="group" aria-label="Catégories"></div>
     </div>
-    <h2>Ce que vous y trouverez</h2>
-    <div class="boutique-grille">
-      <section class="boutique-cat"><span class="boutique-ico" aria-hidden="true">🛰️</span><h3>Starlink et internet</h3><p>Kits, supports de toiture, câbles longs, routeurs.</p><span class="boutique-badge">Bientôt</span></section>
-      <section class="boutique-cat"><span class="boutique-ico" aria-hidden="true">📶</span><h3>Wi-Fi et réseau</h3><p>Bornes mesh, routeurs, câbles réseau, prises.</p><span class="boutique-badge">Bientôt</span></section>
-      <section class="boutique-cat"><span class="boutique-ico" aria-hidden="true">📹</span><h3>Caméras et alarme</h3><p>Kits de caméras, caméras solaires 4G, alarmes, visiophones.</p><span class="boutique-badge">Bientôt</span></section>
-      <section class="boutique-cat"><span class="boutique-ico" aria-hidden="true">🔋</span><h3>Énergie et coupures</h3><p>Onduleurs, batteries nomades, parafoudres.</p><span class="boutique-badge">Bientôt</span></section>
-      <section class="boutique-cat"><span class="boutique-ico" aria-hidden="true">💻</span><h3>Ordinateurs reconditionnés</h3><p>PC vérifiés et garantis, prêts à l’emploi.</p><span class="boutique-badge">Bientôt</span></section>
-      <section class="boutique-cat"><span class="boutique-ico" aria-hidden="true">🖱️</span><h3>Accessoires informatiques</h3><p>Câbles, chargeurs, claviers, souris, disques.</p><span class="boutique-badge">Bientôt</span></section>
-      <section class="boutique-cat"><span class="boutique-ico" aria-hidden="true">📱</span><h3>Téléphones et tablettes</h3><p>Protections, chargeurs, batteries externes.</p><span class="boutique-badge">Bientôt</span></section>
-      <section class="boutique-cat"><span class="boutique-ico" aria-hidden="true">🎮</span><h3>Gaming</h3><p>Manettes, casques, accessoires de console.</p><span class="boutique-badge">Bientôt</span></section>
-      <section class="boutique-cat"><span class="boutique-ico" aria-hidden="true">🖨️</span><h3>Impression 3D</h3><p>Pièces et objets imprimés à la demande.</p><span class="boutique-badge">Bientôt</span></section>
-    </div>
-    <h2>En attendant</h2>
-    <p>Le matériel est déjà disponible avec nos installations : choisissez « matériel fourni » dans <a href="index.html">De quoi avez-vous besoin ?</a>, il apparaît à part sur votre devis, avec son prix. Les prix sont aussi dans la <a href="fiche-tarifs.html">fiche tarifs</a>.</p>
-    <p class="muted">Aucun prix n’est affiché ici tant que la boutique n’est pas ouverte : ils seront ceux du jour, confirmés à la commande.</p>
-<!--eco--><style>.eco{max-width:1200px;margin:26px auto 8px;padding:0 16px;box-sizing:border-box;text-align:left}.eco-t{font-weight:800;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;opacity:.7;margin:0 0 10px}.eco-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:10px}.eco .eco-g a{display:flex!important;gap:10px;align-items:center;padding:9px 12px;margin:0!important;border-radius:16px;border:1px solid rgba(127,127,127,.28);background:rgba(127,127,127,.07);color:inherit!important;text-decoration:none!important;transition:transform .15s,border-color .15s}.eco .eco-g a:hover{transform:translateY(-2px);border-color:var(--c)}.eco-g i{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-style:normal;font-size:20px;background:var(--c)}.eco-g b{display:block;font-size:15px;line-height:1.2;margin:0!important;color:inherit}.eco-g small{display:block;font-size:12.5px;line-height:1.3;opacity:.75}@media print{.eco{display:none}}</style><nav class="eco" aria-label="L’écosystème IloTech"><p class="eco-t">L’écosystème IloTech</p><div class="eco-g"><a href="https://studio.ilo-tech.com/" style="--c:#a855f7"><i aria-hidden="true">🎬</i><span><b>IloTech Studio</b><small>Agence marketing et IA</small></span></a><a href="https://immo.ilo-tech.com/" style="--c:#f97316"><i aria-hidden="true">🏡</i><span><b>Kaz An Nou</b><small>Villas, gîtes et services maison</small></span></a><a href="https://ilo-tech.com/pass/" style="--c:#FF3D7F"><i aria-hidden="true">🎟️</i><span><b>EventPass</b><small>Sorties, concerts et billets</small></span></a><a href="https://ilo-tech.com/woulib/" style="--c:#FF5A36"><i aria-hidden="true">🚀</i><span><b>Woulib</b><small>Repas livrés, VTC, taxis et GPS</small></span></a><a href="https://ilo-tech.com/nexora/" style="--c:#8067F5"><i aria-hidden="true">📊</i><span><b>NEXORA</b><small>CRM, devis et factures pour entreprises</small></span></a><a href="https://ilo-tech.com/evenements/" style="--c:#f43f5e"><i aria-hidden="true">🔊</i><span><b>Eventik</b><small>Matériel pour événements (bientôt)</small></span></a></div></nav><!--/eco-->
-</main>
-<style>.boutique-tag{display:inline-block;margin:0 0 6px;padding:3px 10px;border-radius:99px;background:#facc15;color:#1a1300;font-weight:800;font-size:12px}
-.boutique-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin:12px 0 22px}
-.boutique-cat{position:relative;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2)}
-.boutique-cat h3{margin:8px 0 4px;font-size:16px}.boutique-cat p{margin:0;color:var(--muted);font-size:14px}
-.boutique-ico{font-size:30px}.boutique-badge{position:absolute;top:12px;right:12px;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,#facc15 22%,transparent);color:#facc15;font-size:11px;font-weight:800}
-[data-theme="light"] .boutique-badge{color:#7a5b00}</style>
+
+    <div id="bListe" class="b-liste" aria-live="polite"></div>
+
+    <section class="b-infos" aria-labelledby="bInfosT">
+      <h2 id="bInfosT">Comment ça marche</h2>
+      <ol class="b-etapes">
+        <li><b>Vous choisissez</b><span>Ajoutez les articles au panier, ou demandez un modèle précis.</span></li>
+        <li><b>Nous confirmons</b><span>Prix du jour, disponibilité et délai, par WhatsApp ou email, sous 24 h ouvrées.</span></li>
+        <li><b>Vous récupérez</b><span>Retrait à Ducos ou au Robert, livraison, ou pose par un technicien.</span></li>
+        <li><b>Vous payez à la remise</b><span>Rien n’est payé en ligne. Les moyens de paiement vous sont indiqués à la confirmation.</span></li>
+      </ol>
+      <div class="b-bons">
+        <details open><summary>Garanties, retours et recyclage</summary>
+          <ul>
+            <li><b>Garantie légale de conformité</b> de 2 ans sur le neuf (articles L.217-3 et suivants du Code de la consommation), au moins 1 an sur le reconditionné, plus la garantie du fabricant.</li>
+            <li><b>Rétractation de 14 jours</b> pour une commande passée à distance (site, WhatsApp, téléphone), à compter de la remise de l’article : voir nos <a href="cgv.html">conditions générales de vente</a>.</li>
+            <li><b>Éco-participation</b> incluse dans le prix des appareils électriques et électroniques, détaillée sur la facture.</li>
+            <li><b>Reprise gratuite</b> de votre ancien appareil du même type quand vous en achetez un neuf, et des batteries usagées, pour qu’ils soient recyclés.</li>
+          </ul></details>
+        <details><summary>Mobilité électrique : ce que dit la loi</summary>
+          <ul>
+            <li><b>Vélo à assistance électrique :</b> assistance seulement quand vous pédalez, coupée à 25 km/h, moteur de 250 W au plus. Ni permis, ni immatriculation.</li>
+            <li><b>Trottinette électrique :</b> 25 km/h au plus, dès 14 ans, interdite sur les trottoirs, assurance responsabilité civile obligatoire.</li>
+            <li><b>Moto électrique tout-terrain</b> (non homologuée) : interdite sur la voie publique, réservée aux terrains privés autorisés et aux circuits ; assurance obligatoire.</li>
+            <li><b>Moto légère ou scooter homologué (L1e, 45 km/h) :</b> carte grise, assurance, casque homologué et permis AM ou B selon votre âge.</li>
+            <li>Nous vous indiquons la catégorie exacte de chaque modèle avant la commande.</li>
+          </ul></details>
+      </div>
+      <p class="b-note">Prix indicatifs TTC, les mêmes que sur nos devis : le prix du jour vous est confirmé avant toute commande. Mobilité électrique et articles marqués « sur commande » : prix et délai sur demande.</p>
+    </section>
+  </main>
+
+  <div class="b-barre" id="bBarre" hidden>
+    <span><b data-nb>0 article</b><small data-total>—</small></span>
+    <button type="button" class="btn btn-primary" data-ouvrir aria-haspopup="dialog" aria-controls="bPanier">Voir le panier</button>
+  </div>
+
+  <dialog class="b-panier" id="bPanier" aria-labelledby="bPanierT">
+    <div class="b-panier-tete"><h2 id="bPanierT">Votre panier</h2><button type="button" class="b-x" data-fermer aria-label="Fermer le panier">×</button></div>
+    <ul class="b-lignes" id="bLignes"></ul>
+    <div class="b-total" id="bTotal"></div>
+    <form id="bForm" class="b-form">
+      <fieldset><legend>Comment voulez-vous le récupérer ?</legend>
+        <label><input type="radio" name="mode" value="ducos" checked> Retrait à Ducos</label>
+        <label><input type="radio" name="mode" value="robert"> Retrait au Robert</label>
+        <label><input type="radio" name="mode" value="livraison"> Livraison en Martinique</label>
+        <label><input type="radio" name="mode" value="pose"> Livraison et pose par un technicien</label>
+      </fieldset>
+      <label>Votre prénom et nom <span class="b-fac">(facultatif)</span><input name="nom" maxlength="80" autocomplete="name"></label>
+      <label>Votre commune <span class="b-fac">(pour la livraison)</span><input name="commune" maxlength="60" autocomplete="address-level2"></label>
+      <label>Une précision ? <span class="b-fac">(modèle, couleur, taille…)</span><textarea name="note" maxlength="400" rows="2"></textarea></label>
+      <p class="b-form-note">Rien n’est payé maintenant : nous vous confirmons le prix et la disponibilité, puis vous payez à la remise.</p>
+      <div class="b-form-act"><button type="submit" class="btn btn-primary b-wa" data-envoi="wa">Envoyer ma commande sur WhatsApp</button><button type="button" class="btn" data-envoi="mail">Par email</button></div>
+    </form>
+  </dialog>
+  <p class="sr-only" id="bAnnonce" aria-live="polite"></p>
+
+  <footer class="seo-pied"><p>IloTech — entreprise individuelle · Ducos · Le Robert · Martinique · <a href="cgv.html">Conditions de vente</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p><!--eco--><style>.eco{max-width:1200px;margin:26px auto 8px;padding:0 16px;box-sizing:border-box;text-align:left}.eco-t{font-weight:800;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;opacity:.7;margin:0 0 10px}.eco-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:10px}.eco .eco-g a{display:flex!important;gap:10px;align-items:center;padding:9px 12px;margin:0!important;border-radius:16px;border:1px solid rgba(127,127,127,.28);background:rgba(127,127,127,.07);color:inherit!important;text-decoration:none!important;transition:transform .15s,border-color .15s}.eco .eco-g a:hover{transform:translateY(-2px);border-color:var(--c)}.eco-g i{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-style:normal;font-size:20px;background:var(--c)}.eco-g b{display:block;font-size:15px;line-height:1.2;margin:0!important;color:inherit}.eco-g small{display:block;font-size:12.5px;line-height:1.3;opacity:.75}@media print{.eco{display:none}}</style><nav class="eco" aria-label="L’écosystème IloTech"><p class="eco-t">L’écosystème IloTech</p><div class="eco-g"><a href="https://ilo-tech.com/digital/" style="--c:#a855f7"><i aria-hidden="true">🎬</i><span><b>IloTech Studio</b><small>Agence marketing et IA</small></span></a><a href="https://immo.ilo-tech.com/" style="--c:#f97316"><i aria-hidden="true">🏡</i><span><b>Kaz An Nou</b><small>Villas, gîtes et services maison</small></span></a><a href="https://ilo-tech.com/pass/" style="--c:#FF3D7F"><i aria-hidden="true">🎟️</i><span><b>EventPass</b><small>Sorties, concerts et billets</small></span></a><a href="https://ilo-tech.com/woulib/" style="--c:#FF5A36"><i aria-hidden="true">🚀</i><span><b>Woulib</b><small>Repas livrés, VTC, taxis et GPS</small></span></a><a href="https://ilo-tech.com/nexora/" style="--c:#8067F5"><i aria-hidden="true">📊</i><span><b>NEXORA</b><small>CRM, devis et factures pour entreprises</small></span></a><a href="https://ilo-tech.com/evenements/" style="--c:#f43f5e"><i aria-hidden="true">🔊</i><span><b>Eventik</b><small>Matériel pour événements (bientôt)</small></span></a></div></nav><!--/eco-->
+</footer>
+  <script src="data.js?v=103"></script>
+  <script src="outils.js?v=103"></script>
+  <script src="boutique.js?v=2"></script>
   <script src="config.js?v=1"></script>
   <script src="mesure.js?v=1"></script>
+  <script src="appli.js?v=1" defer></script>
 </body>
 </html>

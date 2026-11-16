@@ -1069,7 +1069,7 @@ function ouvrirMenu() {
         ${lien('services.html', 'Tous les services et tarifs')}${lien('boutique.html', 'Boutique IloTech', 'Bientôt : matériel et accessoires')}${lien('installation-starlink-martinique.html', 'Installation Starlink', 'Internet partout en Martinique')}
         ${lien('conseils.html', 'Conseils et guides')}${lien('outils-gratuits.html', 'Outils gratuits', 'QR code, mot de passe…')}
         ${lien('fiche-tarifs.html', 'Fiche tarifs à imprimer')}<a href="#" onclick="$('menuSite').close();openSuivi();return false">Suivre ma demande</a>
-        <h3>Nos autres sites</h3>${lien('https://studio.ilo-tech.com/', 'IloTech Studio', 'Agence marketing et IA')}${lien('https://immo.ilo-tech.com/', 'IloTech Immobilier', 'Photos, drone, annonces')}</section>
+        <h3>Nos autres sites</h3>${lien('https://ilo-tech.com/digital/', 'IloTech Studio', 'Agence marketing et IA')}${lien('https://immo.ilo-tech.com/', 'IloTech Immobilier', 'Photos, drone, annonces')}</section>
       <section><h3>Nous contacter</h3>${Object.values(AGENCES).map(a => `<div class="menu-agence"><b>Agence ${a.de}</b>
           <a class="btn btn-primary" href="${telUrl(a.tel)}">${ico('phone')} ${esc(a.tel)}</a>
           <a class="btn btn-wa" href="${waUrl(a.tel, "Bonjour IloTech, j'aimerais un renseignement.")}" target="_blank" rel="noopener">${ico('chat')} WhatsApp</a></div>`).join('')}

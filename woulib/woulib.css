@@ -407,6 +407,10 @@ html[data-sens] #app>*{animation:none}
 .total-p{font-size:24px;font-weight:800}
 .majeur-ok{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:var(--r-btn);background:var(--soleil-doux);font-weight:600}
 .majeur-ok input{margin-top:2px}.majeur-ok small{display:block;color:var(--encre);font-weight:500}
+#alcoolHeure:empty{display:none}
+/* Delivery : objets interdits montrés avant l'envoi ; boutique : licence de vente d'alcool */
+.interdits-c ul{margin:4px 0 6px;padding-left:18px;display:grid;gap:2px}.interdits-c small{display:block;color:var(--texte-2)}
+.licence-f{min-width:0;margin:0;display:grid;gap:12px}.licence-f legend{padding:0 6px}
 .fermer-panier,.barre-panier,.voile-panier{display:none}
 body.sans-defil{overflow:hidden}
 .opt-g{border:1px solid var(--ligne);border-radius:var(--r-btn);padding:10px 12px;margin:0;display:grid;gap:4px;min-width:0}

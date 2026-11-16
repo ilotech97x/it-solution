@@ -1,0 +1,25 @@
+{
+  "name": "IloTech — Services, Digital & Marketing, Boutique",
+  "short_name": "IloTech",
+  "description": "Dépannage informatique, Starlink, caméras, sites et réseaux sociaux, boutique de matériel et de mobilité électrique en Martinique.",
+  "lang": "fr",
+  "dir": "ltr",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#060a13",
+  "theme_color": "#05070d",
+  "categories": ["business", "shopping", "utilities"],
+  "icons": [
+    { "src": "/img/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icone-512-masque.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Services : prendre rendez-vous", "short_name": "Services", "url": "/", "icons": [{ "src": "/img/icone-192.png", "sizes": "192x192" }] },
+    { "name": "Digital & Marketing", "short_name": "Digital", "url": "/digital/", "icons": [{ "src": "/img/icone-192.png", "sizes": "192x192" }] },
+    { "name": "Boutique", "short_name": "Boutique", "url": "/boutique.html", "icons": [{ "src": "/img/icone-192.png", "sizes": "192x192" }] }
+  ]
+}
