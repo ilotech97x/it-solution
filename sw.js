@@ -2,7 +2,7 @@
    Toujours la version en ligne d'abord (prix et textes à jour), la copie locale seulement hors connexion.
    Les applis du site ont leur propre service worker et ne passent jamais par celui-ci : /woulib/, /pass/, /control/, /nexora/, /kivora/.
    Rien d'autre que les fichiers du site n'est gardé (pas de Supabase, pas de Google). CACHE à monter quand la liste change. */
-const CACHE = 'ilotech-v2';
+const CACHE = 'ilotech-v3';
 const COQUILLE = ['/', '/style.css', '/data.js', '/outils.js', '/scenes.js', '/pages-seo.js', '/app.js', '/config.js', '/mesure.js', '/appli.js',
   '/boutique.html', '/boutique.css', '/boutique.js', '/img/logo-ilo.png', '/img/favicon.png', '/img/icone-192.png'];
 const APPLIS = /^\/(woulib|pass|control|nexora|kivora)\//;

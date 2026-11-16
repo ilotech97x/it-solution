@@ -19,7 +19,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <script>try{if(localStorage.getItem('itTheme')==='light')document.documentElement.dataset.theme='light'}catch(e){}</script>
   <link rel="stylesheet" href="style.css?v=104">
-  <link rel="stylesheet" href="boutique.css?v=1">
+  <link rel="stylesheet" href="boutique.css?v=2">
 </head>
 <body class="page-doc page-boutique">
 <!--tn--><style>
@@ -44,86 +44,32 @@
       <img class="logo" src="img/logo-ilo.png" alt="" width="64" height="38">
       <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">IT</em></b><span class="mono">Ducos · Le Robert — Martinique</span></span>
     </a>
-    <div class="top-actions"><button type="button" class="btn btn-head b-panier-btn" data-ouvrir aria-haspopup="dialog" aria-controls="bPanier"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span>Panier</span></button></div>
   </header>
 
-  <main class="b-main" id="main">
-    <section class="b-hero" aria-labelledby="bTitre">
-      <div class="b-hero-txt">
-        <p class="b-sur">Boutique IloTech · Martinique</p>
-        <h1 id="bTitre">Le bon matériel, <em>choisi pour la Martinique</em>.</h1>
-        <p class="b-chapo">Vélos, trottinettes et motos électriques sur commande, et le matériel que nos techniciens installent chaque jour, choisi pour la chaleur, l’humidité et l’air salin.</p>
-        <ul class="b-atouts">
-          <li><b>Retrait</b> à Ducos ou au Robert</li>
-          <li><b>Livraison</b> en Martinique</li>
-          <li><b>Pose</b> par nos techniciens</li>
-          <li><b>Rien à payer en ligne</b></li>
-        </ul>
-      </div>
-      <a class="b-vedette" href="#mobilite" data-f="mobilite">
-        <span class="b-vedette-vis" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="5" cy="16" r="3.5"/><circle cx="19" cy="16" r="3.5"/><path d="M5 16l4-6h5l2 3h3M14 10l-2-4h3M9 10l3 6h4"/></svg></span>
-        <span><small>Nouveau</small><b>Mobilité électrique</b><span>Vélos à assistance, trottinettes, motos légères type Sur-Ron, scooters : sur commande, marque et modèle au choix.</span><i>Voir la mobilité électrique →</i></span>
-      </a>
-    </section>
-
-    <div class="b-outils">
-      <label class="b-cherche"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr-only">Rechercher un article</span><input id="bCherche" type="search" placeholder="Rechercher : vélo, Starlink, onduleur…" autocomplete="off"></label>
-      <div class="b-filtres" id="bFiltres" role="group" aria-label="Catégories"></div>
+  <header class="bh" id="bHead">
+    <div class="bh-in">
+      <button type="button" class="btn bh-rayons" id="bRayonsBtn" aria-expanded="false" aria-controls="bMega"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Tous les rayons</span></button>
+      <form class="b-recherche bh-cherche" id="bRecherche" role="search" action="#">
+        <label class="sr-only" for="bCherche">Rechercher un produit ou un rayon</label>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <input id="bCherche" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="bSug" autocomplete="off" enterkeyhint="search" placeholder="Rechercher : Starlink, caméra, onduleur, vélo…">
+        <ul class="b-sug" id="bSug" role="listbox" aria-label="Suggestions" hidden></ul>
+      </form>
+      <nav class="bh-icones" aria-label="Favoris, comparateur et panier">
+        <a id="bFavLien" href="#/favoris"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20.5s-8-4.7-8-10.6A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8 2.9c0 5.9-8 10.6-8 10.6z"/></svg><span class="bh-lib">Favoris</span><span class="bh-n" data-n="fav" hidden></span></a>
+        <a id="bCmpLien" href="#/comparer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 4v16M6 20h12M5 7h14M5 7l-3 7a3.5 3.5 0 0 0 6 0zM19 7l-3 7a3.5 3.5 0 0 0 6 0z"/></svg><span class="bh-lib">Comparer</span><span class="bh-n" data-n="cmp" hidden></span></a>
+        <a id="bPanierLien" href="#/panier"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 4h2.5l2 11h10l2-8H7"/><circle cx="9" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></svg><span class="bh-lib">Panier</span><span class="bh-n" data-n="pan" hidden></span><span class="bh-tot" id="bTotalEntete"></span></a>
+      </nav>
     </div>
+    <div class="bh-mega" id="bMega" hidden></div>
+  </header>
 
-    <div id="bListe" class="b-liste" aria-live="polite"></div>
+  <main class="b-main" id="bMain" tabindex="-1"><noscript><p>La boutique a besoin de JavaScript. Écrivez-nous sur WhatsApp ou par email pour commander.</p></noscript></main>
 
-    <section class="b-infos" aria-labelledby="bInfosT">
-      <h2 id="bInfosT">Comment ça marche</h2>
-      <ol class="b-etapes">
-        <li><b>Vous choisissez</b><span>Ajoutez les articles au panier, ou demandez un modèle précis.</span></li>
-        <li><b>Nous confirmons</b><span>Prix du jour, disponibilité et délai, par WhatsApp ou email, sous 24 h ouvrées.</span></li>
-        <li><b>Vous récupérez</b><span>Retrait à Ducos ou au Robert, livraison, ou pose par un technicien.</span></li>
-        <li><b>Vous payez à la remise</b><span>Rien n’est payé en ligne. Les moyens de paiement vous sont indiqués à la confirmation.</span></li>
-      </ol>
-      <div class="b-bons">
-        <details open><summary>Garanties, retours et recyclage</summary>
-          <ul>
-            <li><b>Garantie légale de conformité</b> de 2 ans sur le neuf (articles L.217-3 et suivants du Code de la consommation), au moins 1 an sur le reconditionné, plus la garantie du fabricant.</li>
-            <li><b>Rétractation de 14 jours</b> pour une commande passée à distance (site, WhatsApp, téléphone), à compter de la remise de l’article : voir nos <a href="cgv.html">conditions générales de vente</a>.</li>
-            <li><b>Éco-participation</b> incluse dans le prix des appareils électriques et électroniques, détaillée sur la facture.</li>
-            <li><b>Reprise gratuite</b> de votre ancien appareil du même type quand vous en achetez un neuf, et des batteries usagées, pour qu’ils soient recyclés.</li>
-          </ul></details>
-        <details><summary>Mobilité électrique : ce que dit la loi</summary>
-          <ul>
-            <li><b>Vélo à assistance électrique :</b> assistance seulement quand vous pédalez, coupée à 25 km/h, moteur de 250 W au plus. Ni permis, ni immatriculation.</li>
-            <li><b>Trottinette électrique :</b> 25 km/h au plus, dès 14 ans, interdite sur les trottoirs, assurance responsabilité civile obligatoire.</li>
-            <li><b>Moto électrique tout-terrain</b> (non homologuée) : interdite sur la voie publique, réservée aux terrains privés autorisés et aux circuits ; assurance obligatoire.</li>
-            <li><b>Moto légère ou scooter homologué (L1e, 45 km/h) :</b> carte grise, assurance, casque homologué et permis AM ou B selon votre âge.</li>
-            <li>Nous vous indiquons la catégorie exacte de chaque modèle avant la commande.</li>
-          </ul></details>
-      </div>
-      <p class="b-note">Prix indicatifs TTC, les mêmes que sur nos devis : le prix du jour vous est confirmé avant toute commande. Mobilité électrique et articles marqués « sur commande » : prix et délai sur demande.</p>
-    </section>
-  </main>
-
-  <div class="b-barre" id="bBarre" hidden>
-    <span><b data-nb>0 article</b><small data-total>—</small></span>
-    <button type="button" class="btn btn-primary" data-ouvrir aria-haspopup="dialog" aria-controls="bPanier">Voir le panier</button>
-  </div>
-
-  <dialog class="b-panier" id="bPanier" aria-labelledby="bPanierT">
-    <div class="b-panier-tete"><h2 id="bPanierT">Votre panier</h2><button type="button" class="b-x" data-fermer aria-label="Fermer le panier">×</button></div>
-    <ul class="b-lignes" id="bLignes"></ul>
-    <div class="b-total" id="bTotal"></div>
-    <form id="bForm" class="b-form">
-      <fieldset><legend>Comment voulez-vous le récupérer ?</legend>
-        <label><input type="radio" name="mode" value="ducos" checked> Retrait à Ducos</label>
-        <label><input type="radio" name="mode" value="robert"> Retrait au Robert</label>
-        <label><input type="radio" name="mode" value="livraison"> Livraison en Martinique</label>
-        <label><input type="radio" name="mode" value="pose"> Livraison et pose par un technicien</label>
-      </fieldset>
-      <label>Votre prénom et nom <span class="b-fac">(facultatif)</span><input name="nom" maxlength="80" autocomplete="name"></label>
-      <label>Votre commune <span class="b-fac">(pour la livraison)</span><input name="commune" maxlength="60" autocomplete="address-level2"></label>
-      <label>Une précision ? <span class="b-fac">(modèle, couleur, taille…)</span><textarea name="note" maxlength="400" rows="2"></textarea></label>
-      <p class="b-form-note">Rien n’est payé maintenant : nous vous confirmons le prix et la disponibilité, puis vous payez à la remise.</p>
-      <div class="b-form-act"><button type="submit" class="btn btn-primary b-wa" data-envoi="wa">Envoyer ma commande sur WhatsApp</button><button type="button" class="btn" data-envoi="mail">Par email</button></div>
-    </form>
+  <dialog class="b-mini" id="bMini" aria-labelledby="bMiniT">
+    <div class="b-mini-tete"><h2 id="bMiniT">Votre panier</h2><button type="button" class="b-x" data-fermer-mini aria-label="Fermer le mini-panier"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div id="bMiniCorps"></div>
+    <div class="b-mini-act"><a class="btn btn-primary" href="#/panier">Voir le panier</a><button type="button" class="btn" data-fermer-mini>Continuer mes achats</button></div>
   </dialog>
   <p class="sr-only" id="bAnnonce" aria-live="polite"></p>
 
@@ -131,7 +77,7 @@
 </footer>
   <script src="data.js?v=103"></script>
   <script src="outils.js?v=103"></script>
-  <script src="boutique.js?v=2"></script>
+  <script src="boutique.js?v=3"></script>
   <script src="config.js?v=1"></script>
   <script src="mesure.js?v=1"></script>
   <script src="appli.js?v=1" defer></script>
