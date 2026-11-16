@@ -23,12 +23,14 @@ const packStyle = p => { const t = packTheme(p); return `--t:${t.c};--tg:${t.bg}
 /* =====================================================================
    ÉTAT
    ===================================================================== */
+// le choix « devis ou rendez-vous » se fait en haut de l'étape 2 (kind vide tant que le client n'a pas choisi)
 const STEPS = {
+  '':    ['Choix', 'Devis ou RDV', 'Coordonnées'],
   rdv:   ['Choix', 'Rendez-vous', 'Coordonnées'],
-  devis: ['Choix', 'Lieu', 'Coordonnées']
+  devis: ['Choix', 'Devis', 'Coordonnées']
 };
 const DEFAULT = {
-  step: 1, kind: 'rdv', tab: 'services', cat: 'ordi', pack: null, symptoms: [], sel: [], opt: {},
+  step: 1, kind: '', tab: 'services', cat: 'ordi', pack: null, symptoms: [], sel: [], opt: {},
   d: { appType: '', mode: 'site', commune: '', agence: 'ducos', creneau: '', date: '', type: 'individual', budget: 'medium', appareil: '', desc: '', contrat: false, name: '', email: '', phone: '', address: '', pref: 'whatsapp', consent: false, website: '', chatMsg: MESSAGES_WA[0][1], chatCommune: '' }
 };
 let state = load();
@@ -51,6 +53,8 @@ function load() {
       const base = structuredClone(DEFAULT);
       const st = { ...base, ...saved, d: { ...base.d, ...saved.d, consent: false, website: '' } };
       if (typeof st.step === 'number' && st.step > 3) st.step = 1;
+      if (!STEPS[st.kind]) st.kind = '';
+      if (!st.kind && st.step > 2) st.step = 2;
       if (st.kind === 'rdv' && st.step > 2 && (!st.d.date || !CRENEAUX[st.d.creneau] || st.d.date < premierJour())) st.step = 2;
       if ((typeof st.step !== 'number' && st.step !== 'chat') || st.step < 1) st.step = 1;
       if (!CATEGORIES.find(c => c.id === st.cat && !c.bientot)) st.cat = 'ordi';
@@ -263,7 +267,7 @@ function renderSummary() {
   $('meta').innerHTML = meta.map(m => `<div>${m}</div>`).join('')
     + (n && state.step === 1 ? `<button type="button" class="btn btn-apercu" onclick="apercuDevis()">${ico('doc')} Voir mon devis tout de suite</button>` : '');
 
-  $('kindToggle').hidden = !(typeof state.step === 'number' && state.step > 1);
+  $('kindToggle').hidden = !(typeof state.step === 'number' && state.step > 2 && state.kind);
   if ($('tarifsBloc')) $('tarifsBloc').hidden = state.step === 1;
   $('kindToggle').innerHTML = `<button type="button" aria-pressed="${state.kind === 'rdv'}" onclick="setKind('rdv')">${ico('calendar')} Rendez-vous</button><button type="button" aria-pressed="${state.kind === 'devis'}" onclick="setKind('devis')">${ico('doc')} Devis</button>`;
 }
@@ -355,6 +359,7 @@ function manque(n) {
     return !r ? '' : r[1] === 'travail' ? `Dites-nous ce qu’il faut faire pour « ${svc(r[0]).nom} ».` : `Dites-nous si vous avez déjà le matériel pour « ${svc(r[0]).nom} ».`;
   }
   if (n === 2) {
+    if (!state.kind) return 'Choisissez : connaître le prix ou prendre rendez-vous.';
     if (d.mode === 'site' && !d.commune) return 'Choisissez votre commune.';
     if (state.kind !== 'rdv') return '';
     if (!d.date) return 'Choisissez une date.';
@@ -380,7 +385,7 @@ function renderSteps() {
     return `<li class="${cls}"><button type="button" onclick="allerEtape(${n})" ${n === cur ? 'aria-current="step"' : ''} ${cls === 'lock' ? 'aria-disabled="true" title="Terminez d’abord l’étape précédente"' : ''}><span class="n">${cls === 'lock' ? '🔒' : ok && n !== cur ? '✓' : n}</span><span class="t">${s}</span></button></li>`;
   }).join('');
   const m = manque(cur);
-  const aide = m ? m : cur < steps.length ? `✓ C'est bon ! Étape suivante : ${steps[cur].toLowerCase()} 🚀` : `✓ Tout est prêt : ${state.kind === 'rdv' ? 'réservez' : 'affichez votre devis'} 🎉`;
+  const aide = m ? m : cur < steps.length ? `✓ C'est bon ! Étape suivante : ${cur === 1 && !state.kind ? 'devis ou rendez-vous' : steps[cur].toLowerCase()}` : `✓ Tout est prêt : ${state.kind === 'rdv' ? 'réservez' : 'affichez votre devis'}`;
   $('steps').innerHTML = `<ol class="stepper">${lis}</ol>
     <div class="quete"><div class="quete-barre" aria-hidden="true"><span style="width:${Math.max(4, faites / steps.length * 100)}%"></span></div>
     <span class="quete-txt"><b>Étape ${cur} sur ${steps.length}</b> · ${aide}</span></div>`;
@@ -401,8 +406,7 @@ function renderNav() {
   if (s === 1) {
     $('nav').innerHTML = `<button type="button" class="btn btn-wa nav-wa" onclick="openChat()" aria-label="Discuter sur WhatsApp">${ico('chat')}<span>WhatsApp</span></button>
       <p id="err" class="err" role="alert"></p>
-      <div class="nav-go"><button type="button" class="btn" onclick="start('devis')">${ico('doc')}<span class="lg">Connaître le prix</span><span class="sm">Prix</span></button>
-      <button type="button" class="btn btn-primary" onclick="start('rdv')">${ico('calendar')}<span class="lg">Prendre rendez-vous</span><span class="sm">Rendez-vous</span></button></div>`;
+      <div class="nav-go"><button type="button" class="btn btn-primary" onclick="continuer()"><span class="lg">Continuer : devis ou rendez-vous</span><span class="sm">Continuer</span> ${ico('arrow')}</button></div>`;
     return;
   }
   const steps = STEPS[state.kind];
@@ -502,7 +506,7 @@ const VIEWS = {
       if (state.sel.length) {
         const p = packValid() ? pack(state.pack) : null;
         const parts = (p ? [packLabel(p)] : []).concat(state.sel.filter(id => !p?.items[id]).map(id => svc(id).nom));
-        h += `<p class="proposal">${ico('arrow')} Nous vous proposons : <b>${parts.join(' + ')}</b>. Touchez « Prendre rendez-vous » en bas pour continuer.</p>` + blocMateriel();
+        h += `<p class="proposal">${ico('arrow')} Nous vous proposons : <b>${parts.join(' + ')}</b>. Touchez « Continuer » en bas de l’écran.</p>` + blocMateriel();
       }
       return h;
     }
@@ -538,8 +542,14 @@ const VIEWS = {
     const { d } = state;
     const allowed = allowedModes();
     const c = commune(d.commune);
-    let h = `<h2 id="stepTitle">${state.kind === 'rdv' ? 'Où et quand ?' : "Où aurait lieu l'intervention ?"}</h2>
-      <div class="grid g3" role="radiogroup" aria-label="Lieu de l'intervention">${Object.entries(MODES).map(([k, m]) =>
+    // 1. devis ou rendez-vous (le reste de l'étape n'apparaît qu'une fois ce choix fait)
+    let h = `<h2 id="stepTitle">Devis ou rendez-vous ?</h2>
+      <div class="grid g2 choix-kind" role="radiogroup" aria-label="Je veux">
+        ${tile({ name: 'kind', value: 'devis', checked: state.kind === 'devis', title: 'Connaître le prix', sub: 'Devis gratuit affiché tout de suite, sans engagement', icon: 'doc', onchange: "setKind('devis')" })}
+        ${tile({ name: 'kind', value: 'rdv', checked: state.kind === 'rdv', title: 'Prendre rendez-vous', sub: 'Un technicien vient chez vous, ou vous passez en agence', icon: 'calendar', onchange: "setKind('rdv')" })}</div>`;
+    if (!state.kind) return h;
+    h += `<h3 class="sec">${state.kind === 'rdv' ? 'Où et quand ?' : "Où aurait lieu l'intervention ?"}</h3>
+      <div class="grid g3 modes" role="radiogroup" aria-label="Lieu de l'intervention">${Object.entries(MODES).map(([k, m]) =>
         tile({ name: 'mode', value: k, checked: d.mode === k, disabled: !allowed.includes(k), title: m.label, sub: m.desc, icon: m.icon, onchange: `setD('mode','${k}')` })).join('')}</div>`;
     if (allowed.length < 3) h += `<p class="notice">Les caméras, caisses et réseaux s'installent forcément sur place.</p>`;
 
@@ -678,8 +688,8 @@ function openHelp() { $('helpDialog').showModal(); stat('aide'); }
 let toastTimer;
 function toast(msg) {
   const t = $('toast'); if (!t) return;
-  t.innerHTML = msg + (window.innerWidth <= 900 ? ' <button type="button" class="link" onclick="showSel()">Voir</button>' : '');
-  t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+  t.innerHTML = msg;   // sur téléphone, la barre du bas montre déjà « Ma sélection »
+  t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, window.innerWidth <= 900 ? 1800 : 3200);
 }
 function setGrand(on) {
   document.body.classList.toggle('grand', on);
@@ -701,9 +711,19 @@ document.addEventListener('keydown', e => {
 function setUniv(u) { const c = CATEGORIES.find(x => x.univers === u && !x.bientot); if (c) { state.cat = c.id; render(); stat('pole', u); } }
 function setCat(c) { if (CATEGORIES.find(x => x.id === c && !x.bientot)) { state.cat = c; render(); } }
 function setKind(k) {
+  const premier = !state.kind;
   state.kind = k;
   if (state.step > 2 && k === 'rdv' && (!state.d.date || !state.d.creneau)) state.step = 2;
+  stat('choix', k);
   render();
+  // sur téléphone : on montre la suite (lieu, date) juste sous le choix
+  if (premier && state.step === 2 && window.innerWidth <= 900) setTimeout(() => document.querySelector('.choix-kind')?.nextElementSibling?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+}
+// étape 1 → étape 2 (où se choisit devis ou rendez-vous)
+function continuer() {
+  if (manque(1)) return error(manque(1));
+  stat('etape', state.kind || 'choix');
+  goTo(2);
 }
 function start(kind) {
   if (manque(1)) return error(manque(1));

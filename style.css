@@ -1155,3 +1155,59 @@ body.grand .g5{grid-template-columns:repeat(3,minmax(0,1fr))}
   .v-prix-2{width:min(250px,calc(100% - 24px))}
   .doc .price-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
 }
+
+/* =====================================================================
+   TÉLÉPHONE (16/11) : moins de défilement avant les services, une seule barre de boutons en bas,
+   choix « devis ou rendez-vous » en grandes cases à l'étape 2
+   ===================================================================== */
+.choix-kind .tile{min-height:76px;align-items:center}
+.choix-kind .tile b{font-size:17px}
+@media (max-width:900px){
+  /* étape 1 : la barre du bas (sélection + Continuer) suffit ; ensuite elle disparaît et seuls Retour / Suite restent */
+  body:not([data-etape="1"]) .mobilebar{display:none}
+  body:not([data-etape="1"]) .config .nav{position:sticky;bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom));z-index:6;box-shadow:0 -6px 18px rgba(0,0,0,.35)}
+  .mobilebar .btn-primary{gap:8px}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom));padding:9px 14px;font-size:14px;border-width:1.5px;border-bottom-width:3px}
+  body:not([data-etape="1"]) .toast{display:none}
+}
+@media (max-width:700px){
+  /* barre des trois parties plus basse ; le bouton d'installation devient une petite icône */
+  .tn-a{min-height:40px}
+  .tn-inst{font-size:0!important;width:40px;padding:0!important;position:relative}
+  .tn-inst::before{content:"";position:absolute;inset:0;margin:auto;width:18px;height:18px;background:currentColor;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12M7 10l5 5 5-5M5 21h14'/%3E%3C/svg%3E") center/contain no-repeat;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12M7 10l5 5 5-5M5 21h14'/%3E%3C/svg%3E") center/contain no-repeat}
+  /* fil des étapes : une ligne de pastilles, le libellé seulement pour l'étape en cours */
+  .stepper li button{flex-direction:row;min-height:36px;gap:6px;padding:2px 6px}
+  .stepper li:not(.cur) .t{display:none!important}
+  .stepper li:not(.cur){flex:0 0 auto}
+  .stepper li.cur{flex:1 1 auto}
+  .parcours .quete{margin-top:6px}
+  /* pôles : plus bas ; types de besoin : une ligne qui défile de côté au lieu d'une grille */
+  .univers button{min-height:62px;padding:6px 2px 5px;gap:4px}
+  .u-ico{width:30px;height:30px}
+  .u-resume{display:none}
+  .univers-row{margin:10px 0 8px}
+  .cats{display:flex;flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:8px;gap:6px;margin-bottom:10px}
+  .cats::-webkit-scrollbar{display:none}
+  .cats button{flex:0 0 auto;flex-direction:row;min-height:44px;padding:5px 12px 5px 5px;font-size:13.5px;white-space:nowrap;scroll-snap-align:start}
+  .cats button .c-ico{width:30px;height:30px}
+  .cats .neuf{position:static;transform:none}
+  .pick-head h2{margin-bottom:6px}
+  .cat-vitrine{margin-bottom:8px}
+}
+@media (max-width:900px){
+  .toast{left:12px;right:12px;transform:none;max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+}
+@media (max-width:700px){
+  /* lieu de l'intervention : trois cases côte à côte */
+  .modes{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px}
+  .modes .tile{flex-direction:column;align-items:center;text-align:center;gap:4px;padding:10px 4px 8px}
+  .modes .tile .box{position:absolute;top:6px;right:6px;width:16px;height:16px}
+  .modes .tile b{font-size:14px}
+  .modes .tile small{font-size:11.5px;line-height:1.25}
+}
+@media (max-width:900px) and (prefers-reduced-motion:no-preference){
+  .toast:not([hidden]){animation:monteTel .3s ease-out}
+  @keyframes monteTel{from{transform:translateY(16px);opacity:0}}
+}
