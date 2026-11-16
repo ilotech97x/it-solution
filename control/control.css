@@ -245,8 +245,8 @@ body:not([data-page=accueil]) .pied,body:not([data-page=accueil]) .eco{display:n
 @media print{body{background:#fff!important;padding:0!important}.haut,.pied,.bas,.no-print,.toast{display:none!important}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important;scroll-behavior:auto!important}}
 
-/* ILO CONTROL : outil interne, sobre et dense, fait d'abord pour l'ordinateur. Posé sur le design system commun (commun/ds.css).
-   Maquette : « ILO CONTROL : vue générale » (barre latérale sombre, fond gris clair, cartes blanches, accent bleu-vert).
+/* Control Panel : outil interne, sobre et dense, fait d'abord pour l'ordinateur. Posé sur le design system commun (commun/ds.css).
+   Maquette : « Control Panel : vue générale » (barre latérale sombre, fond gris clair, cartes blanches, accent bleu-vert).
    Contrastes : action #0E7490 sur blanc 5,4:1 ; texte secondaire #4B5563 sur blanc 7,6:1 ; menu #D1D5DB sur #15171C 12:1. */
 :root{--action:#0E7490;--action-survol:#155E75;--action-doux:#E0F2F7;--lagon:#0E7490;--lagon-fonce:#155E75;--encre:#111827;--texte-2:#4B5563;--bord-champ:#9CA3AF;--ligne:#E5E7EB;
   --fond:#F4F5F7;--surface:#FFFFFF;--doux-fond:#F3F4F6;--police:'Inter Tight',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--rail:236px;--haut-h:16px}

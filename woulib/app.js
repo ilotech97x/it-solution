@@ -214,7 +214,7 @@ APP.pages.compte = async sous => {
       ...ch.length ? [['#/chauffeur', ch[0].type === 'livreur' ? ICO.colis : ICO.taxi, 'Espace chauffeur et livreur', 'Courses, livraisons, colis, gains']] : [], ['#/pros', ICO.pro, 'Devenir partenaire', 'Restaurant, commerce, chauffeur, livreur']])}
     ${groupe('Aide', [['#/assistance', ICO.aide, 'Assistance', 'Une question, un problème, mes signalements'], [wa(WA, 'Bonjour, j’ai une question sur Woulib.'), ICO.telephone, 'Aide sur WhatsApp', '0696 48 26 78'],
       ['cgu.html', ICO.document, 'Conditions d’utilisation', ''], ['confidentialite.html', ICO.document, 'Politique de confidentialité', ''],
-      ...profil?.role === 'admin' || mesModerations.length ? [['../control/', ICO.bouclier, 'Administration (ILO CONTROL)', 'Validations, modération, assistance, chiffres']] : [], ['#/deconnexion', ICO.sortie, 'Se déconnecter', '', 'ko']])}</div>`);
+      ...profil?.role === 'admin' || mesModerations.length ? [['../control/', ICO.bouclier, 'Administration (Control Panel)', 'Validations, modération, assistance, chiffres']] : [], ['#/deconnexion', ICO.sortie, 'Se déconnecter', '', 'ko']])}</div>`);
 };
 // bouton « Signaler » d'un restaurant, d'une commande, d'une course… (data-signaler = type, data-id, data-univers, data-nom)
 document.addEventListener('click', async e => {
@@ -256,7 +256,7 @@ APP.pages.activite = async () => {
   $('#app').onclick = e => { const b = e.target.closest('[data-encore]'); if (b) recommander(b.dataset.encore, b.dataset.resto); };
 };
 
-// ---------------------------------------------------------------- administration : dans ILO CONTROL (../control/), l'administration centrale de l'écosystème
+// ---------------------------------------------------------------- administration : dans le Control Panel (../control/), l'administration centrale de l'écosystème
 // les anciennes adresses #/admin/... y mènent, sur le bon module
 let mesModerations = [];
 const ADMIN_VERS = { '': '', tableau: '', food: 'partenaires?type=restaurant', woulib: 'partenaires?type=chauffeur', univers: 'applications', commissions: 'commissions',

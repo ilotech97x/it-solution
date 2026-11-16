@@ -1,5 +1,5 @@
 /* Woulib — compte et droits, chargé à la première ouverture : profil, adresses, favoris, paiement, sécurité, confidentialité
-   (télécharger mes données, supprimer mon compte), assistance, bouton « Signaler ». Leur suivi : ILO CONTROL (control/control.js).
+   (télécharger mes données, supprimer mon compte), assistance, bouton « Signaler ». Leur suivi : Control Panel (control/control.js).
    Base : commun/compte.sql, commun/signalements.sql, commun/assistance.sql. Tant qu'ils ne sont pas installés,
    les demandes passent par l'email ou WhatsApp. */
 'use strict';

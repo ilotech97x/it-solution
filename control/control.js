@@ -1,8 +1,8 @@
-/* ILO CONTROL — l'administration centrale de l'écosystème IloTech (ilo-tech.com/control/, non référencée par les moteurs).
+/* Control Panel — le panneau de contrôle de l'écosystème (ilo-tech.com/control/, non référencée par les moteurs).
    Même compte et même base que les applis (commun/base.js). L'administrateur voit tout ; un modérateur voit la file de validation,
    la modération et l'assistance de son univers. Base : commun/controle.sql (journal, suspension, file unique, utilisateurs, chiffres,
    purge), commun/pilotage.sql (tableau de bord), commissions, signalements, assistance, suppressions.
-   Jamais de données des entreprises NEXORA, de messages privés ni de positions GPS en direct. Maquette : « ILO CONTROL : vue générale ». */
+   Jamais de données des entreprises NEXORA, de messages privés ni de positions GPS en direct. Maquette : « Control Panel : vue générale ». */
 'use strict';
 
 const svg = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
@@ -15,11 +15,11 @@ const estAdmin = () => profil?.role === 'admin';
 const visibles = () => MODULES.filter(([, , m]) => estAdmin() || (m && mesModerations.length > 0));
 
 const APP = {
-  nom: 'ILO CONTROL', titre: 'ILO CONTROL', accueilConnecte: '#/', sansInscription: true,
+  nom: 'Control Panel', titre: 'Control Panel', accueilConnecte: '#/', sansInscription: true,
   texteConnexion: 'Administration de l’écosystème IloTech : réservée à l’administrateur et aux modérateurs.',
   menu: () => [],
   menuBas: () => (moi ? visibles() : []).map(([k, t]) => ['#/' + k, '', t, compteurs[k] || 0]),
-  enteteRail: () => '<a class="rail-logo" href="#/">ILO CONTROL</a>',
+  enteteRail: () => '<a class="rail-logo" href="#/">Control Panel</a>',
   apresNav: () => {
     if (!moi) return;
     $('#bas').insertAdjacentHTML('beforeend', `<div class="rail-pied"><span>Connecté : ${estAdmin() ? 'administrateur' : 'modérateur (' + esc(mesModerations.join(', ')) + ')'}${auth2 ? ` · double authentification ${auth2.currentLevel === 'aal2' ? 'active' : 'à activer'}` : ''}</span>
@@ -81,7 +81,7 @@ const majCompteurs = c => { Object.assign(compteurs, c); nav(); };
 function garde(code) {
   if (!moi) { aller('#/connexion?retour=' + encodeURIComponent(location.hash || '#/')); return false; }
   if (!estAdmin() && !mesModerations.length) {
-    vue(page('Accès réservé', '<div class="vide-etat"><h3>ILO CONTROL est réservé à l’administration</h3><p class="muted">Il sert à l’administrateur et aux modérateurs de l’écosystème IloTech.</p><a class="btn btn-p" href="../woulib/">Aller sur Woulib</a></div>'));
+    vue(page('Accès réservé', '<div class="vide-etat"><h3>Le Control Panel est réservé à l’administration</h3><p class="muted">Il sert à l’administrateur et aux modérateurs de l’écosystème.</p><a class="btn btn-p" href="../woulib/">Aller sur Woulib</a></div>'));
     return false;
   }
   if (auth2 && auth2.nextLevel === 'aal2' && auth2.currentLevel !== 'aal2') { codeDouble(); return false; }
@@ -91,7 +91,7 @@ function garde(code) {
 }
 // connexion en deux étapes : le code de l'application d'authentification
 async function codeDouble() {
-  vue(page('Double authentification', `<form class="f ctl-carte" id="fMfa" style="max-width:420px"><p class="muted" style="margin:0">Ouvrez votre application d’authentification et tapez le code à 6 chiffres affiché pour ILO CONTROL.</p>
+  vue(page('Double authentification', `<form class="f ctl-carte" id="fMfa" style="max-width:420px"><p class="muted" style="margin:0">Ouvrez votre application d’authentification et tapez le code à 6 chiffres affiché pour « Control Panel ».</p>
     <label>Code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><button class="btn btn-p">Valider</button></form>`));
   $('#fMfa').addEventListener('submit', async e => {
     e.preventDefault(); const b = e.target.querySelector('button'); b.disabled = true;
@@ -155,7 +155,7 @@ APP.pages[''] = async () => {
       ${carte(`Signalements ouverts · ${sig.length}`, (sig.length ? `<div class="ctl-liste">${sig.slice(0, 5).map(x => `<div class="ctl-ligne"><span><b>${esc(MOTIFS[x.motif] || x.motif)}</b><small>${esc(x.univers)} · ${esc(x.objet_type)} · ${ilYa(x.created_at)}</small></span>
         <a class="btn btn-s" href="#/moderation">Traiter</a></div>`).join('')}</div>` : '<p class="muted">Aucun signalement ouvert.</p>') + '<p class="petit muted">Chaque décision est motivée et envoyée à la personne concernée (règlement européen sur les services numériques).</p>')}</div>
     ${eco ? carte(`Toutes les applis · ${periode}`, tableActivite(eco) + '<p class="petit muted">Une seule table réunit l’activité de toutes les applis, Sousou compris (branché le 9 novembre, encore en test), sans nom ni adresse. L’argent de démonstration (paiements simulés de Sousou) n’entre jamais dans le volume. NEXORA : des nombres seulement.</p>')
-      : apps ? carte(`Par application · ${periode}`, tableApps(apps) + '<p class="petit muted">NEXORA : des nombres seulement. ILO CONTROL ne lit aucune donnée des entreprises.</p>') : ''}
+      : apps ? carte(`Par application · ${periode}`, tableApps(apps) + '<p class="petit muted">NEXORA : des nombres seulement. Le Control Panel ne lit aucune donnée des entreprises.</p>') : ''}
     ${t || eco ? `<div class="courbes">${t ? courbe(t.series, 'volume', 'Volume d’affaires par jour', eurC, '#0E7490') + courbe(t.series, 'activite', 'Demandes des clients par jour', nbFr, '#0E7490') + courbe(t.series, 'comptes', 'Nouveaux comptes par jour', nbFr, '#0E7490') : ''}${eco?.serie?.length ? courbe(eco.serie.map(x => ({ d: x.jour, operations: x.operations })), 'operations', 'Opérations, toutes applis', nbFr, '#0E7490') : ''}</div>` : ''}
     ${journal.length ? carte('Journal de l’administration', `<div class="ctl-journal">${journal.map(x => ligneJournal(x)).join('')}</div><p class="petit"><a href="#/securite">Tout le journal</a></p>`) : ''}`,
     admin ? periodes(jours, '#/') : ''));
@@ -411,10 +411,10 @@ APP.pages.securite = async () => {
   const verifie = facteurs?.totp?.find(f => f.status === 'verified'), dp = eq.derniere_purge;
   const LIB_P = { notifications: 'notifications', assistance: 'demandes d’assistance', signalements: 'signalements', alertes_route: 'alertes route', journal: 'lignes de journal' };
   vue(page('Sécurité', `<div class="ctl-2">
-    ${carte('Double authentification', verifie ? `<p><span class="tag ok">Active</span> Votre compte demande un code à chaque connexion à ILO CONTROL.</p>`
+    ${carte('Double authentification', verifie ? `<p><span class="tag ok">Active</span> Votre compte demande un code à chaque connexion au Control Panel.</p>`
       : `<p class="muted">Protégez le compte administrateur : à la connexion, un code à 6 chiffres de votre téléphone (Google Authenticator, Microsoft Authenticator…) sera demandé en plus du mot de passe.</p>
          <button type="button" class="btn btn-p" id="activer2">Activer la double authentification</button><div id="zone2"></div>`)}
-    ${carte('Purge des données', `<p class="muted petit">Selon les durées de la politique de confidentialité : notifications après 1 an, assistance 1 an après la réponse, signalements 3 ans après la décision, journal après 5 ans. Lancée au plus une fois par jour, à l’ouverture d’ILO CONTROL.</p>
+    ${carte('Purge des données', `<p class="muted petit">Selon les durées de la politique de confidentialité : notifications après 1 an, assistance 1 an après la réponse, signalements 3 ans après la décision, journal après 5 ans. Lancée au plus une fois par jour, à l’ouverture du Control Panel.</p>
       ${dp ? `<p>Dernière : <b>${esc(jourHeure(dp.fait_le))}</b> · ${Object.entries(dp.details).filter(([k]) => LIB_P[k]).map(([k, v]) => `${nbFr(v)} ${LIB_P[k]}`).join(', ')}${Number(dp.details.comptes_inactifs) ? ` · <b>${nbFr(dp.details.comptes_inactifs)} compte(s) sans connexion depuis 3 ans</b> à prévenir puis anonymiser` : ''}</p>` : '<p>Pas encore lancée.</p>'}
       <button type="button" class="btn btn-s" id="purger">Lancer la purge maintenant</button>`)}</div>
     <div class="ctl-2">${carte(`Administrateurs · ${eq.admins.length}`, `<div class="ctl-liste">${eq.admins.map(x => `<div class="ctl-ligne"><span><b>${esc(x.nom || '—')}</b><small>${esc(x.email || '')}</small></span></div>`).join('')}</div>
@@ -441,7 +441,7 @@ APP.pages.securite = async () => {
 async function activerDouble() {
   const z = $('#zone2'); if (!z) return;
   try {
-    const { data, error } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'ILO CONTROL ' + new Date().toISOString().slice(0, 10) }); if (error) throw error;
+    const { data, error } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Control Panel ' + new Date().toISOString().slice(0, 10) }); if (error) throw error;
     z.innerHTML = `<div class="ctl-qr"><img src="${esc(data.totp.qr_code)}" alt="QR code à scanner avec votre application d’authentification" width="180" height="180">
       <p class="petit">Scannez ce QR code avec votre application, ou tapez la clé : <code>${esc(data.totp.secret)}</code></p>
       <form class="f" id="fCode2"><label>Code affiché<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><button class="btn btn-p">Confirmer</button></form></div>`;

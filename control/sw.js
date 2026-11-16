@@ -1,6 +1,6 @@
-/* ILO CONTROL — administration IloTech : service worker : l'appli s'installe sur l'écran d'accueil. Toujours la version en ligne d'abord, la copie locale seulement hors connexion.
+/* Control Panel — administration IloTech : service worker : l'appli s'installe sur l'écran d'accueil. Toujours la version en ligne d'abord, la copie locale seulement hors connexion.
    Seuls les fichiers du site sont gardés : jamais les données (Supabase), ni les cartes. CACHE à monter à chaque publication. */
-const CACHE = 'control-v2';
+const CACHE = 'control-v3';
 const COQUILLE = ['./', 'control.css', 'config.js', 'lib/supabase.js', 'territoires.js', 'base.js', 'control.js', 'reseaux.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(COQUILLE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(l => Promise.all(l.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
