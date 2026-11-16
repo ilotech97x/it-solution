@@ -236,8 +236,6 @@ table.t th{background:var(--doux-fond);font:900 12px var(--corps);text-transform
   .pied .wrap{grid-template-columns:1fr}
 }
 @media (max-width:760px){
-  .nav{display:none}
-  .bas{display:grid}
   .recherche{grid-template-columns:1fr 1fr}
   .recherche input:first-child{grid-column:1/3}
   .recherche .btn{grid-column:1/3}
@@ -312,3 +310,48 @@ dialog.dlg::backdrop{background:rgba(43,27,51,.45)}
 .annul-f{display:grid;gap:12px;padding:16px;border-radius:var(--r);background:var(--rouge-doux);border:1.5px solid #ffb3b3}
 .annul-f label{display:grid;gap:6px;font-weight:800}.annul-f textarea{min-height:80px}
 @media (max-width:760px){.securite{padding:14px}.securite>div{gap:8px}dialog.dlg{padding:18px 16px}}
+
+/* ---------------------------------------------------------------- façon appli : barre d'onglets, retour, transitions, squelettes */
+.retour-app,.titre-app,.cloche-app{display:none}
+@keyframes miroite{to{background-position:-300% 0}}
+.squelette{display:grid;gap:14px;padding-top:20px}
+.sq{display:block;border-radius:var(--r);background:linear-gradient(90deg,var(--doux-fond) 0,#fff 45%,var(--doux-fond) 90%);background-size:300% 100%;animation:miroite 1.3s linear infinite}
+.sq-t{height:34px;width:62%}.sq-l{height:16px;width:88%}.sq-l.court{width:52%}.sq-c{height:200px}.sq-ev{height:300px;border-radius:var(--r2)}
+.sq-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.haut{view-transition-name:haut}.bas{view-transition-name:bas}
+::view-transition-group(haut),::view-transition-group(bas){animation-duration:.2s}
+@media (max-width:900px){
+  ::view-transition-old(root),::view-transition-new(root){animation-duration:.26s;animation-timing-function:cubic-bezier(.32,.72,0,1);animation-fill-mode:both}
+  html[data-sens=avant]::view-transition-old(root){animation-name:vt-recule}
+  html[data-sens=avant]::view-transition-new(root){animation-name:vt-arrive;box-shadow:-12px 0 32px rgba(43,27,51,.14)}
+  html[data-sens=retour]::view-transition-old(root){animation-name:vt-repart;z-index:2;box-shadow:-12px 0 32px rgba(43,27,51,.14)}
+  html[data-sens=retour]::view-transition-new(root){animation-name:vt-revient}
+}
+html[data-sens=onglet]::view-transition-old(root){animation:vt-efface .12s ease both}
+html[data-sens=onglet]::view-transition-new(root){animation:vt-montre .18s ease both}
+@keyframes vt-arrive{from{transform:translateX(100%)}}
+@keyframes vt-recule{to{transform:translateX(-26%);filter:brightness(.94)}}
+@keyframes vt-repart{to{transform:translateX(100%)}}
+@keyframes vt-revient{from{transform:translateX(-26%);filter:brightness(.94)}}
+@keyframes vt-efface{to{opacity:0}}
+@keyframes vt-montre{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+.bas a span{line-height:0}.bas a span svg{display:block}
+@media (max-width:900px){
+  .nav{display:none}
+  .bas{display:grid;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 18px rgba(43,27,51,.07)}
+  .bas a{padding-top:9px}
+  body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+  body.clavier .bas{display:none}
+  .haut .wrap{height:60px}
+  .retour-app{display:inline-flex;align-items:center;justify-content:center;flex:none;width:42px;height:42px;margin-left:-8px;border:0;border-radius:50%;background:transparent;color:var(--titre);cursor:pointer}
+  .retour-app[hidden]{display:none}
+  .retour-app:active{background:var(--doux-fond)}
+  .titre-app{display:none;flex:1;min-width:0;font:700 19px var(--titres);color:var(--titre);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body[data-racine=non] .titre-app{display:block}
+  body[data-racine=non] .haut .logo{display:none}
+  .cloche-app{display:inline-flex;position:relative;margin-left:auto;align-items:center;justify-content:center;width:42px;height:42px;color:var(--titre);text-decoration:none;border-radius:50%}
+  .cloche-app[hidden]{display:none}
+  .cloche-app .badge{position:absolute;top:2px;right:0}
+  body[data-racine=non] .cloche-app{margin-left:0}
+}

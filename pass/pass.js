@@ -38,7 +38,56 @@ const lieuEv = e => `${esc(e.lieu)}, ${esc(e.commune)}${e.territoire && e.territ
 const optsCats = (v, genre = CATS_XP.includes(v) ? 'experience' : 'evenement') => catsDe(genre).map(([k, [i, t]]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${i} ${esc(t)}</option>`).join('');
 const param = () => Object.fromEntries(new URLSearchParams(location.hash.split('?')[1] || ''));
 const aller = h => { if (location.hash === h) rendre(); else location.hash = h; };
-const vue = h => { $('#app').innerHTML = h; };
+// ---------------------------------------------------------------- coquille « appli » (barre d'onglets, retour, transitions, squelettes)
+let apRang = 0, apPage = null, apPremier = null, apRestaure = null, apRecul = false;
+const apDefil = {};
+const vue = h => { $('#app').innerHTML = h; if (apRestaure) window.scrollTo(0, apRestaure); if (apPremier) { const f = apPremier; apPremier = null; f(); } titreBarre(); };
+const icoSvg = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICO = {
+  explorer: icoSvg('<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>'),
+  carte: icoSvg('<path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>'),
+  billets: icoSvg('<path d="M3 9a2 2 0 0 1 0 6v3h18v-3a2 2 0 0 1 0-6V6H3z"/><path d="M14 6v12" stroke-dasharray="2 2.5"/>'),
+  agenda: icoSvg('<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),
+  profil: icoSvg('<circle cx="12" cy="8.5" r="3.7"/><path d="M4.5 20c.8-3.6 3.8-5.5 7.5-5.5s6.7 1.9 7.5 5.5"/>'),
+  orga: icoSvg('<path d="M4 14v-4a1 1 0 0 1 1-1h3l8-4v14l-8-4H5a1 1 0 0 1-1-1z"/><path d="M19 9.5v5"/>'),
+  retour: icoSvg('<path d="M15 5l-7 7 7 7"/>'),
+  cloche: icoSvg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 21h4"/>')
+};
+// 5 onglets au plus : l'espace organisateur prend la place de l'agenda (l'agenda reste accessible depuis le profil)
+const ongletsApp = () => [['#/', 'explorer', 'Explorer'], ['#/carte', 'carte', 'Carte'], ['#/billets', 'billets', 'Billets'],
+  moi && estOrga() ? ['#/orga', 'orga', 'Organisateur'] : ['#/agenda', 'agenda', 'Agenda'], [moi ? '#/profil' : '#/connexion', 'profil', moi ? 'Profil' : 'Connexion']];
+const estRacine = h => [...ongletsApp().map(o => o[0]), '#/connexion'].includes(h);
+const sqCartes = n => `<div class="sq-g">${'<div class="sq sq-c"></div>'.repeat(n)}</div>`;
+const sqPage = () => `<div class="wrap squelette" aria-busy="true" aria-label="Chargement"><div class="sq sq-t"></div><div class="sq sq-l"></div><div class="sq sq-l court"></div>${sqCartes(6)}</div>`;
+const attenteApp = () => { $('#app').innerHTML = sqPage(); };
+function sensApp(prec, h) {
+  const st = history.state;
+  let s = 'avant';
+  if (st && typeof st.rang === 'number') { s = st.rang < apRang ? 'retour' : st.rang === apRang ? 'meme' : 'avant'; apRang = st.rang; }
+  else { apRang += 1; try { history.replaceState({ rang: apRang }, ''); } catch (e) { /* historique indisponible */ } }
+  apRecul = s === 'retour';
+  if (prec === h) return 'meme';
+  if (estRacine(h) && (s === 'avant' || estRacine(prec))) return 'onglet';
+  return s;
+}
+// barre du haut sur téléphone : retour + titre de la page sur les pages intérieures
+function barreApp(h) {
+  const racine = estRacine(h);
+  document.body.dataset.racine = racine ? 'oui' : 'non';
+  const r = $('#retourApp'); if (r) { r.hidden = racine; if (!r.firstChild) r.innerHTML = ICO.retour; }
+}
+function titreBarre() {
+  const t = $('#titreApp'), h1 = $('#app h1'); if (!t) return;
+  t.textContent = h1 ? h1.textContent.replace(/\s+/g, ' ').trim() : '';
+}
+function revenir() {
+  if ((history.state?.rang || 1) > 1) return history.back();
+  const [, a] = (location.hash || '#/').split('?')[0].split('/');
+  aller(a === 'controle' ? '#/profil' : a === 'imprimer' ? '#/billets' : '#/');
+}
+// clavier ouvert : la barre du bas s'efface
+document.addEventListener('focusin', e => { if (e.target.matches?.('input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=button]):not([type=submit]),textarea')) document.body.classList.add('clavier'); });
+document.addEventListener('focusout', () => document.body.classList.remove('clavier'));
 // territoire choisi par le visiteur, retenu sur cet appareil ('' = tous)
 function terrPrefere(v) { try { if (v !== undefined) localStorage.setItem('evpTerritoire', v); return localStorage.getItem('evpTerritoire') ?? ''; } catch (e) { return v ?? ''; } }
 function toast(m, ko = false) { const t = document.createElement('div'); t.className = 'toast' + (ko ? ' ko' : ''); t.textContent = m; t.setAttribute('role', 'status'); document.body.appendChild(t); setTimeout(() => t.remove(), ko ? 6000 : 3500); }
@@ -164,9 +213,9 @@ function nav() {
       <a class="cloche" href="#/notifs" aria-label="Notifications">🔔${b(nbNotifs)}</a>
       <a class="hud" href="#/profil" title="Mon niveau et mes badges"><span class="niv">${joueur?.niveau || 1}</span><span class="px">${joueur?.xp || 0} XP</span>${barreXp(joueur)}</a>`
       : `<a href="#/orga">Organiser</a><a href="#/connexion" class="${on('#/connexion')}">Connexion</a><a class="btn btn-p btn-s" href="#/inscription">Commencer</a>`}`;
-  $('#bas').innerHTML = `<a href="#/" class="${h === '#/' ? 'on' : ''}"><span>🎉</span>Sortir</a><a href="#/carte" class="${on('#/carte')}"><span>🗺️</span>Carte</a>
-    <a href="#/billets" class="${on('#/billets')}"><span>🎟️</span>Billets</a><a href="#/agenda" class="${on('#/agenda')}"><span>📅</span>Agenda${b(nbNotifs)}</a>
-    <a href="${moi ? '#/profil' : '#/connexion'}" class="${on('#/profil') || on('#/connexion')}"><span>🏆</span>${moi ? 'Niveau ' + (joueur?.niveau || 1) : 'Commencer'}</a>`;
+  const actif = ([href]) => href === '#/' ? h.split('?')[0] === '#/' : href === '#/connexion' ? on('#/profil') || on('#/connexion') : on(href);
+  $('#bas').innerHTML = ongletsApp().map(o => `<a href="${o[0]}" class="${actif(o) ? 'on' : ''}" ${actif(o) ? 'aria-current="page"' : ''}><span>${ICO[o[1]]}</span>${o[2]}</a>`).join('');
+  const cl = $('#clocheApp'); if (cl) { cl.hidden = !moi; cl.innerHTML = ICO.cloche + b(nbNotifs); cl.setAttribute('aria-label', nbNotifs ? `Notifications, ${nbNotifs} nouvelle${nbNotifs > 1 ? 's' : ''}` : 'Notifications'); }
 }
 
 document.addEventListener('click', async ev => {
@@ -213,7 +262,7 @@ async function pageAccueil() {
       <select name="quand" aria-label="Quand">${[['', 'Toutes les dates'], ['soir', 'Ce soir'], ['we', 'Ce week-end'], ['7', 'Les 7 prochains jours'], ['30', 'Ce mois-ci']].map(([k, t]) => `<option value="${k}" ${k === (p.quand || '') ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <button class="btn btn-p">Rechercher</button></form></div></section>
     <div class="wrap"><div class="puces">${[['', '✨', 'Tout'], ...catsDe(xp ? 'experience' : 'evenement').map(([k, [i, t]]) => [k, i, t])].map(([k, i, t]) => `<a href="#/?${new URLSearchParams({ ...p, cat: k })}" class="${(p.cat || '') === k ? 'on' : ''}">${i} ${esc(t)}</a>`).join('')}</div>
-      <section class="section"><div id="liste" class="chargement">Chargement…</div></section>
+      <section class="section"><div id="liste" class="grille" aria-busy="true">${'<div class="sq sq-ev"></div>'.repeat(6)}</div></section>
       <section class="section"><div class="vide-etat appel-pro">
         <div><h2>${xp ? 'Vous proposez des excursions ou des activités ?' : 'Vous organisez des événements ?'}</h2><p class="muted" style="margin:0">Inscription gratuite : réservations avec billet QR code, plusieurs dates en un clic, paiement sur place, contrôle avec votre téléphone. Commission de 5 % seulement sur les billets payants.</p></div>
         <a class="btn btn-p" href="#/orga">Devenir organisateur</a></div></section></div>`);
@@ -246,7 +295,7 @@ async function pageAccueil() {
 
 // ---------------------------------------------------------------- fiche événement + réservation
 async function pageEvenement(id) {
-  vue('<div class="chargement">Chargement…</div>');
+  vue(sqPage());
   const e = await q(sb.from('evenements').select('*').eq('id', id).maybeSingle());
   if (!e) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Événement introuvable</h3><a href="#/">Tous les événements</a></div>');
   const [types, rest, orga] = await Promise.all([
@@ -353,7 +402,7 @@ async function pageBillets() {
   const local = billetsLocaux(), copie = local && (!moi || local.uid === moi.id) ? local : null;
   if (copie) dessinerBillets(copie.b, copie.quand, !moi);
   if (!PRET || !moi) { if (!copie) exigeCompte(); return; }
-  if (!copie) vue('<div class="chargement">Chargement…</div>');
+  if (!copie) vue(sqPage());
   let b;
   try {
     b = await q(sb.from('billets').select(`id, code, statut, prix, titulaire, created_at, evenement_id, billets_types(nom), evenements(id, titre, debut, fin, lieu, commune, territoire, fuseau, statut${await baseV3() ? ', motif_annulation' : ''})`)
@@ -454,7 +503,7 @@ async function pageOrga(sous, id) {
   if (sous === 'controle') return aller('#/controle/' + id);
   if (sous === 'agents') return pageAgents(id);
   if (sous === 'promo') return pagePromo(id);
-  vue('<div class="chargement">Chargement…</div>');
+  vue(sqPage());
   const ev = await q(sb.from('evenements').select('*').eq('orga_id', moi.id).order('debut', { ascending: false }));
   const evs = ev;   // la liste, accessible dans le gestionnaire de clic (où « ev » désigne le clic)
   const cm = await sb.rpc('mes_commissions').then(r => r.error || !r.data?.lignes?.length ? null : r.data);   // commission de la billetterie (billets payants)
@@ -636,7 +685,7 @@ async function formEvenement(id) {
   });
 }
 async function pageParticipants(id) {
-  vue('<div class="chargement">Chargement…</div>');
+  vue(sqPage());
   const [e, p] = await Promise.all([q(sb.from('evenements').select('titre, debut, fuseau, lieu, commune, territoire, statut').eq('id', id).single()), q(sb.rpc('participants', { evt: id }))]);
   const actifs = p.filter(x => x.statut !== 'annule'), annuleE = e.statut === 'annule';
   vue(`<div class="wrap" style="padding-top:22px"><a href="#/orga" class="petit">← Espace organisateur</a><h1>${esc(e.titre)}</h1><p class="muted">${esc(quand(e.debut, e.fuseau))} · ${lieuEv(e)}</p>
@@ -756,7 +805,7 @@ async function pageCarte() {
 // ---------------------------------------------------------------- agenda : billets à venir + favoris
 async function pageAgenda() {
   if (!exigeCompte()) return;
-  vue('<div class="chargement">Chargement</div>');
+  vue(sqPage());
   const maintenant = new Date(Date.now() - 6 * 36e5).toISOString();
   const [b, f] = await Promise.all([
     q(sb.from('billets').select('evenement_id, statut, evenements(*)').eq('acheteur', moi.id).neq('statut', 'annule')),
@@ -796,7 +845,7 @@ async function pageProfil() {
     <h2 style="margin-top:28px">Comment gagner de l’XP ?</h2>
     <div class="panneau"><p style="margin:0">🎟️ <b>+100 XP</b> à chaque entrée validée à un événement · 🧭 <b>+50 XP</b> pour chaque nouvelle catégorie de sortie · ✈️ <b>+100 XP</b> pour chaque nouveau territoire.<br>
       <span class="muted petit" style="display:block;margin-top:6px">L’XP est calculée par le serveur à partir des entrées réellement scannées : impossible de tricher. Un niveau tous les 300 XP.</span></p></div>
-    <div class="actions" style="margin-top:20px"><a class="btn" href="#/billets">Mes billets</a><a class="btn" href="#/controle">Mes contrôles (agent)</a><a class="btn" href="https://immo.ilo-tech.com/#/compte/profil">Modifier mon profil</a><a class="btn btn-ko" href="#/deconnexion">Se déconnecter</a></div></div>`);
+    <div class="actions" style="margin-top:20px"><a class="btn" href="#/billets">Mes billets</a><a class="btn" href="#/agenda">Mon agenda</a><a class="btn" href="#/controle">Mes contrôles (agent)</a><a class="btn" href="https://immo.ilo-tech.com/#/compte/profil">Modifier mon profil</a><a class="btn btn-ko" href="#/deconnexion">Se déconnecter</a></div></div>`);
 }
 
 // ---------------------------------------------------------------- notifications
@@ -885,10 +934,7 @@ async function pagePromo(id) {
 }
 
 // ---------------------------------------------------------------- routeur
-async function rendre() {
-  const h = (location.hash || '#/').split('?')[0], [, a, b, c] = h.split('/');
-  if (flux && !h.startsWith('#/controle/')) { flux.getTracks().forEach(t => t.stop()); flux = null; }
-  nav(); window.scrollTo(0, 0); document.title = 'EventPass — sorties, concerts et soirées, aux Antilles et ailleurs';
+async function afficherPage(a, b, c) {
   try {
     if (!a) return await pageAccueil();
     if (!PRET) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Ouverture très bientôt</h3></div>');
@@ -909,10 +955,35 @@ async function rendre() {
     vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Page introuvable</h3><a href="#/">Accueil</a></div>');
   } catch (e) { vue(`<div class="wrap"><p>${esc(erreur(e))}</p></div>`); }
 }
+async function rendre() {
+  const brut = location.hash || '#/', h = brut.split('?')[0], [, a, b, c] = h.split('/');
+  const prec = apPage === null ? null : apPage.split('?')[0];
+  apDefil[apRang] = scrollY;
+  const sens = sensApp(prec, h);
+  apPage = brut;
+  const executer = async () => {
+    if (flux && !h.startsWith('#/controle/')) { flux.getTracks().forEach(t => t.stop()); flux = null; }
+    apRestaure = apRecul ? apDefil[apRang] || null : null;   // en revenant, on retrouve l'endroit de la page ; en avançant, le haut
+    nav(); barreApp(h); window.scrollTo(0, 0); document.title = 'EventPass — sorties, concerts et soirées, aux Antilles et ailleurs';
+    await afficherPage(a, b, c);
+    if (apRestaure) window.scrollTo(0, apRestaure);
+    apRestaure = null; titreBarre();
+  };
+  const anime = prec !== null && sens !== 'meme' && document.startViewTransition && !document.hidden && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!anime) return executer();
+  // la page glisse dès qu'elle a quelque chose à montrer (au plus tard 150 ms : sa forme en attendant les données)
+  document.documentElement.dataset.sens = sens;
+  let pret; const affichee = new Promise(r => { pret = r; }); apPremier = pret;
+  const t = document.startViewTransition(() => { const p = executer(); return Promise.race([affichee, p, new Promise(r => setTimeout(r, 150)).then(() => { if (apPremier === pret) attenteApp(); })]); });
+  const fin = () => { if (document.documentElement.dataset.sens === sens) delete document.documentElement.dataset.sens; };
+  t.ready.catch(() => {}); t.updateCallbackDone.catch(() => {}); t.finished.then(fin, fin);
+}
 // appli installable (écran d'accueil) : les fichiers du site restent lisibles sans réseau, jamais les données (sw.js)
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 (async () => {
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   window.addEventListener('hashchange', rendre);
+  $('#retourApp')?.addEventListener('click', revenir);
   if (PRET) { sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { moi = null; profil = null; nav(); } }); await chargerMoi().catch(() => {}); }
   rendre();
 })();
