@@ -1,6 +1,6 @@
 /* Sousou — service worker : l'appli s'installe sur l'écran d'accueil. Toujours la version en ligne d'abord (pas de vieille version bloquée),
    la copie locale seulement hors connexion. Seuls les fichiers du site sont gardés : jamais les données (Supabase). CACHE à monter à chaque publication. */
-const CACHE = 'sousou-v3';
+const CACHE = 'sousou-v4';
 const COQUILLE = ['./', 'sousou.css', 'sousou.js', 'base.js', 'territoires.js', 'config.js', 'lib/supabase.js', 'img/logo.svg', 'fonts/fredoka.woff2', 'fonts/nunito.woff2'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(COQUILLE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(l => Promise.all(l.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

@@ -361,3 +361,44 @@ html[data-sens] #app>*{animation:none}
 .installer .btn{flex:none}
 /* ordinateur : le rail porte le logo, la barre du haut de l'appli reste vide : on la retire (pas sur les pages légales, sans data-page) */
 @media (min-width:1024px){body[data-page] .haut{display:none}.sou{padding-top:24px}}
+/* ---- lot 2 : retards, objectif, messages, historique, confort de lecture */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.reglages{display:flex;flex-wrap:wrap;gap:8px}.reglages .btn{flex:1 1 150px}
+.reglages [aria-pressed=true]{background:var(--action);color:#fff;border-color:var(--action)}
+.alerte-t.ko{background:var(--erreur-doux);color:var(--erreur)}
+.avert-ko{background:var(--erreur-doux);border-left-color:var(--erreur)}.avert-ko b{color:var(--erreur)}
+.t-emoji{font-size:1.1em}
+.objectif{display:grid;gap:12px}
+.obj-l{display:flex;align-items:center;gap:12px}.obj-l small{display:block;color:var(--texte-2);font-weight:700}.obj-l b{font-size:18px;overflow-wrap:anywhere}
+.obj-emoji{flex:none;display:grid;place-items:center;width:54px;height:54px;border-radius:16px;background:var(--or-doux);font-size:30px}
+.decompte{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--action-doux)}
+.decompte strong{flex:none;min-width:56px;text-align:center;font:800 40px/1 var(--police);color:var(--action-survol)}
+.decompte b{display:block}.decompte small{display:block;color:var(--texte-2);font-weight:600}
+.decompte.moi{background:var(--or-doux);border:2px solid var(--or);font-size:17px}
+.emojis{display:flex;flex-wrap:wrap;gap:8px}
+.emo{width:48px;height:48px;border-radius:14px;border:2px solid var(--ligne);background:var(--surface);font-size:26px;line-height:1;cursor:pointer}
+.emo.sel,.emo[aria-pressed=true]{border-color:var(--marque);background:var(--action-doux)}
+.fiab{font-weight:700}.fiab.ok{color:var(--action-survol)}.fiab.att{color:var(--or-texte)}
+.fil{display:grid;gap:10px}
+.msgs{display:grid;gap:8px;margin:0;padding:0;list-style:none;max-height:320px;overflow-y:auto}
+.msgs li{padding:8px 12px;border-radius:14px;background:var(--doux-fond);max-width:92%}.msgs li.mien{background:var(--action-doux);margin-left:auto}
+.msgs .msg-t{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.msgs small{color:var(--texte-2)}.msgs p{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.lien-lien,.lien-petit{background:none;border:0;color:var(--texte-2);font:700 13.5px var(--police);text-decoration:underline;cursor:pointer;min-height:36px;padding:0 4px}
+.vide-mini{display:grid;gap:2px;padding:14px;border:2px dashed var(--ligne);border-radius:14px;text-align:center}.vide-mini span{color:var(--texte-2);font-size:14.5px}
+/* célébration : quelques confettis qui tombent, rien si l'appareil demande moins d'animation */
+.fete{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:60}
+.fete i{position:absolute;top:-16px;left:var(--x);width:10px;height:14px;border-radius:2px;background:var(--c);animation:chute 2.6s ease-in var(--d) forwards}
+@keyframes chute{to{transform:translateY(105vh) rotate(540deg)}}
+@media (prefers-reduced-motion:reduce){.fete{display:none}.decompte,.pot i{animation:none}}
+/* récapitulatif */
+.actions-r{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+.tab-r{width:100%;border-collapse:collapse;font-size:15px}.tab-r th,.tab-r td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--ligne)}.tab-r th{color:var(--texte-2);font-size:13.5px}
+.chrono{display:grid;gap:0;margin:0;padding:0;list-style:none}.chrono li{display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--ligne)}.chrono li:first-child{border-top:0}
+.chrono time{color:var(--texte-2);font-size:13.5px;font-weight:700}.chrono .retard span{color:var(--erreur);font-weight:700}.chrono .verse span{color:var(--action-survol);font-weight:800}
+@media (max-width:420px){.chrono li{grid-template-columns:minmax(0,1fr)}}
+@media print{.sou.recap{max-width:none;padding:0}.carte{box-shadow:none;break-inside:avoid}.bas,.rail-logo,.demarrage{display:none!important}}
+/* texte plus grand (seniors) : tout le contenu de l'appli grossit d'un cinquième ; contraste renforcé : contours et textes plus francs */
+html[data-grand] .sou{zoom:1.2}
+html[data-contraste]{--texte-2:#1F3328;--ligne:#7E9A89;--bord-champ:#2F4A3B;--action-doux:#D3EBDD;--or-doux:#FFE9B0}
+html[data-contraste] .carte,html[data-contraste] .t-carte,html[data-contraste] .chiffre{border-width:2px;border-color:var(--bord-champ)}
+html[data-contraste] .btn-sec{border-width:2px}
