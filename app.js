@@ -438,7 +438,7 @@ function vitrineCompacte(c) {
 // carte d'un service : image à gauche (photo de la catégorie pour le 1er service, sinon illustration), texte à droite
 function carteService(x, c, on, inPack) {
   const t = themeOf(x.id);
-  const media = PHOTOS_SVC[x.id] ? `<img class="illu photo carte-photo" src="img/photos/svc-${x.id}.jpg" alt="${esc(x.nom)} (illustration)" width="410" height="464" loading="lazy" decoding="async">`
+  const media = PHOTOS_SVC[x.id] ? `<img class="illu photo carte-photo" src="img/photos/svc-${x.id}-s.webp" alt="${esc(x.nom)} (illustration)" width="246" height="278" loading="lazy" decoding="async">`
     : c.services[0] === x.id && photoCat(c) ? photoCat(c, 'carte-photo') : illustration({ id: 's-' + x.id, icon: x.icon, badge: c.badge, couleur: t }, 'bande');
   return `<label class="tile service carte ${on ? 'on' : ''} ${inPack ? 'included' : ''} ${x.id === dernierAjout ? 'vient' : ''}" style="--t:${t}">
     <input type="checkbox" name="svc" value="${x.id}" ${on ? 'checked' : ''} ${inPack ? 'disabled' : ''} onchange="toggle('${x.id}')">
@@ -1133,7 +1133,7 @@ carrousel();
 function diapo(c, copie) {
   const moins = c.services.map(svc).filter(x => x.base).sort((a, b) => a.base - b.base)[0];
   const u = UNIVERS.find(x => x.id === c.univers);
-  const media = PHOTOS_CAT[c.id] ? `<img src="img/photos/${PHOTOS_CAT[c.id]}.jpg" alt="" width="410" height="464" loading="lazy" decoding="async">` : scene(c);
+  const media = PHOTOS_CAT[c.id] ? `<img src="img/photos/${PHOTOS_CAT[c.id]}-s.webp" alt="" width="246" height="278" loading="lazy" decoding="async">` : scene(c);
   return `<a class="car-carte" href="index.html?cat=${c.id}" style="--t:${c.couleur}"${copie ? ' aria-hidden="true" tabindex="-1"' : ''}
     onclick="setCat('${c.id}');scrollTo({top:0,behavior:'smooth'});return false">
     <span class="car-media">${media}</span>

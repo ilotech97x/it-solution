@@ -1,0 +1,72 @@
+{
+  "name": "Tropik — la boutique des vendeurs des Antilles",
+  "short_name": "Tropik",
+  "description": "Chaussures, vêtements et accessoires de marque, vendus par des commerçants des Antilles. Retrait chez le vendeur ou livraison, paiement à la remise.",
+  "lang": "fr",
+  "id": "./",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF7F0",
+  "theme_color": "#0B6B6A",
+  "categories": [
+    "shopping",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "img/icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icone-512-masque.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Rayons",
+      "short_name": "Rayons",
+      "url": "./#/rayons",
+      "icons": [
+        {
+          "src": "img/icone-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Mon panier",
+      "short_name": "Panier",
+      "url": "./#/panier",
+      "icons": [
+        {
+          "src": "img/icone-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Mes favoris",
+      "short_name": "Favoris",
+      "url": "./#/favoris",
+      "icons": [
+        {
+          "src": "img/icone-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

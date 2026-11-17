@@ -1211,3 +1211,14 @@ body.grand .g5{grid-template-columns:repeat(3,minmax(0,1fr))}
   .toast:not([hidden]){animation:monteTel .3s ease-out}
   @keyframes monteTel{from{transform:translateY(16px);opacity:0}}
 }
+
+/* PERFORMANCE (17/11) : place réservée avant que le JavaScript n'écrive la page (CLS < 0,1) ;
+   tout ce qui suit l'étape reste sous la ligne de flottaison tant que la page n'est pas rendue. */
+.content{min-height:calc(100svh - 110px)}
+.summary{min-height:360px}
+.bande-services .car-piste{min-height:150px}
+@media (max-width:900px){.summary{min-height:0}}
+/* sous la ligne de flottaison : la mise en page n'est calculée qu'à l'approche de l'écran (taille réservée = taille réelle) */
+.accueil-plus{content-visibility:auto;contain-intrinsic-size:auto 1100px}
+.pied{content-visibility:auto;contain-intrinsic-size:auto 640px}
+@media (max-width:900px){.accueil-plus{contain-intrinsic-size:auto 2240px}.pied{contain-intrinsic-size:auto 1710px}}

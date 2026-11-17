@@ -16,6 +16,7 @@
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--fond);color:var(--texte);font:15px/1.55 var(--police);-webkit-font-smoothing:antialiased}
+#app{min-height:calc(100svh - 60px)}   /* place réservée : le pied de page ne saute pas à l’affichage (CLS) */
 a{color:var(--cyan-f)}
 :root[data-theme=dark] a:not(.btn){color:var(--cyan)}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]) a:not(.btn){color:var(--cyan)}}
@@ -392,3 +393,6 @@ a.piece:hover,a.piece:focus-visible{border-color:var(--cyan)}
 /* sur téléphone, un tableau large défile dans sa carte au lieu d'élargir la page (sinon le navigateur dézoome toute la page) */
 .espace-client{grid-template-columns:minmax(0,1fr)}
 .espace-client>*,.grille>*{min-width:0}
+
+/* Recrutement : alerte de la loi sous les champs libres */
+.loi-hint{margin:0;padding:8px 10px;border-radius:10px;background:var(--ko-d);color:var(--ko);font-weight:600}

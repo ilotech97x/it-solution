@@ -50,7 +50,7 @@ const ICONES = {
   depenses: 'M4 4h16v16H4zM8 9h8M8 13h5M15 16l2 2 3-4', fournisseurs: 'M3 9l1-5h16l1 5M3 9v11h18V9M3 9h18M9 20v-6h6v6', stock: 'M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10',
   tresorerie: 'M3 10h18M5 10V20M9 10v10M15 10v10M19 10v10M2 20h20M12 3l10 5H2z', abonnements: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
   relances: 'M22 12h-4l-3 9L9 3l-3 9H2', employes: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.9', rapports: 'M3 3v18h18M7 15l4-4 3 3 6-7',
-  planning: 'M4 5h16v16H4zM4 9h16M8 3v4M16 3v4M8 13h3M13 13h3M8 17h3', moi: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M4 21a8 8 0 0 1 16 0',
+  recrutement: 'M3 8h18v12H3zM8 8V5h8v3M3 13h18', planning: 'M4 5h16v16H4zM4 9h16M8 3v4M16 3v4M8 13h3M13 13h3M8 17h3', moi: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M4 21a8 8 0 0 1 16 0',
   cloche: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0'
 };
 const icone = n => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONES[n]}"/></svg>`;
@@ -61,13 +61,14 @@ let ERP = false;   // erp.sql installé dans la base (sinon les modules de gesti
 let PORTAIL = false;   // espace_client.sql installé (espace client : signature, échéancier, paiements déclarés)
 let COMM = false;  // communication.sql installé (emails de l'entreprise, comparatif des devis)
 let EQ = false;    // equipe_devis.sql installé (catégories de lignes, compte employé, planning, notifications, vue « Mon entreprise »)
+let REC = false;   // recrutement.sql installé (page entreprise, offres d'emploi et candidatures publiées sur Travay)
 let FICHES = new Set();   // entreprises où mon compte est relié à une fiche employé (menu « Mon espace »)
 const ROLES = { proprietaire: 'Propriétaire', admin: 'Administrateur', commercial: 'Commercial', comptable: 'Comptable', lecteur: 'Lecteur', employe: 'Employé' };
 const DROITS = { crm: ['proprietaire', 'admin', 'commercial'], ventes: ['proprietaire', 'admin', 'commercial'], facturation: ['proprietaire', 'admin', 'comptable'],
   catalogue: ['proprietaire', 'admin', 'commercial', 'comptable'], equipe: ['proprietaire', 'admin'], parametres: ['proprietaire', 'admin'],
-  achats: ['proprietaire', 'admin', 'comptable'], stock: ['proprietaire', 'admin', 'commercial', 'comptable'], tresorerie: ['proprietaire', 'admin', 'comptable'], rh: ['proprietaire', 'admin'] };
+  achats: ['proprietaire', 'admin', 'comptable'], stock: ['proprietaire', 'admin', 'commercial', 'comptable'], tresorerie: ['proprietaire', 'admin', 'comptable'], rh: ['proprietaire', 'admin'], recrutement: ['proprietaire', 'admin'] };
 // affichage seulement : la base vérifie aussi. Un employé ne lit rien de l'entreprise : il n'a que « Mon espace ».
-const peut = d => !!ROLE && (d === 'lire' ? ROLE !== 'employe' : (['achats', 'stock', 'tresorerie', 'rh'].includes(d) ? ERP : true) && (DROITS[d] || []).includes(ROLE));
+const peut = d => !!ROLE && (d === 'lire' ? ROLE !== 'employe' : (['achats', 'stock', 'tresorerie', 'rh'].includes(d) ? ERP : d === 'recrutement' ? REC : true) && (DROITS[d] || []).includes(ROLE));
 
 async function chargerSession() {
   moi = null; profil = null; ORGS = []; ORG = null; ROLE = null; if (!PRET) return;
@@ -108,7 +109,7 @@ const COMMANDES = () => [['#/', 'Tableau de bord', 'accueil'], ['#/clients', 'Cl
   ['#/equipe', 'Équipe et rôles', 'equipe'], ['#/journal', 'Journal d’activité', 'journal'], ['#/clients?nouveau=1', 'Nouveau client', 'clients'], ['#/devis/nouveau', 'Nouveau devis', 'devis'], ['#/factures/nouvelle', 'Nouvelle facture', 'factures'],
   ...(ERP ? [['#/abonnements', 'Abonnements (factures récurrentes)', 'abonnements'], ['#/relances', 'Relances des impayés', 'relances'], ['#/depenses', 'Dépenses et achats', 'depenses'], ['#/fournisseurs', 'Fournisseurs', 'fournisseurs'],
   ['#/stock', 'Stock et inventaire', 'stock'], ['#/tresorerie', 'Trésorerie', 'tresorerie'], ['#/rapports', 'Rapports et TVA', 'rapports'], ['#/employes', 'Employés et absences', 'employes']] : []),
-  ...(EQ && peut('rh') ? [['#/planning', 'Planning de l’équipe', 'planning']] : []), ...(EQ && FICHES.has(ORG?.id) ? [['#/moi', 'Mon espace : planning et congés', 'moi']] : [])];
+  ...(EQ && peut('rh') ? [['#/planning', 'Planning de l’équipe', 'planning']] : []), ...(peut('recrutement') ? [['#/recrutement', 'Recrutement : offres d’emploi', 'recrutement'], ['#/recrutement/candidatures', 'Candidatures reçues', 'recrutement']] : []), ...(EQ && FICHES.has(ORG?.id) ? [['#/moi', 'Mon espace : planning et congés', 'moi']] : [])];
 async function palette() {
   if (!ORG || ROLE === 'employe' || $('.palette')) return;
   const p = document.createElement('div'); p.className = 'palette';
@@ -155,7 +156,7 @@ const MENU = () => ROLE === 'employe' ? [['moi', 'Mon espace', null, [['#/moi', 
   ['ventes', 'Ventes', null, [['#/devis', 'Devis', 'devis'], ['#/factures', 'Factures', 'factures'], ...(ERP ? [['#/abonnements', 'Abonnements', 'abonnements'], ['#/relances', 'Relances', 'relances']] : []), ['#/catalogue', 'Catalogue', 'catalogue']]],
   ...(ERP ? [['achats', 'Achats et stock', null, [['#/depenses', 'Dépenses', 'depenses'], ['#/fournisseurs', 'Fournisseurs', 'fournisseurs'], ['#/stock', 'Stock', 'stock']]]] : []),
   ...(peut('tresorerie') ? [['finances', 'Finances', null, [['#/tresorerie', 'Trésorerie', 'tresorerie'], ['#/rapports', 'Rapports et TVA', 'rapports']]]] : []),
-  ['org', 'Entreprise', null, [...(peut('rh') ? [['#/employes', 'Employés', 'employes']] : []), ...(EQ && peut('rh') ? [['#/planning', 'Planning', 'planning']] : []),
+  ['org', 'Entreprise', null, [...(peut('rh') ? [['#/employes', 'Employés', 'employes']] : []), ...(EQ && peut('rh') ? [['#/planning', 'Planning', 'planning']] : []), ...(peut('recrutement') ? [['#/recrutement', 'Recrutement', 'recrutement']] : []),
     ...(EQ && FICHES.has(ORG?.id) ? [['#/moi', 'Mon espace', 'moi']] : []), ['#/equipe', 'Équipe', 'equipe'], ['#/reglages', 'Réglages', 'reglages'], ...(peut('equipe') ? [['#/journal', 'Journal', 'journal']] : [])]]];
 function coquille() {
   const h = (location.hash || '#/').split('?')[0], on = p => (p === '#/' ? h === '#/' : h.startsWith(p)) ? 'on' : '';
@@ -204,12 +205,21 @@ const vue = h => { const p = $('#page') || $('#app'); p.innerHTML = h; };
 const entete = (titre, sous = '', boutons = '') => `<div class="titre-p"><div><h1>${titre}</h1>${sous ? `<p class="muted">${sous}</p>` : ''}</div><div class="actions">${boutons}</div></div>`;
 
 // ---------------------------------------------------------------- routeur
+// Modules chargés à la demande (17/11) : l'écran de connexion n'en a pas besoin. Chargés dans l'ordre (async=false), une seule fois, dès qu'on est connecté ou sur l'espace client.
+// Les numéros ?v= sont à monter ici quand un module change.
+const FICHIERS_DIFFERES = ['crm.js?v=2', 'ventes.js?v=5', 'communication.js?v=1', 'erp.js?v=2', 'equipe.js?v=1', 'entreprise.js?v=1', 'reglages.js?v=3', 'recrutement.js?v=1', 'client.js?v=2'];
+let modulesP = null;
+const chargerModules = () => modulesP || (modulesP = Promise.all(FICHIERS_DIFFERES.map(src => new Promise((ok, ko) => {
+  const s = document.createElement('script'); s.src = src; s.async = false; s.onload = ok; s.onerror = () => { modulesP = null; ko(new Error('Chargement impossible : ' + src.split('?')[0])); };
+  document.head.appendChild(s);
+}))));
 async function rendre() {
   const h = (location.hash || '#/').split('?')[0], parts = h.split('/').slice(1), nom = parts[0] || '';
   window.scrollTo(0, 0); document.title = 'NEXORA — The Business Operating System';
   try {
     if (!PRET) { document.body.innerHTML = '<div class="carte-auth"><div class="carte"><h1>NEXORA</h1><p>Ouverture très bientôt.</p></div></div>'; return; }
     if (nom === 'invitation') return await NX.publiques.invitation(parts[1]);
+    if (moi || nom === 'client') await chargerModules();
     if (nom === 'client') return await NX.publiques.client();   // espace client : la même page, avec ou sans compte
     if (!moi) { const p = NX.publiques[nom] || NX.publiques['']; return await p(...parts.slice(1)); }
     if (!ORG || nom === 'bienvenue') return await NX.publiques.bienvenue();
@@ -229,7 +239,7 @@ function demarrer() {
   (async () => {
     if (PRET) {
       const existe = t => sb.from(t).select('id').limit(1).then(r => !r.error, () => false);   // modules installés dans la base
-      [ERP, COMM, PORTAIL, EQ] = await Promise.all(['nx_fournisseurs', 'nx_modeles_email', 'nx_echeances', 'nx_creneaux'].map(existe));
+      [ERP, COMM, PORTAIL, EQ, REC] = await Promise.all(['nx_fournisseurs', 'nx_modeles_email', 'nx_echeances', 'nx_creneaux', 'nx_offres'].map(existe));
       sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { moi = null; ORG = null; } }); await chargerSession().catch(e => console.error(e));
     }
     rendre();

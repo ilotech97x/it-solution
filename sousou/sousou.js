@@ -430,6 +430,6 @@ const APP = {
   }
 
   Object.assign(APP.pages, { '': accueil, t: tontine, recap, creer, rejoindre, avis, aide, compte });
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+/* service worker : enregistré par pwa.js (commun/pwa.js) */
   demarrer();
 })();

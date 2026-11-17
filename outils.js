@@ -78,6 +78,12 @@ function illustration({ id, icon, badge, couleur }, cls = '') {
 
 // ---------- Statistiques de visite anonymes (sans cookie, sans nom ni adresse IP) -> onglet « Visites » du tableau Google
 function stat(e, detail) {
+  if (location.protocol === 'file:') return;
+  // hors du chemin critique : après l'affichage, quand le navigateur est au repos (17/11, performance)
+  const quand = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 4000 }) : f => setTimeout(f, 1500);
+  quand(() => statEnvoi(e, detail));
+}
+function statEnvoi(e, detail) {
   try {
     if (!CONFIG.endpoint || location.protocol === 'file:' || /gestion|prospection|visibilite/.test(location.pathname)) return;
     const q = new URLSearchParams(location.search);

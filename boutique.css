@@ -272,3 +272,6 @@
   .b-grille .b-carte,.b-vue-liste .b-carte,.b-grille-acc .b-carte{grid-template-columns:128px minmax(0,1fr)}
   .b-carte .b-illu,.b-lignes .b-illu,.b-mini .b-illu{left:4px;bottom:4px;padding:0 5px;font-size:9px}
 }
+
+/* PERFORMANCE (17/11) : place réservée avant que boutique.js n'écrive la page (le pied de page ne saute plus) */
+.b-main{min-height:100svh}

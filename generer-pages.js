@@ -675,7 +675,7 @@ const petite = slug => { const n = photoDe(slug); return !!n && (DIMS[n] || [160
 const photoHtml = slug => {
   const n = photoDe(slug); if (!n) return '';
   const [w, h] = DIMS[n] || [1600, 900];
-  return `<figure class="seo-photo${w < 800 ? ' petite' : ''}"><img src="img/photos/${n}.jpg" alt="${esc(ALT_PHOTOS[n])}" width="${w}" height="${h}" loading="lazy" decoding="async"><figcaption>Illustration</figcaption></figure>`;
+  return `<figure class="seo-photo${w < 800 ? ' petite' : ''}"><img src="img/photos/${n}.webp" alt="${esc(ALT_PHOTOS[n])}" width="${w}" height="${h}" loading="lazy" decoding="async"><figcaption>Illustration</figcaption></figure>`;
 };
 const ogImage = slug => photoDe(slug) && fs.existsSync(path.join(dir, 'img/photos', photoDe(slug) + '-og.jpg')) ? SITE + 'img/photos/' + photoDe(slug) + '-og.jpg' : SITE + 'img/og-ilotech.jpg';
 const jours = { 1: 'Mo', 2: 'Tu', 3: 'We', 4: 'Th', 5: 'Fr', 6: 'Sa', 0: 'Su' };
@@ -740,7 +740,7 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
 <body class="page-doc page-seo">
   <header class="top">
     <a class="brand" href="index.html" aria-label="IloTech — accueil">
-      <img class="logo" src="img/logo-ilo.png" alt="IloTech" width="64" height="38">
+      <img class="logo" src="img/logo-ilo.webp" alt="IloTech" width="64" height="38">
       <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">IT</em></b><span class="mono">Ducos · Le Robert — Martinique</span></span>
     </a>
     <div class="top-actions"><a class="btn btn-head" href="index.html?cat=${p.cat}">Prendre rendez-vous</a></div>
@@ -810,10 +810,10 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
     <ul class="seo-liens">${autres.map(x => `<li><a href="${lien(x)}">${esc(x.h1)}</a></li>`).join('')}<li><a href="services.html">Tous nos services et tarifs</a></li></ul>
   </main>
   <footer class="seo-pied">${reseauxHtml()}<p>IloTech — ${esc(ENTREPRISE.nomCommercial)}, entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
-  <script src="config.js?v=1"></script>
-  <script src="mesure.js?v=1"></script>
-  <script src="data.js?v=${V}"></script>
-  <script src="outils.js?v=${V}"></script>
+  <script src="config.js?v=1" defer></script>
+  <script src="mesure.js?v=2" defer></script>
+  <script src="data.js?v=${V}" defer></script>
+  <script src="outils.js?v=${V}" defer></script>
 </body>
 </html>
 `;
@@ -849,17 +849,17 @@ ${ld.map(o => `  <script type="application/ld+json">${JSON.stringify(o)}</script
 <body class="page-doc page-seo">
   <header class="top">
     <a class="brand" href="index.html" aria-label="IloTech — accueil">
-      <img class="logo" src="img/logo-ilo.png" alt="IloTech" width="64" height="38">
+      <img class="logo" src="img/logo-ilo.webp" alt="IloTech" width="64" height="38">
       <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">IT</em></b><span class="mono">Ducos · Le Robert — Martinique</span></span>
     </a>
     <div class="top-actions"><a class="btn btn-head" href="conseils.html">Conseils</a><a class="btn btn-head" href="index.html">Prendre rendez-vous</a></div>
   </header>
 `;
 const pied = () => `  <footer class="seo-pied">${reseauxHtml()}<p>IloTech — entreprise individuelle · SIRET ${esc(ENTREPRISE.siret)} · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="https://ilo-tech.com/digital/">IloTech Studio, agence marketing</a> · <a href="https://immo.ilo-tech.com/">IloTech Immobilier</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p></footer>
-  <script src="config.js?v=1"></script>
-  <script src="mesure.js?v=1"></script>
-  <script src="data.js?v=${V}"></script>
-  <script src="outils.js?v=${V}"></script>
+  <script src="config.js?v=1" defer></script>
+  <script src="mesure.js?v=2" defer></script>
+  <script src="data.js?v=${V}" defer></script>
+  <script src="outils.js?v=${V}" defer></script>
 </body>
 </html>
 `;

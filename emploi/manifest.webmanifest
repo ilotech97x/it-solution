@@ -1,0 +1,23 @@
+{
+  "name": "Travay — offres d’emploi",
+  "short_name": "Travay",
+  "description": "Les offres d’emploi des entreprises de Martinique et des outre-mer : filtrez, gardez vos favoris, postulez et suivez vos candidatures.",
+  "lang": "fr",
+  "id": "./",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "shortcuts": [
+    { "name": "Les offres", "short_name": "Offres", "url": "./#/", "icons": [{ "src": "img/icone-192.png", "sizes": "192x192" }] },
+    { "name": "Entreprises qui recrutent", "short_name": "Entreprises", "url": "./#/entreprises", "icons": [{ "src": "img/icone-192.png", "sizes": "192x192" }] }
+  ],
+  "background_color": "#F4FAF9",
+  "theme_color": "#0F766E",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "img/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icone-512-masque.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

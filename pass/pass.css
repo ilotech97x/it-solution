@@ -339,7 +339,7 @@ html[data-sens=onglet]::view-transition-new(root){animation:vt-montre .18s ease 
 .bas a span{line-height:0}.bas a span svg{display:block}
 @media (max-width:900px){
   .nav{display:none}
-  .bas{display:grid;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 18px rgba(43,27,51,.07)}
+  .bas{display:grid;min-height:calc(62px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 18px rgba(43,27,51,.07)}
   .bas a{padding-top:9px}
   body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
   body.clavier .bas{display:none}
@@ -355,3 +355,6 @@ html[data-sens=onglet]::view-transition-new(root){animation:vt-montre .18s ease 
   .cloche-app .badge{position:absolute;top:2px;right:0}
   body[data-racine=non] .cloche-app{margin-left:0}
 }
+
+/* performance (17/11) : place réservée avant que pass.js n'écrive la page (le pied de page et la barre du bas ne sautent plus) */
+#app{min-height:calc(100svh - 60px)}

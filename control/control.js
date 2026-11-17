@@ -457,4 +457,4 @@ async function activerDouble() {
 document.addEventListener('DOMContentLoaded', demarrer);
 
 // appli installable (écran d'accueil) : les fichiers du site restent lisibles sans réseau, jamais les données (sw.js)
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+/* service worker : enregistré par pwa.js (commun/pwa.js) */

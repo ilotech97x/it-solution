@@ -266,4 +266,4 @@ APP.pages.admin = sous => { location.replace('../control/#/' + (ADMIN_VERS[sous 
 // les pages des univers sont déclarées par food.js, move.js et gps.js, chargés après ce fichier
 document.addEventListener('DOMContentLoaded', demarrer);
 // appli installable (écran d'accueil) et utilisable hors connexion pour l'affichage
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+/* service worker : enregistré par pwa.js (commun/pwa.js) */

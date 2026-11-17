@@ -62,7 +62,7 @@
   <p class="aide">Imprimez sur du papier un peu épais (160 g ou plus), puis découpez le long des pointillés. En boîte aux lettres, respectez les « Stop pub ». Les prix sont repris du site et restent toujours à jour.</p>
   <div class="feuille" id="feuille"></div>
   <script src="data.js?v=103"></script>
-  <script src="outils.js?v=103"></script>
+  <script src="outils.js?v=107"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
     const s = svc, p = pack;
@@ -87,7 +87,7 @@
     if (sansPrix) Object.values(VERSIONS).forEach(v => { v.lignes = v.lignes.map(([a]) => [a, '✓']); v.plus = v.plus.replace(' · Prix fixés à l’avance', ' · Prix annoncé avant'); });
     function flyer(v) {
       return `<div class="fly">
-        <div class="tete"><img src="img/logo-ilo.png" alt=""><div><b>Ilo<span>Tech</span></b><small>Dépannage &amp; installation informatique · Martinique</small></div></div>
+        <div class="tete"><img src="img/logo-ilo.webp" alt=""><div><b>Ilo<span>Tech</span></b><small>Dépannage &amp; installation informatique · Martinique</small></div></div>
         <h2>${v.titre}</h2>
         <ul>${v.lignes.map(([a, b]) => `<li><span>${a}</span><b>${b}</b></li>`).join('')}</ul>
         <p class="plus">✓ ${v.plus}<br>✓ Chez vous, en agence ou à distance</p>
