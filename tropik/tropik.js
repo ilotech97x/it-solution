@@ -75,141 +75,19 @@ const APP = {
 
   // ---------------------------------------------------------------- cartes produit, prix
   const prixHtml = p => p.barre ? `<span class="px promo"><b>${eur(p.prix)}</b><s><span class="cache-visuel">Prix de référence </span>${eur(p.barre)}</s><span class="red">−${p.reduction} %</span></span>` : `<span class="px"><b>${eur(p.prix)}</b></span>`;
-  const carte = p => `<article class="prod-c"><button type="button" class="coeur" data-act="fav" data-id="${p.id}" aria-pressed="${!!p.favori}" aria-label="${p.favori ? 'Retirer des favoris' : 'Ajouter aux favoris'} : ${esc(p.titre)}">${IC.coeur}</button>
-    <a class="prod-l" href="#/p/${p.id}"><span class="im ${p.photo ? '' : 'vide'}"${fond(p.photo)}>${p.photo ? '' : '👟'}${p.barre ? `<span class="ruban">−${p.reduction} %</span>` : !p.dispo ? '<span class="ruban gris">Épuisé</span>' : ''}</span>
-      ${p.marque ? `<span class="marque">${esc(p.marque)}</span>` : ''}<span class="titre">${esc(p.titre)}</span>${prixHtml(p)}
-      <span class="vend">${esc(p.vendeur_nom)} · ${p.vendeur_type === 'professionnel' ? 'Pro' : 'Particulier'}${p.etat === 'occasion' ? ' · Occasion' : ''}</span>
-      ${p.nb_avis ? `<span class="note-m"><b>★ ${String(p.note).replace('.', ',')}</b> (${p.nb_avis})</span>` : ''}</a></article>`;
-  const grille = l => `<div class="prod-g">${l.map(carte).join('')}</div>`;
-  const squelette = () => '<div class="prod-g">' + '<i class="sq sq-t" style="aspect-ratio:1;height:auto"></i>'.repeat(4) + '</div>';
+  const TK = APP.tk = {};
+  const carte = p => TK.carte(p);
+  const grille = l => TK.grille(l);
+  const squelette = () => TK.squelette();
 
-  // ---------------------------------------------------------------- accueil
-  const accueil = ouverte(async i => {
-    const [rs, promo, neuf] = await Promise.all([rayons(), rpc('tk_catalogue', { f: { promo: true, tri: 'promos', limite: 8 } }), rpc('tk_catalogue', { f: { tri: 'recents', limite: 8 } })]);
-    vue(`<div class="wrap tk">
-      <section class="hero-t"><h1>La boutique des vendeurs des Antilles</h1><p>Chaussures, vêtements et accessoires de marque, vendus par des commerçants identifiés. Retrait chez le vendeur ou livraison, paiement à la remise.</p>
-        <form class="rech" id="fRech" role="search"><input class="champ" name="q" type="search" placeholder="Une marque, un produit…" aria-label="Rechercher un produit" autocomplete="off"><button class="btn btn-p" style="background:#fff;color:var(--action-survol);border-color:#fff">Chercher</button></form></section>
-      <section aria-labelledby="hR"><div class="sect-t"><h2 id="hR">Les rayons</h2><a href="#/rayons">Tout voir</a></div>
-        <div class="rayons-g">${familles(rs).map(r => `<a class="rayon-c" href="#/recherche?rayon=${r.code}"><span aria-hidden="true">${esc(r.icone)}</span>${esc(r.nom)}</a>`).join('')}</div></section>
-      ${promo.total ? `<section aria-labelledby="hP"><div class="sect-t"><h2 id="hP">Promotions</h2><a href="#/recherche?promo=1&tri=promos">Tout voir (${promo.total})</a></div><p class="expl">Le prix barré est toujours le prix le plus bas des 30 derniers jours avant la réduction.</p>${grille(promo.produits)}</section>` : ''}
-      ${neuf.total ? `<section aria-labelledby="hN"><div class="sect-t"><h2 id="hN">Nouveautés</h2><a href="#/recherche?tri=recents">Tout voir (${neuf.total})</a></div>${grille(neuf.produits)}</section>`
-        : `<div class="vide-etat"><span class="ico" aria-hidden="true">🛍️</span><h3>Les premiers vendeurs arrivent</h3><p>Aucun produit n’est encore en vente : le catalogue se remplit au fur et à mesure que les commerçants ouvrent leur boutique, après vérification. Vous vendez des chaussures, des vêtements ou des accessoires ?</p><a class="btn btn-p" href="#/devenir-vendeur">Ouvrir ma boutique</a></div>`}
-      <section class="carte"><h2>Pourquoi Tropik</h2><ul class="garanties"><li>✔ <span><b>Vendeurs vérifiés</b> : professionnel ou particulier, toujours indiqué sur la fiche.</span></li><li>✔ <span><b>Paiement à la remise ou au retrait</b> : vous payez en recevant votre commande.</span></li>
-        <li>✔ <span><b>Prix barrés honnêtes</b> : calculés par Tropik sur les 30 derniers jours.</span></li><li>✔ <span><b>Avis d’acheteurs réels</b> : seulement après une commande terminée.</span></li></ul>
-        <p class="petit"><a href="#/aide">Vos droits, le classement des produits, la commission</a> · <a href="#/devenir-vendeur">Vendre sur Tropik</a> (commission ${i.commission_pct} %)</p></section></div>`);
-  });
-
-  // ---------------------------------------------------------------- rayons
-  const pageRayons = ouverte(async () => {
-    const rs = await rayons();
-    vue(`<div class="wrap tk"><h1>Les rayons</h1><div class="rayons-liste">${familles(rs).map(f => `<section class="rayon-bloc"><h2><a href="#/recherche?rayon=${f.code}"><span aria-hidden="true">${esc(f.icone)}</span> ${esc(f.nom)}</a></h2>
-      <div class="sous-r">${rs.filter(s => s.parent === f.code).map(s => `<a href="#/recherche?rayon=${s.code}">${esc(s.nom)}</a>`).join('')}</div></section>`).join('')}</div></div>`);
-  });
-
-  // ---------------------------------------------------------------- recherche, filtres, tris
-  let filtresOuverts = false;
-  const LISTES = ['marque', 'taille', 'couleur'];
-  const filtresDe = p => {
-    const f = {}, l = k => (p[k] || '').split('|').filter(Boolean);
-    if (p.q) f.q = p.q; if (p.rayon) f.rayon = p.rayon; if (p.vendeur) f.vendeur = p.vendeur; if (p.etat) f.etat = p.etat; if (p.public) f.public = p.public;
-    if (l('marque').length) f.marques = l('marque'); if (l('taille').length) f.tailles = l('taille'); if (l('couleur').length) f.couleurs = l('couleur');
-    if (p.pmin) f.prix_min = Number(p.pmin); if (p.pmax) f.prix_max = Number(p.pmax); if (p.dispo) f.dispo = true; if (p.promo) f.promo = true; if (p.tri) f.tri = p.tri;
-    return f;
-  };
-  const hashDe = p => { const u = new URLSearchParams(); for (const [k, v] of Object.entries(p)) if (v) u.set(k, v); const s = u.toString(); return '#/recherche' + (s ? '?' + s : ''); };
-  const pageRecherche = ouverte(async () => {
-    const p = param(), rs = await rayons(), f = filtresDe(p), lim = 24;
-    const r = await rpc('tk_catalogue', { f: { ...f, limite: lim, decalage: 0 } }), fa = r.facettes, sel = k => (p[k] || '').split('|').filter(Boolean);
-    const coches = (k, liste, nom) => liste.length ? `<fieldset><legend>${nom}</legend><div class="f-liste">${liste.map(x => `<label><input type="checkbox" data-filtre="${k}" value="${esc(x.v)}" ${sel(k).includes(x.v) ? 'checked' : ''}>${esc(x.v)} <i>${x.n}</i></label>`).join('')}</div></fieldset>` : '';
-    const radios = (k, liste, nom, noms) => `<fieldset><legend>${nom}</legend><div class="f-liste"><label><input type="radio" name="r-${k}" data-filtre-un="${k}" value="" ${!p[k] ? 'checked' : ''}>Tous</label>${liste.map(x => `<label><input type="radio" name="r-${k}" data-filtre-un="${k}" value="${esc(x.v)}" ${p[k] === x.v ? 'checked' : ''}>${esc(noms[x.v] || x.v)} <i>${x.n}</i></label>`).join('')}</div></fieldset>`;
-    const actifs = [];
-    for (const k of LISTES) for (const v of sel(k)) actifs.push([k, v, v]);
-    for (const [k, t] of [['etat', p.etat === 'occasion' ? 'Occasion' : 'Neuf'], ['public', PUBLICS[p.public]], ['pmin', 'Dès ' + p.pmin + ' €'], ['pmax', 'Jusqu’à ' + p.pmax + ' €'], ['dispo', 'En stock'], ['promo', 'Promotions'], ['vendeur', 'Un vendeur'], ['rayon', nomRayon(rs, p.rayon)], ['q', '« ' + p.q + ' »']]) if (p[k]) actifs.push([k, '', t]);
-    const total = r.total, titre = p.rayon ? nomRayon(rs, p.rayon) : p.q ? 'Recherche' : 'Tous les produits';
-    vue(`<div class="wrap tk"><h1>${esc(titre)}</h1>
-      <form class="rech" id="fRech" role="search"><input class="champ" name="q" type="search" value="${esc(p.q || '')}" placeholder="Une marque, un produit…" aria-label="Rechercher un produit" autocomplete="off"><button class="btn btn-p">Chercher</button></form>
-      <div class="cat-2"><form class="filtres ${filtresOuverts ? 'ouvert' : ''}" id="fFiltres" aria-label="Filtres">
-        <fieldset><legend>Rayon</legend><select class="champ" data-filtre-un="rayon" aria-label="Rayon"><option value="">Tous les rayons</option>${familles(rs).map(fm => `<optgroup label="${esc(fm.nom)}"><option value="${fm.code}" ${p.rayon === fm.code ? 'selected' : ''}>Tout : ${esc(fm.nom)}</option>${rs.filter(s => s.parent === fm.code).map(s => `<option value="${s.code}" ${p.rayon === s.code ? 'selected' : ''}>${esc(s.nom)}</option>`).join('')}</optgroup>`).join('')}</select></fieldset>
-        <fieldset><legend>Prix (€)</legend><div class="f-prix"><input type="number" min="0" inputmode="numeric" placeholder="${fa.prix.min != null ? Math.floor(fa.prix.min) : 'Min'}" data-filtre-un="pmin" value="${esc(p.pmin || '')}" aria-label="Prix minimum"><input type="number" min="0" inputmode="numeric" placeholder="${fa.prix.max != null ? Math.ceil(fa.prix.max) : 'Max'}" data-filtre-un="pmax" value="${esc(p.pmax || '')}" aria-label="Prix maximum"></div></fieldset>
-        ${radios('public', fa.publics, 'Pour qui', PUBLICS)}${radios('etat', fa.etats, 'État', { neuf: 'Neuf', occasion: 'Occasion' })}
-        ${coches('marque', fa.marques, 'Marque')}${coches('taille', fa.tailles, 'Taille')}${coches('couleur', fa.couleurs, 'Couleur')}
-        ${fa.vendeurs.length > 1 || p.vendeur ? `<fieldset><legend>Vendeur</legend><select class="champ" data-filtre-un="vendeur" aria-label="Vendeur"><option value="">Tous les vendeurs</option>${fa.vendeurs.map(v => `<option value="${v.v}" ${p.vendeur === v.v ? 'selected' : ''}>${esc(v.nom)} (${v.n})</option>`).join('')}</select></fieldset>` : ''}
-        <fieldset><legend>Disponibilité et promotions</legend><div class="f-liste"><label><input type="checkbox" data-filtre-bool="dispo" ${p.dispo ? 'checked' : ''}>En stock</label><label><input type="checkbox" data-filtre-bool="promo" ${p.promo ? 'checked' : ''}>Promotions</label></div></fieldset>
-        <button type="button" class="btn btn-sec btn-s" data-act="effacer">Effacer les filtres</button></form>
-      <div style="display:grid;gap:12px;min-width:0"><div class="filtres-btn"><button type="button" class="btn btn-sec btn-filtres" data-act="filtres" aria-expanded="${filtresOuverts}">Filtres${actifs.length ? ' (' + actifs.length + ')' : ''}</button>
-          ${actifs.length ? `<span class="actifs">${actifs.map(([k, v, t]) => `<button type="button" data-act="retire" data-k="${k}" data-v="${esc(v)}" aria-label="Retirer le filtre ${esc(t)}">${esc(t)} ✕</button>`).join('')}</span>` : ''}</div>
-        <div class="tri-l"><b id="nbRes" aria-live="polite">${total ? pluriel(total, 'produit', 'produits') : 'Aucun produit'}</b><label class="petit">Trier <select data-filtre-un="tri" aria-label="Trier par">${TRIS.map(([k, t]) => `<option value="${k}" ${(p.tri || 'pertinence') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
-        <p class="expl">${(p.tri || 'pertinence') === 'pertinence' ? 'Classement par pertinence : les produits qui correspondent à votre recherche, puis les plus récents. Aucun vendeur ne paie pour être mieux placé. ' : ''}<a href="#/aide">Comment ça marche</a></p>
-        ${total ? `<div id="resultats">${grille(r.produits)}</div>${total > lim ? `<button class="btn btn-sec btn-plein" data-act="plus" data-n="${lim}" data-total="${total}">Voir plus de produits</button>` : ''}`
-          : `<div class="vide-etat"><span class="ico" aria-hidden="true">🔎</span><h3>Aucun produit ne correspond</h3><p>${actifs.length ? 'Essayez avec moins de filtres.' : 'Le catalogue se remplit au fur et à mesure que les vendeurs ouvrent leur boutique.'}</p>${actifs.length ? '<button class="btn btn-p" data-act="effacer">Effacer les filtres</button>' : '<a class="btn btn-p" href="#/devenir-vendeur">Vendre sur Tropik</a>'}</div>`}</div></div></div>`);
-  });
-
-  // ---------------------------------------------------------------- fiche produit
   const GUIDE_CH = [['36', '5,5', '3,5', '22,8'], ['37', '6', '4', '23,5'], ['38', '7', '5', '24,1'], ['39', '8', '6', '24,8'], ['40', '8,5', '6,5', '25,4'], ['41', '9', '7', '26'], ['42', '9,5', '7,5', '26,7'], ['43', '10,5', '8,5', '27,3'], ['44', '11', '9', '28'], ['45', '12', '10', '28,6']];
   const GUIDE_V = [['XS', '34', '6', '82'], ['S', '36', '8', '86'], ['M', '38', '10', '92'], ['L', '40', '12', '98'], ['XL', '42', '14', '104'], ['XXL', '44', '16', '110']];
   const guideTailles = fam => fam === 'chaussures' ? `<table class="tableau-t"><thead><tr><th>EU</th><th>US (homme)</th><th>UK</th><th>Pied (cm)</th></tr></thead><tbody>${GUIDE_CH.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`
     : fam === 'vetements' || fam === 'maillots' ? `<table class="tableau-t"><thead><tr><th>Taille</th><th>EU</th><th>US</th><th>Poitrine (cm)</th></tr></thead><tbody>${GUIDE_V.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>` : '';
   let sel = { couleur: null, variante: null };
-  const pageFiche = ouverte(async (i, id) => {
-    const p = await rpc('tk_fiche', { p: id });
-    if (!p) return vue('<div class="wrap tk"><div class="vide-etat"><h3>Produit introuvable</h3><p>Il n’est plus en vente ou n’existe pas.</p><a class="btn btn-p" href="#/recherche">Voir le catalogue</a></div></div>');
-    const v = p.vendeur, pro = v.type === 'professionnel', moiVend = moi && v.id === moi.id, enVente = p.statut === 'publie';
-    const couleurs = [...new Set(p.variantes.map(x => x.couleur))];
-    sel = { couleur: (couleurs.find(c => p.variantes.some(x => x.couleur === c && x.stock > 0)) || couleurs[0]), variante: null };
-    const photos = p.photos || [], dernier = p.variantes.reduce((n, x) => n + x.stock, 0);
-    const sigForm = moi ? `<details class="plus-options"><summary>Signaler ce produit</summary><form class="f" data-form="signaler" data-type="produit" data-id="${p.id}"><label>Motif<select name="motif">${MOTIFS_SIG.map(([k, t]) => `<option value="${k}">${t}</option>`).join('')}</select></label>
-      <label>Précisions<textarea name="details" maxlength="1000" placeholder="Que s’est-il passé ? Un lien, une preuve…"></textarea></label><button class="btn btn-sec">Envoyer le signalement</button></form></details>` : `<p class="petit"><a href="#/connexion?retour=${encodeURIComponent('#/p/' + p.id)}">Connectez-vous</a> pour signaler ce produit.</p>`;
-    vue(`<div class="wrap tk"><div class="fiche">
-      <div class="galerie"><div class="grand ${photos.length ? '' : 'vide'}" id="grandeImg"${fond(photos[0])}>${photos.length ? '' : '👟'}${p.barre ? `<span class="ruban">−${p.reduction} %</span>` : ''}</div>
-        ${photos.length > 1 ? `<div class="vignettes">${photos.map((x, k) => `<button type="button" data-act="img" data-k="${k}" aria-label="Photo ${k + 1}" aria-current="${k === 0}"${fond(x)}></button>`).join('')}</div>` : ''}</div>
-      <div class="fiche-infos">
-        ${!enVente ? `<div class="avert avert-ko"><b>${esc((STATUT_P[p.statut] || [0, p.statut])[1])}</b> : ce produit n’est pas visible par le public.</div>` : ''}
-        <div>${p.marque ? `<span class="marque" style="font-weight:800;text-transform:uppercase;font-size:13px;color:var(--texte-2)">${esc(p.marque)}</span>` : ''}<h1>${esc(p.titre)}</h1>
-          <div class="note-m">${p.nb_avis ? `${etoiles(p.note)} <b>${String(p.note).replace('.', ',')}</b> · ${pluriel(p.nb_avis, 'avis', 'avis')}` : 'Pas encore d’avis'} · ${esc(p.rayon_nom)} · ${p.etat === 'occasion' ? 'Occasion' : 'Neuf'} · ${esc(PUBLICS[p.public])}</div></div>
-        <div>${prixHtml(p)}${p.barre ? `<p class="expl">${p.jusqu ? 'Jusqu’au ' + esc(jourHeure(p.jusqu)) + '. ' : ''}Prix de référence : le plus bas des 30 jours avant la réduction.</p>` : ''}</div>
-        ${p.marque ? `<p class="petit">🛡️ ${p.authentique ? '<b>Authenticité déclarée par le vendeur.</b>' : 'Authenticité non déclarée.'} En cas de doute, utilisez « Signaler ».</p>` : ''}
-        <div id="choixV"></div>
-        <div class="actions-r"><button class="btn btn-p" id="ajout" data-act="ajouter" ${!enVente || moiVend ? 'disabled' : ''}>Ajouter au panier</button>
-          <button type="button" class="btn btn-sec" data-act="fav" data-id="${p.id}" aria-pressed="${!!p.favori}">♥ ${p.favori ? 'Dans mes favoris' : 'Favori'}</button></div>
-        ${moiVend ? '<p class="petit muted">C’est votre produit : vous ne pouvez pas l’acheter.</p>' : ''}
-        <section class="carte id-vend"><h3>Vendu par <a href="#/boutique/${v.id}">${esc(v.nom)}</a></h3><div>${tagVendeur(v.type)}</div>
-          ${pro ? `<span>SIRET ${esc(v.siret)} · ${esc(v.adresse)}, ${esc(v.commune)}</span><span>Téléphone : ${esc(v.telephone)}</span>` : `<span>${esc(v.commune)} · ${esc(v.territoire)}</span><span class="petit muted">Vente entre particuliers : pas de rétractation de 14 jours ni de garantie légale de conformité.</span>`}
-          <span>${v.retrait_ok ? '✔ Retrait chez le vendeur' : ''}${v.retrait_ok && v.livraison_ok ? ' · ' : ''}${v.livraison_ok ? `✔ Livraison ${v.frais ? eur(v.frais) : 'gratuite'}${v.gratuite_des ? ' (offerte dès ' + eur(v.gratuite_des) + ')' : ''}` : ''}</span>
-          <span>💶 Paiement à la remise ou au retrait</span>
-          <a class="btn btn-sec btn-s" href="#/boutique/${v.id}">Voir la boutique${v.nb_avis ? ' · ★ ' + String(v.note).replace('.', ',') : ''}</a></section>
-        ${p.description ? `<section class="carte"><h3>Description</h3><p style="margin:0;white-space:pre-line">${esc(p.description)}</p></section>` : ''}
-        ${guideTailles(p.famille) ? `<details class="plus-options"><summary>Guide des tailles</summary>${guideTailles(p.famille)}<p class="expl">Repères indicatifs : les coupes varient selon les marques, demandez conseil au vendeur.</p></details>` : ''}
-        <details class="plus-options"><summary>Retours et droits</summary><div class="avis-l">${pro ? '<p>✔ <b>14 jours pour vous rétracter</b> à compter de la remise ou de l’expédition, sans motif, depuis la page de votre commande.</p><p>✔ Garantie légale de conformité (2 ans en neuf).</p>' : '<p>Vendeur particulier : la vente n’ouvre pas droit à la rétractation de 14 jours ni à la garantie légale de conformité. Vérifiez l’article au retrait.</p>'}
-          ${v.politique_retour ? `<p><b>Politique du vendeur :</b> ${esc(v.politique_retour)}</p>` : ''}<p class="petit"><a href="cgu.html#retractation">Conditions générales</a></p></div></details>
-        ${sigForm}</div></div>
-      <section class="carte"><h2>Avis des acheteurs</h2>${p.avis.length ? `<div class="avis-l">${p.avis.map(a => `<article>${etoiles(a.note)} <b>${esc(a.auteur)}</b> <small class="muted">${esc(jourLong(a.date))}</small>${a.texte ? `<p style="margin:4px 0 0">${esc(a.texte)}</p>` : ''}</article>`).join('')}</div>` : '<p class="muted">Pas encore d’avis. Seuls les acheteurs d’une commande terminée peuvent en laisser.</p>'}</section>
-      ${p.similaires.length ? `<section aria-labelledby="hS"><h2 id="hS">Dans le même rayon</h2>${grille(p.similaires)}</section>` : ''}</div>`);
-    const rendreChoix = () => {
-      const tailles = p.variantes.filter(x => x.couleur === sel.couleur);
-      $('#choixV').innerHTML = `<div class="f"><div><b>Couleur : ${esc(sel.couleur)}</b><div class="choix-v" role="group" aria-label="Couleur">${couleurs.map(c => `<button type="button" data-act="coul" data-c="${esc(c)}" aria-pressed="${c === sel.couleur}">${esc(c)}</button>`).join('')}</div></div>
-        <div><b>Taille</b><div class="choix-v" role="group" aria-label="Taille">${tailles.map(x => `<button type="button" data-act="taille" data-v="${x.id}" aria-pressed="${x.id === sel.variante}" ${x.stock <= 0 ? 'disabled' : ''}>${esc(x.taille)}</button>`).join('')}</div></div>
-        <div class="stock-m ${sel.variante ? '' : 'bas'}" id="stockM" aria-live="polite">${sel.variante ? stockTexte(p.variantes.find(x => x.id === sel.variante).stock) : dernier ? 'Choisissez une taille' : '<span class="zero">Épuisé</span>'}</div></div>`;
-    };
-    pageFiche.rendre = rendreChoix; pageFiche.fiche = p; rendreChoix();
-  });
   const stockTexte = n => n <= 0 ? 'Épuisé' : n <= 3 ? `Plus que ${n} en stock` : 'En stock';
 
   // ---------------------------------------------------------------- boutique d'un vendeur
-  const pageBoutique = ouverte(async (i, id) => {
-    const [v, r] = await Promise.all([rpc('tk_boutique', { v: id }), rpc('tk_catalogue', { f: { vendeur: id, tri: 'recents', limite: 48 } })]);
-    if (!v) return vue('<div class="wrap tk"><div class="vide-etat"><h3>Boutique introuvable</h3><a class="btn btn-p" href="#/">Accueil</a></div></div>');
-    const pro = v.type === 'professionnel';
-    vue(`<div class="wrap tk"><section class="carte"><div style="display:flex;gap:14px;align-items:center"><span class="im" style="width:72px;height:72px;border-radius:16px;background:var(--doux-fond) center/cover no-repeat;flex:none;${v.logo ? `background-image:url('${esc(photo(v.logo))}')` : ''}"></span>
-        <div><h1>${esc(v.nom)}</h1>${tagVendeur(v.type)}<div class="note-m" style="margin-top:4px">${v.nb_avis ? `${etoiles(v.note)} <b>${String(v.note).replace('.', ',')}</b> · ${pluriel(v.nb_avis, 'avis', 'avis')}` : 'Pas encore d’avis'}</div></div></div>
-      ${v.description ? `<p style="margin:0;white-space:pre-line">${esc(v.description)}</p>` : ''}
-      <div class="id-vend">${pro ? `<span>SIRET ${esc(v.siret)} · ${esc(v.adresse)}, ${esc(v.commune)}</span><span>Téléphone : ${esc(v.telephone)}</span>` : `<span>${esc(v.commune)} · ${esc(v.territoire)} · vente entre particuliers</span>`}
-        <span>${v.retrait_ok ? '✔ Retrait' : ''}${v.retrait_ok && v.livraison_ok ? ' · ' : ''}${v.livraison_ok ? `✔ Livraison ${v.frais ? eur(v.frais) : 'gratuite'}${v.gratuite_des ? ' (offerte dès ' + eur(v.gratuite_des) + ')' : ''}` : ''} · 💶 paiement à la remise</span>
-        ${v.politique_retour ? `<span><b>Retours :</b> ${esc(v.politique_retour)}</span>` : ''}</div>
-      ${moi ? `<details class="plus-options"><summary>Signaler cette boutique</summary><form class="f" data-form="signaler" data-type="boutique" data-id="${v.id}"><label>Motif<select name="motif">${MOTIFS_SIG.map(([k, t]) => `<option value="${k}">${t}</option>`).join('')}</select></label>
-        <label>Précisions<textarea name="details" maxlength="1000"></textarea></label><button class="btn btn-sec">Envoyer le signalement</button></form></details>` : ''}</section>
-      <section><h2>${pluriel(r.total, 'produit en vente', 'produits en vente')}</h2>${r.total ? grille(r.produits) : '<div class="vide-etat"><h3>Rien en vente pour l’instant</h3><p>Cette boutique n’a pas encore publié de produit.</p></div>'}</section></div>`);
-  });
-
   // ---------------------------------------------------------------- favoris
   const pageFavoris = async () => {
     if (!exigeCompte()) return; attente();
@@ -261,7 +139,7 @@ const APP = {
         <label>Téléphone<input name="tel" type="tel" required pattern="[0-9 +.]{6,20}" value="${esc(tel)}" autocomplete="tel"></label>
         <label id="lAdresse" ${liv ? '' : 'hidden'}>Adresse de livraison<textarea name="adresse" maxlength="300" placeholder="Rue, quartier, commune, repères" ${liv ? 'required' : ''}></textarea></label>
         <label>Un mot pour le vendeur <span class="aide">(facultatif)</span><input name="note" maxlength="300"></label></div></section>
-        <section class="carte"><div class="total-l gros"><span>Total à payer</span><b>${eur(r2.a_payer)}</b></div><div class="avert">💶 <b>Paiement à la remise ou au retrait</b>, directement au vendeur. Rien n’est débité en ligne.</div>
+        <section class="carte"><label class="code-l">Code de réduction ou récompense <span class="aide">(facultatif)</span><span class="ligne-ds"><input name="code" maxlength="24" autocomplete="off" style="flex:1;text-transform:uppercase" placeholder="TK-…"><button type="button" class="btn btn-sec" data-act="x-code" data-total="${r2.total}" data-frais="${r2.groupes.reduce((n, g) => n + (g.frais_appliques || 0), 0)}">Appliquer</button></span></label><p class="petit muted" id="remiseL" aria-live="polite"></p><div class="total-l gros"><span>Total à payer</span><b id="totalAP" data-base="${r2.a_payer}">${eur(r2.a_payer)}</b></div><div class="avert">💶 <b>Paiement à la remise ou au retrait</b>, directement au vendeur. Rien n’est débité en ligne.</div>
           <button class="btn btn-p btn-plein" id="valider">Envoyer ma commande</button><p class="petit muted">En commandant, vous acceptez les <a href="cgu.html" target="_blank">conditions générales</a>. Chaque vendeur confirme sa commande.</p></section></div></form></div>`);
   });
 
@@ -336,7 +214,8 @@ const APP = {
 
   // ---------------------------------------------------------------- espace vendeur
   const monVendeur = async () => { if (!exigeCompte()) return null; const v = await q(sb.from('tk_vendeurs').select('*').eq('id', moi.id).maybeSingle()); if (!v || v.statut !== 'valide') { aller('#/devenir-vendeur'); return null; } return v; };
-  const menuVendeur = (actif) => `<div class="puces" role="group" aria-label="Espace vendeur">${[['', 'Tableau de bord'], ['produits', 'Produits'], ['commandes', 'Commandes'], ['boutique', 'Boutique']].map(([k, t]) => `<a href="#/vendeur${k ? '/' + k : ''}" class="${actif === k ? 'on' : ''}" ${actif === k ? 'aria-current="true"' : ''}>${t}</a>`).join('')}</div>`;
+  const menuVendeur = a => TK.menuVendeur(a);
+  const menuVendeur0 = (actif) => `<div class="puces" role="group" aria-label="Espace vendeur">${[['', 'Tableau de bord'], ['produits', 'Produits'], ['commandes', 'Commandes'], ['boutique', 'Boutique']].map(([k, t]) => `<a href="#/vendeur${k ? '/' + k : ''}" class="${actif === k ? 'on' : ''}" ${actif === k ? 'aria-current="true"' : ''}>${t}</a>`).join('')}</div>`;
   const pageVendeur = ouverte(async (i, sub, id) => {
     const v = await monVendeur(); if (!v) return;
     if (sub === 'produits') return vendeurProduits(v);
@@ -445,6 +324,7 @@ const APP = {
   // ---------------------------------------------------------------- actions (un seul écouteur : le contenu des pages est remplacé à chaque affichage)
   const occupe = (b, f) => { if (b) b.disabled = true; return f().finally(() => { if (b && b.isConnected) b.disabled = false; }); };
   const rafraichir = () => { oublier('tk-'); rendre(); };
+  const hashDe = p => { const u = new URLSearchParams(); for (const [k, v] of Object.entries(p)) if (v) u.set(k, v); const x = u.toString(); return '#/recherche' + (x ? '?' + x : ''); };
   const vers = (hash, p) => { const h = hashDe(p); if (location.hash === h) rendre(); else location.hash = h; };
   const paramsActuels = () => { const p = param(); return { ...p }; };
   const A = {
@@ -455,28 +335,6 @@ const APP = {
         document.querySelectorAll(`[data-act="fav"][data-id="${b.dataset.id}"]`).forEach(x => { x.setAttribute('aria-pressed', String(actif)); if (x.classList.contains('coeur')) x.setAttribute('aria-label', (actif ? 'Retirer des favoris' : 'Ajouter aux favoris')); else x.textContent = '♥ ' + (actif ? 'Dans mes favoris' : 'Favori'); });
         toast(actif ? 'Ajouté aux favoris.' : 'Retiré des favoris.');
       } catch (e) { toast(erreur(e), true); }
-    },
-    filtres(b) { filtresOuverts = !filtresOuverts; b.setAttribute('aria-expanded', String(filtresOuverts)); $('#fFiltres').classList.toggle('ouvert', filtresOuverts); },
-    effacer() { const p = paramsActuels(); vers('', p.q ? { q: p.q } : {}); },
-    retire(b) { const p = paramsActuels(), k = b.dataset.k; if (LISTES.includes(k)) p[k] = (p[k] || '').split('|').filter(x => x && x !== b.dataset.v).join('|'); else delete p[k]; vers('', p); },
-    async plus(b) {
-      const p = filtresDe(paramsActuels()), n = Number(b.dataset.n), total = Number(b.dataset.total);
-      await occupe(b, async () => {
-        const r = await rpc('tk_catalogue', { f: { ...p, limite: 24, decalage: n } });
-        $('#resultats .prod-g').insertAdjacentHTML('beforeend', r.produits.map(carte).join(''));
-        b.dataset.n = n + r.produits.length; if (n + r.produits.length >= total) b.remove();
-      }).catch(e => toast(erreur(e), true));
-    },
-    img(b) { const p = pageFiche.fiche; $('#grandeImg').style.backgroundImage = `url('${photo(p.photos[Number(b.dataset.k)])}')`; document.querySelectorAll('.vignettes button').forEach(x => x.setAttribute('aria-current', String(x === b))); },
-    coul(b) { sel = { couleur: b.dataset.c, variante: null }; pageFiche.rendre(); },
-    taille(b) { sel.variante = b.dataset.v; pageFiche.rendre(); },
-    ajouter() {
-      if (!sel.variante) { toast('Choisissez une taille.', true); return; }
-      const p = pageFiche.fiche, va = p.variantes.find(x => x.id === sel.variante), l = lirePanier(), x = l.find(y => y.v === sel.variante);
-      if ((x ? x.q : 0) + 1 > Math.min(10, va.stock)) { toast('Stock limité : vous avez déjà tout le stock dans votre panier.', true); return; }
-      if (x) x.q++; else l.push({ v: sel.variante, q: 1 });
-      ecrirePanier(l); toast('Ajouté au panier.');
-      const b = $('#ajout'); if (b && !$('#versPanier')) b.insertAdjacentHTML('afterend', '<a class="btn btn-sec" id="versPanier" href="#/panier">Voir le panier</a>');
     },
     qte(b) { const l = lirePanier(), x = l.find(y => y.v === b.dataset.v); if (!x) return; x.q = Math.max(1, Math.min(10, x.q + Number(b.dataset.d))); ecrirePanier(l); rendre(); },
     ote(b) { ecrirePanier(lirePanier().filter(y => y.v !== b.dataset.v)); rendre(); },
@@ -496,9 +354,7 @@ const APP = {
   // filtres : chaque changement met à jour l'adresse (donc la liste), sans bouton « appliquer »
   document.addEventListener('change', async e => {
     const t = e.target;
-    if (t.matches('[data-filtre]')) { const p = paramsActuels(), k = t.dataset.filtre, l = (p[k] || '').split('|').filter(Boolean); p[k] = (t.checked ? [...l, t.value] : l.filter(x => x !== t.value)).join('|'); vers('', p); }
-    else if (t.matches('[data-filtre-un]')) { const p = paramsActuels(); p[t.dataset.filtreUn] = t.value; if (t.dataset.filtreUn === 'tri' && t.value === 'pertinence') delete p.tri; vers('', p); }
-    else if (t.matches('[data-filtre-bool]')) { const p = paramsActuels(); p[t.dataset.filtreBool] = t.checked ? '1' : ''; vers('', p); }
+    if (false) {}
     else if (t.matches('[data-mode]')) { choixMode[t.dataset.mode] = t.value; const f = $('#fCmd'), mem = f ? Object.fromEntries(new FormData(f)) : {}; await pageCommander(); const g = $('#fCmd'); if (g) for (const k of ['nom', 'tel', 'adresse', 'note']) if (mem[k] != null && g[k]) g[k].value = mem[k]; }
     else if (t.id === 'phIn' && t.files[0]) {
       if (formP.photos.length >= 8) { toast('8 photos au plus.', true); return; }
@@ -518,7 +374,7 @@ const APP = {
       if (f.id === 'fRech') { vers('', { q: f.q.value.trim() }); }
       else if (f.id === 'fCmd') {
         const d = Object.fromEntries(new FormData(f));
-        const r = await rpc('tk_commander', { lignes: lignesRpc(), choix: choixMode, adresse_c: d.adresse || null, nom_c: d.nom, tel_c: d.tel, note_c: d.note || null });
+        const r = await rpc('tk_commander2', { lignes: lignesRpc(), choix: choixMode, adresse_c: d.adresse || null, nom_c: d.nom, tel_c: d.tel, note_c: d.note || null, code_c: (d.code || '').trim() || null });
         ecrirePanier([]); choixMode = {}; toast(r.commandes.length > 1 ? `${r.commandes.length} commandes envoyées.` : 'Commande envoyée.'); aller('#/commandes?ok=1');
       } else if (f.id === 'fVend') {
         const d = Object.fromEntries(new FormData(f));
@@ -556,8 +412,9 @@ const APP = {
     fin();
   });
 
-  Object.assign(APP.pages, { '': accueil, rayons: pageRayons, recherche: pageRecherche, p: pageFiche, boutique: pageBoutique, favoris: pageFavoris, panier: pagePanier, commander: pageCommander,
+  Object.assign(APP.pages, { favoris: pageFavoris, panier: pagePanier, commander: pageCommander,
     commandes: pageCommandes, commande: pageCommande, compte: pageCompte, 'devenir-vendeur': pageDevenir, vendeur: pageVendeur, moderation: pageModeration, aide: pageAide });
 /* service worker : enregistré par pwa.js (commun/pwa.js) */
-  demarrer();
+  Object.assign(TK, { rpc, q, IC, svg, lirePanier, ecrirePanier, rayons, familles, nomRayon, infos, ouverte, erreurPage, prixHtml, etoiles, tagVendeur, tagStatut, pluriel, fond, occupe, rafraichir, vers, hashDe, jourLong, jourHeure, STATUT, STATUT_P, COULEURS, TERRITOIRES, PUBLICS, MOTIFS_SIG, TRIS, guideTailles, stockTexte, vendeurCommandes, monVendeur, menuVendeur, A, ligneVar, photosHtml});
+  Object.defineProperty(TK, 'formP', { get: () => formP, set: v => { formP = v; } });
 })();

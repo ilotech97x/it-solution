@@ -1,0 +1,3 @@
+GSAP 3.15.1 (c) GreenSock, https://gsap.com. Licence : "Standard no charge license" https://gsap.com/standard-license
+Avis conservé : utilisation gratuite autorisée pour un site commercial ; interdit de s'en servir pour bâtir un outil concurrent d'éditeur d'animation visuelle.
+Fichier hébergé sur le site (aucun CDN). Notice complète en tête de gsap.min.js.
