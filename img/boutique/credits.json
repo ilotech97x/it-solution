@@ -1,0 +1,226 @@
+{
+ "kitmini": {
+  "titre": "SpaceX Starlink User Terminal v2",
+  "auteur": "jurvetson",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/44124348109@N01/51740775162",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "p1": {
+  "titre": "Apple Laptop Computer with Headphones, Camera, and Open Notebook",
+  "auteur": "Image Catalog",
+  "licence": "CC0",
+  "source": "https://www.flickr.com/photos/132795455@N08/17652700524",
+  "fournisseur": "flickr"
+ },
+ "vae-ville": {
+  "titre": "BESV PSA1 electric bicycle.jpg",
+  "auteur": "Syced",
+  "licence": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:BESV_PSA1_electric_bicycle.jpg",
+  "fournisseur": "Wikimedia Commons"
+ },
+ "vtt-ae": {
+  "titre": "Cube Mountain ebike (50198895002).jpg",
+  "auteur": "Tony Hisgett from Birmingham, UK",
+  "licence": "CC BY 2.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Cube_Mountain_ebike_(50198895002).jpg",
+  "fournisseur": "Wikimedia Commons"
+ },
+ "trottinette": {
+  "titre": "Dockless e-scooters by Lime",
+  "auteur": "Ivan Radic",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/26344495@N05/48143416202",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "moto-tt": {
+  "titre": "Sur-Ron Electric Dirt Bike 1a.jpg",
+  "auteur": "Ivan Radic",
+  "licence": "CC BY 2.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Sur-Ron_Electric_Dirt_Bike_1a.jpg",
+  "fournisseur": "Wikimedia Commons"
+ },
+ "moto-route": {
+  "titre": "Moscow, Soco TC 1.9kW electric moped June 2022.jpg",
+  "auteur": "Retired electrician",
+  "licence": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Moscow,_Soco_TC_1.9kW_electric_moped_June_2022.jpg",
+  "fournisseur": "Wikimedia Commons"
+ },
+ "scooter": {
+  "titre": "2022 EMMO Hornet X electric moped 3.jpg",
+  "auteur": "Cosmic Console",
+  "licence": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:2022_EMMO_Hornet_X_electric_moped_3.jpg",
+  "fournisseur": "Wikimedia Commons"
+ },
+ "access-mob": {
+  "titre": "Bicycle Helmet Protection Technologies.png",
+  "auteur": "Brandenads",
+  "licence": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Bicycle_Helmet_Protection_Technologies.png",
+  "fournisseur": "Wikimedia Commons"
+ },
+ "kitstd": {
+  "titre": "Starlink dish 01.webp",
+  "auteur": "Wikideas1",
+  "licence": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Starlink_dish_01.webp",
+  "fournisseur": "Wikimedia Commons"
+ },
+ "sl-cable": {
+  "titre": "Ethernet connector.webp",
+  "auteur": "Wikideas1",
+  "licence": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Ethernet_connector.webp",
+  "fournisseur": "Wikimedia Commons"
+ },
+ "sl-mat": {
+  "titre": "love is in the air. (cc)",
+  "auteur": "marfis75",
+  "licence": "CC BY-SA 2.0",
+  "source": "https://www.flickr.com/photos/45409431@N00/13530129895",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "sl-fix": {
+  "titre": "MikroTik mounted outside cupboard with cable ties to help stabilise signal",
+  "auteur": "Kai Hendry",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/16105436@N00/15418305309",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "mesh2": {
+  "titre": "wifi router",
+  "auteur": "grafzahl2342",
+  "licence": "CC BY-SA 2.0",
+  "source": "https://www.flickr.com/photos/33750265@N07/3142617326",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "mesh3": {
+  "titre": "Wireless Gate Home Antenna",
+  "auteur": "ryoichitanaka",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/39975399@N00/2970143439",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "kit2": {
+  "titre": "Security cameras",
+  "auteur": "futureatlas.com",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/87913776@N00/8362638676",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "kit4": {
+  "titre": "Cctv Camera",
+  "auteur": "Alex Knight",
+  "licence": "CC0",
+  "source": "https://stocksnap.io/photo/cctv-camera-1VZ50RICYR",
+  "fournisseur": "Stocksnap (via Openverse)"
+ },
+ "kit8": {
+  "titre": "Safeguard Surveillance Camera (01614278)",
+  "auteur": "IAEA Imagebank",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/35068899@N03/52134098959",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "nvr": {
+  "titre": "Close-up of a hard disk drive on a black background",
+  "auteur": "Ivan Radic",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/26344495@N05/47977794003",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "ups600": {
+  "titre": "Dead UPS battery",
+  "auteur": "MarkDoliner",
+  "licence": "CC BY-SA 2.0",
+  "source": "https://www.flickr.com/photos/19714819@N00/3017123752",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "ups1500": {
+  "titre": "The Beast Is Online!",
+  "auteur": "Daryll90ca",
+  "licence": "CC BY-ND 2.0",
+  "source": "https://www.flickr.com/photos/52842624@N04/53164710036",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "station": {
+  "titre": "5200mah-original-xiaomi-portable-power-bank",
+  "auteur": "androidPT.Oficial",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/123670378@N02/14110619209",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "compteur": {
+  "titre": "Electricity meter",
+  "auteur": "Kai Hendry",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/16105436@N00/2795984721",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "p2": {
+  "titre": "Man Holding Laptop Computer Typing While Dog Watches",
+  "auteur": "Image Catalog",
+  "licence": "CC0",
+  "source": "https://www.flickr.com/photos/132795455@N08/17783465600",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "p3": {
+  "titre": "Mac Desktop",
+  "auteur": "Andrew Pons",
+  "licence": "CC0",
+  "source": "https://stocksnap.io/photo/mac-desktop-UCEBZORVVB",
+  "fournisseur": "Stocksnap (via Openverse)"
+ },
+ "kitdomo": {
+  "titre": "Portable smart plug",
+  "auteur": "inconnu",
+  "licence": "CC0",
+  "source": "https://www.rawpixel.com/image/6018638/photo-image-public-domain-free",
+  "fournisseur": "Rawpixel (via Openverse)"
+ },
+ "support-tv": {
+  "titre": "DSC_8584: a living room filled with furniture and a flat screen tv",
+  "auteur": "PattayaPatrol",
+  "licence": "CC BY-SA 2.0",
+  "source": "https://www.flickr.com/photos/194424926@N05/54298165566",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "kitcaisse": {
+  "titre": "Portable McD POS terminal",
+  "auteur": "Aranami",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/51526368@N03/5225824484",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "sl-support": {
+  "titre": "Satellite Dish",
+  "auteur": "Gerard Eviston",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/26652703@N02/2502519971",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "kitalarme": {
+  "titre": "Alarm keypad",
+  "auteur": "Make Lemons",
+  "licence": "CC BY-SA 2.0",
+  "source": "https://www.flickr.com/photos/9228119@N03/3376393340",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "nas2": {
+  "titre": "'ayeka' - our home server",
+  "auteur": "tawalker",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/30139045@N00/305655551",
+  "fournisseur": "Flickr (via Openverse)"
+ },
+ "cargo-ae": {
+  "titre": "Cargo bike Copenhagen 20130831_0141",
+  "auteur": "News Oresund",
+  "licence": "CC BY 2.0",
+  "source": "https://www.flickr.com/photos/88883738@N02/9639928714",
+  "fournisseur": "Flickr (via Openverse)"
+ }
+}

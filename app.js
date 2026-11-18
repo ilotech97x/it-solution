@@ -1124,7 +1124,13 @@ renderStatic();
 renderAvis();
 render();
 if (state.step === 2) fetchSlots(state.d.date);
-carrousel();
+// le carrousel est sous le premier écran : construit seulement quand il s'en approche
+(() => {
+  const car = document.querySelector('[data-carrousel]');
+  if (!car || !('IntersectionObserver' in window)) return carrousel();
+  const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); carrousel(); } }, { rootMargin: '300px 0px' });
+  io.observe(car);
+})();
 
 /* =====================================================================
    ACCUEIL : « IloTech en images », toutes les catégories défilent lentement de droite à gauche
@@ -1157,9 +1163,10 @@ function carrousel() {
   car.querySelector('.prec').addEventListener('click', () => { arret(); piste.scrollBy({ left: -carte(), behavior: 'smooth' }); relance(); });
   car.querySelector('.suiv').addEventListener('click', () => { arret(); piste.scrollBy({ left: carte(), behavior: 'smooth' }); relance(); });
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let vu = true; if ('IntersectionObserver' in window) new IntersectionObserver(es => { vu = es[es.length - 1].isIntersecting; }).observe(car);   // hors écran : plus de calcul
   const tour = t => {
     const dt = avant ? Math.min(t - avant, 50) : 0; avant = t;
-    if (!pause && !document.hidden) {
+    if (!pause && !document.hidden && vu) {
       const moitie = piste.scrollWidth / 2;
       if (Math.abs(piste.scrollLeft - pos) > 3) pos = piste.scrollLeft; // l'utilisateur a fait défiler
       pos += dt * 0.035; // environ 35 pixels par seconde
@@ -1203,7 +1210,9 @@ function reveler() {
     el.classList.add('reveal'); el.style.setProperty('--d', (i % 4) * 80 + 'ms'); io.observe(el);
   });
 }
-try { reveler(); chercherDispo(); } catch (e) {}
+try { reveler(); } catch (e) {}
+// le planning en direct (Apps Script, lent) se lit quand la page est au repos : il ne retarde pas le premier affichage
+(window.requestIdleCallback || (f => setTimeout(f, 1200)))(() => { try { chercherDispo(); } catch (e) {} }, { timeout: 4000 });
 
 // petits confettis (réussite, ajout) ; rien si l'appareil demande moins d'animations
 function confettis(x, y, n) {

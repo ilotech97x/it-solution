@@ -1,10 +1,14 @@
-/* Boutique IloTech (boutique.html) : rayons, recherche, filtres, fiches produit, comparateur, favoris, panier gardé sur l'appareil,
-   commande par WhatsApp ou email. Tout le code est dans une fonction : aucune variable globale (les fichiers du site partagent la même portée).
-   Prix : seulement ceux de data.js (références ref: [service, option]), les mêmes que sur les devis. Rien n'est payé en ligne :
-   IloTech confirme le prix du jour et la disponibilité, le client paie à la remise.
+/* Boutique IloTech (boutique.html) : rayons, packs configurables, recherche tolérante aux fautes, filtres techniques, fiches produit,
+   comparateur, favoris, panier gardé sur l'appareil, commande par WhatsApp ou email, rubrique « Spécial Antilles ».
+   Tout le code est dans une fonction : aucune variable globale (les fichiers du site partagent la même portée).
+   Prix : seulement ceux de data.js (références ref: [service, option]), les mêmes que sur les devis ; les totaux des packs sont calculés
+   de la même façon que le panier (matériel + pose). Rien n'est payé en ligne : IloTech confirme le prix du jour et la disponibilité,
+   le client paie à la remise. Rien d'inventé : ni avis, ni stock, ni promotion.
    Mobilité électrique : sur commande, prix sur demande tant que le fournisseur et les tarifs ne sont pas fixés (A-FAIRE.txt).
    Disponibilité : champ dispo par produit : 'commande' (défaut), 'demande' (mobilité), 'stock' (prévu pour plus tard, pas utilisé).
-   Photos : champ facultatif photo (chemin d'image) qui remplace l'illustration dessinée. */
+   Photos : champ facultatif photo (chemin d'image) qui remplace l'illustration dessinée.
+   Animations : GSAP (vendor/gsap.min.js, licence « no charge » de GreenSock, avis gardé dans le fichier) chargé au repos, jamais si
+   l'appareil demande moins d'animations ; la boutique fonctionne entièrement sans lui. */
 (() => {
   'use strict';
 
@@ -91,7 +95,75 @@
     { id: 'kitcaisse', cat: 'pro', sr: 'caisse', vis: 'caisse', ref: ['pos', 'kitcaisse'], nom: 'Kit caisse enregistreuse', desc: 'Écran tactile, imprimante ticket, tiroir-caisse et lecteur.', points: ['Prêt pour la facturation électronique', 'Pose et formation possibles'], svc: 'pos',
       car: [['Contenu', 'Écran tactile, imprimante ticket, tiroir-caisse, lecteur'], ['Facturation électronique', 'Prêt'], ['Pose et formation', 'Possibles'], ['Logiciel de caisse', 'Abonnement chez l’éditeur, non inclus']], assoc: ['ups1500', 'kit4'] },
   ];
+  // produits qui ont une vraie photo libre de droits dans img/boutique/ (liste écrite par l'outil photos, crédits dans credits-photos.html)
+  const AVEC_PHOTO = 'vae-ville vtt-ae cargo-ae trottinette moto-tt moto-route scooter access-mob kitstd kitmini sl-support sl-mat sl-cable sl-fix mesh2 mesh3 kit2 kit4 kit8 nvr kitalarme ups600 ups1500 station compteur p1 p2 p3 nas2 kitdomo support-tv kitcaisse'.split(' ');
+  PRODUITS.forEach(p => { if (AVEC_PHOTO.includes(p.id)) p.photo = true; });
 
+  // ---------- filtres techniques par rayon ----------
+  // chaque valeur vient des caractéristiques (car) et des libellés de data.js ci-dessus : un produit qui ne donne pas l'information
+  // n'a pas de valeur (il disparaît quand ce filtre est choisi, jamais compté comme « oui » par défaut)
+  const FILTRES = {
+    mobilite: [['type', 'Type d’engin'], ['vit', 'Vitesse maximale'], ['immat', 'Immatriculation']],
+    starlink: [['type', 'Type'], ['modele', 'Modèle'], ['sel', 'Air salin']],
+    wifi: [['bornes', 'Nombre de bornes'], ['couv', 'Couverture']],
+    securite: [['type', 'Type'], ['ncam', 'Nombre de caméras'], ['nuit', 'Vision de nuit'], ['enreg', 'Enregistreur'], ['dist', 'Accès à distance'], ['tel', 'Alertes sur le téléphone']],
+    energie: [['type', 'Type'], ['va', 'Puissance (VA)'], ['usage', 'Pour protéger']],
+    ordi: [['type', 'Type'], ['ram', 'Mémoire'], ['stock', 'Stockage'], ['etat', 'État']],
+    maison: [['type', 'Type'], ['taille', 'Taille de TV']],
+    pro: [],
+  };
+  const TECH = {
+    'vae-ville': { type: 'Vélo', vit: '25 km/h', immat: 'Aucune' }, 'vtt-ae': { type: 'Vélo', vit: '25 km/h', immat: 'Aucune' }, 'cargo-ae': { type: 'Vélo', vit: '25 km/h', immat: 'Aucune' },
+    trottinette: { type: 'Trottinette', vit: '25 km/h' },
+    'moto-tt': { type: 'Moto ou scooter', immat: 'Non homologuée (hors route)' },
+    'moto-route': { type: 'Moto ou scooter', vit: '45 km/h', immat: 'Carte grise et plaque' }, scooter: { type: 'Moto ou scooter', vit: '45 km/h', immat: 'Carte grise et plaque' },
+    'access-mob': { type: 'Accessoires' },
+    kitstd: { type: 'Kit complet', modele: 'Standard' }, kitmini: { type: 'Kit complet', modele: 'Mini' },
+    'sl-support': { type: 'Accessoire' }, 'sl-mat': { type: 'Accessoire', sel: 'Acier galvanisé' }, 'sl-cable': { type: 'Accessoire', modele: 'Standard' }, 'sl-fix': { type: 'Accessoire', sel: 'Visserie inox, passe-câble étanche' },
+    mesh2: { bornes: '2 bornes', couv: 'Maison de plain-pied (environ 200 m²)' }, mesh3: { bornes: '3 bornes', couv: 'Grande maison ou étage' },
+    kit2: { type: 'Kit de caméras', ncam: '2 caméras', nuit: 'Oui', tel: 'Oui' }, kit4: { type: 'Kit de caméras', ncam: '4 caméras', nuit: 'Oui', enreg: 'Inclus', dist: 'Oui' },
+    kit8: { type: 'Kit de caméras', ncam: '8 caméras', enreg: 'Inclus', dist: 'Oui' }, nvr: { type: 'Enregistreur', enreg: 'Vendu seul' }, kitalarme: { type: 'Alarme', tel: 'Oui' },
+    ups600: { type: 'Onduleur', va: '600 VA', usage: 'Box, PC et TV' }, ups1500: { type: 'Onduleur', va: '1500 VA', usage: 'Serveur, caisse, poste complet' },
+    station: { type: 'Batterie nomade', usage: 'Coupure ou cyclone' }, compteur: { type: 'Suivi de l’énergie' },
+    p1: { type: 'PC portable', ram: '8 Go', stock: 'SSD', etat: 'Reconditionné' }, p2: { type: 'PC portable', ram: '16 Go', stock: 'SSD', etat: 'Reconditionné' },
+    p3: { type: 'PC fixe + écran', etat: 'Reconditionné' }, nas2: { type: 'Stockage et sauvegarde' },
+    kitdomo: { type: 'Domotique' }, 'support-tv': { type: 'Support TV', taille: 'Jusqu’à 65 pouces' },
+    kitcaisse: { type: 'Caisse enregistreuse' },
+  };
+  const filtresDe = c => FILTRES[c] || [];
+  const valT = (p, k) => (TECH[p.id] || {})[k];
+
+  // ---------- guides d'achat courts (conseils généraux, sans chiffre inventé : les chiffres viennent des fiches) ----------
+  const GUIDES = {
+    energie: { t: 'Choisir son onduleur', l: ['Le VA est la puissance que l’onduleur peut fournir : additionnez ce que vous branchez (box, PC, écran, TV) et gardez de la marge.', '600 VA protège une box, un PC et une TV ; 1500 VA convient à un serveur, une caisse ou un poste de travail complet.', 'L’autonomie est de quelques minutes : elle laisse le temps d’éteindre proprement. Pour tenir pendant une longue coupure ou un cyclone, voyez la batterie nomade.'] },
+    wifi: { t: 'Combien de bornes Wi-Fi ?', l: ['2 bornes couvrent environ 200 m² dans une maison de plain-pied ; 3 bornes pour une grande maison ou un étage.', 'Avec le mesh, tout le logement partage un seul nom de réseau : plus de zones blanches ni de reconnexion en changeant de pièce.', 'Placez la première borne près de la box, les autres vers les pièces mal couvertes.'] },
+    securite: { t: 'Choisir sa protection', l: ['Le kit 2 caméras Wi-Fi suffit pour un petit logement : vision de nuit, alertes de mouvement et vidéo sur le téléphone.', 'Pour un terrain ou un commerce, préférez 4 ou 8 caméras avec enregistreur : il garde les images même sans internet.', 'L’alarme prévient sur le téléphone ; un onduleur garde le matériel allumé pendant les micro-coupures.'] },
+    starlink: { t: 'Starlink Standard ou Mini ?', l: ['Standard : antenne et routeur Wi-Fi pour une maison, avec pose sur le toit possible. Mini : compact, pour un bateau, un véhicule ou un petit logement.', 'L’abonnement est payé à Starlink, à votre nom ; la pose du matériel est possible.', 'Dégagez l’antenne avec un support ou un mât ; en bord de mer, l’acier galvanisé et la visserie inox résistent à l’air salin.'] },
+    ordi: { t: 'Quel ordinateur choisir ?', l: ['Bureautique (8 Go, SSD) : internet, mails, papiers et école. Performant (16 Go, i5 ou i7) : travail, plusieurs logiciels, photo.', 'Le PC fixe avec écran 22 pouces forme un poste complet pour la maison ou le bureau.', 'Tous nos PC sont reconditionnés, vérifiés et nettoyés. Pour vos photos et dossiers, le NAS les copie en double (RAID 1).'] },
+    mobilite: { t: 'Quelle catégorie d’engin ?', l: ['Vélo à assistance (25 km/h, 250 W) : ni permis ni immatriculation. Trottinette : 25 km/h, dès 14 ans, assurance obligatoire.', 'Moto légère homologuée ou scooter (L1e, 45 km/h) : carte grise, plaque, assurance, casque homologué ; permis AM ou B.', 'Moto tout-terrain : réservée aux terrains privés et aux circuits. Prix et délai sur demande pour toute la mobilité.'] },
+    maison: { t: 'Par où commencer ?', l: ['Le pack maison connectée (une box et 4 prises) programme la clim et le chauffe-eau depuis le téléphone.', 'Le compteur connecté montre ce que consomment la clim et le chauffe-eau.', 'Le support mural TV va jusqu’à 65 pouces ; la pose par un technicien est possible.'] },
+    pro: { t: 'Équiper un commerce', l: ['Le kit caisse réunit écran tactile, imprimante ticket, tiroir-caisse et lecteur ; il est prêt pour la facturation électronique.', 'Le logiciel de caisse est un abonnement chez l’éditeur, non inclus.', 'Un onduleur 1500 VA garde la caisse allumée pendant une coupure.'] },
+  };
+
+  // ---------- Spécial Antilles : cyclones, coupures de courant, air salin (produits du catalogue, rien d'ajouté) ----------
+  const ANT = [
+    { id: 'cyclone', t: 'Cyclone', c: '#f59e0b', ic: 'tempete', txt: 'Avant l’alerte : chargez vos batteries et sauvegardez vos fichiers. Pendant : gardez un moyen de rester joignable. Une batterie nomade et un Starlink Mini, compact, aident à rester joignable.', ids: ['station', 'kitmini', 'ups600'] },
+    { id: 'coupure', t: 'Coupures de courant', c: '#22d3ee', ic: 'eclair', txt: 'Une coupure ou une surtension abîme les box, les PC et les caisses. L’onduleur protège et laisse quelques minutes pour éteindre proprement ; le compteur connecté montre ce que consomme la maison.', ids: ['ups600', 'ups1500', 'station', 'compteur'] },
+    { id: 'sel', t: 'Air salin', c: '#2b8cff', ic: 'vague', txt: 'Le sel ronge les fixations. Nous choisissons de l’acier galvanisé pour les mâts et supports, de la visserie inox et des passe-câbles étanches pour les antennes.', ids: ['sl-mat', 'sl-fix', 'sl-support', 'sl-cable'] },
+  ];
+  const ANT_TAG = { station: 'Cyclone · coupures', kitmini: 'Cyclone', ups600: 'Coupures', ups1500: 'Coupures', compteur: 'Coupures', 'sl-mat': 'Air salin', 'sl-fix': 'Air salin' };
+  const ANT_LIENS = [['guide-coupures-courant-martinique.html', 'Guide : coupures de courant'], ['plan-cyclone-continuite-informatique-martinique.html', 'Plan cyclone : continuité informatique'], ['onduleur-coupure-courant-martinique.html', 'Onduleur et coupures de courant']];
+
+  // ---------- packs configurables : produits du catalogue, prix et pose calculés depuis data.js, comme le panier ----------
+  // base : toujours inclus ; opts : [produit, coché au départ]
+  const PACKS = [
+    { id: 'starlink-maison', nom: 'Pack Starlink maison', acc: 'Internet par satellite, fixé proprement, prêt pour l’air salin.', c: '#2b8cff', vis: ['antenne', 'mat', 'mesh'], base: ['kitstd'], opts: [['sl-support', 1], ['sl-fix', 1], ['sl-mat', 0], ['sl-cable', 0], ['mesh2', 0]] },
+    { id: 'cyclone', nom: 'Pack connecté pendant un cyclone', acc: 'Internet compact, énergie de secours et appareils protégés.', c: '#f59e0b', vis: ['antenne', 'station', 'ups'], base: ['kitmini'], opts: [['station', 1], ['ups600', 1]] },
+    { id: 'securite-maison', nom: 'Pack sécurité maison', acc: 'Caméras, enregistreur, alarme et onduleur pour que la surveillance continue.', c: '#e11d48', vis: ['camera', 'alarme', 'ups'], base: ['kit4'], opts: [['kitalarme', 1], ['ups600', 1], ['kit2', 0]] },
+    { id: 'teletravail', nom: 'Pack télétravail', acc: 'Un PC reconditionné, protégé des coupures, avec le Wi-Fi qui suit.', c: '#7c3aed', vis: ['laptop', 'ups', 'mesh'], base: ['p2'], opts: [['ups600', 1], ['mesh2', 0], ['nas2', 0]] },
+    { id: 'commerce', nom: 'Pack commerce', acc: 'La caisse allumée en toutes circonstances, le magasin sous surveillance.', c: '#64748b', vis: ['caisse', 'ups', 'camera'], base: ['kitcaisse'], opts: [['ups1500', 1], ['kit4', 0]] },
+  ];
+  const packDe = id => PACKS.find(p => p.id === id);
   // produits de « La sélection IloTech » : une liste choisie par l'équipe, sans chiffre de vente
   const SELECTION = ['kitstd', 'kit2', 'ups600', 'mesh2', 'p2', 'vae-ville', 'kitalarme', 'station'];
 
@@ -137,19 +209,21 @@
   const poseDe = p => { const r = opt(p.pose); return r ? { svc: r.s.id, base: r.s.base, prix: r.o[2], libelle: r.o[1] } : null; };
   const poseTotalProduit = p => { const q = poseDe(p); return q ? q.base + q.prix : 0; };
   const refDe = p => 'IT-' + p.id.toUpperCase();
-
   function lignes() { return Object.entries(panier).map(([id, n]) => ({ p: parId(id), n })).filter(x => x.p && n_ok(x.n)); }
   const n_ok = n => Number.isFinite(n) && n > 0;
-  function totaux() {
-    const L = lignes(); let materiel = 0, surDemande = 0, nb = 0; const parSvc = {};
+  // total d'une liste de lignes { p, n } ; avecPose(id) dit si la pose est demandée pour ce produit.
+  // La prise en charge (base) d'un service de pose n'est comptée qu'une fois, comme sur un devis. Même calcul pour le panier et les packs.
+  function calculer(L, avecPose) {
+    let materiel = 0, surDemande = 0, nb = 0; const parSvc = {};
     L.forEach(({ p, n }) => {
       nb += n; const px = prixDe(p); if (px) materiel += px * n; else surDemande += n;
-      const q = poses[p.id] && poseDe(p);
+      const q = avecPose(p.id) && poseDe(p);
       if (q) { const g = parSvc[q.svc] || (parSvc[q.svc] = { base: q.base, somme: 0 }); g.somme += q.prix * n; }
     });
     const pose = Object.values(parSvc).reduce((t, g) => t + g.base + g.somme, 0);
     return { L, nb, materiel, pose, surDemande, total: materiel + pose };
   }
+  const totaux = () => calculer(lignes(), id => poses[id]);
 
   // ---------- pictogrammes de l'interface (24 × 24, au trait) ----------
   const UI = {
@@ -173,6 +247,15 @@
   };
   const ic = (k, cls = '') => `<svg class="b-ic ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${UI[k] || ''}</svg>`;
 
+  Object.assign(UI, {
+    eclair: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+    tempete: '<path d="M17 18a4 4 0 0 0 .5-7.9A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9"/><path d="M12 11l-2.5 4h4L11 19"/>',
+    vague: '<path d="M2 9c2.5-3 5-3 7.5 0s5 3 7.5 0 3-2 5-1M2 15c2.5-3 5-3 7.5 0s5 3 7.5 0 3-2 5-1"/>',
+    pack: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
+    fleche: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+    horloge: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    aide: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/>',
+  });
   // ---------- visuels : un dessin SVG par type de produit (vue 3/4 ou de face, dégradé de la couleur du rayon, ombre portée) ----------
   // jetons : url(#B) corps clair, url(#A) couleur du rayon, url(#K) corps sombre, {c} couleur du rayon en aplat
   const cyl = (cx, y, h, r) => `<path d="M${cx - r} ${y}v${h}a${r} ${r * .34} 0 0 0 ${2 * r} 0v${-h}z" fill="url(#B)"/><ellipse cx="${cx}" cy="${y}" rx="${r}" ry="${r * .34}" fill="#fff"/><ellipse cx="${cx}" cy="${y}" rx="${r * .5}" ry="${r * .17}" fill="url(#A)" opacity=".5"/><path d="M${cx - r} ${y + h * .6}a${r} ${r * .34} 0 0 0 ${2 * r} 0v7a${r} ${r * .34} 0 0 1 ${-2 * r} 0z" fill="url(#A)"/>`;
@@ -204,40 +287,92 @@
     tvsupport: { w: 62, d: `<rect x="34" y="22" width="132" height="76" rx="5" fill="#1f2937"/><rect x="39" y="27" width="122" height="66" rx="2" fill="url(#A)" opacity=".85"/><path d="M39 27h72L84 93H39z" fill="#fff" opacity=".16"/><rect x="62" y="104" width="76" height="8" rx="3" fill="url(#B)" stroke="#a3aec0"/><path d="M82 112v10M118 112v10" stroke="#a3aec0" stroke-width="6" stroke-linecap="round"/><rect x="70" y="120" width="60" height="7" rx="3" fill="url(#B)" stroke="#a3aec0"/><circle cx="74" cy="108" r="2" fill="{c}"/><circle cx="126" cy="108" r="2" fill="{c}"/>` },
   };
   const melange = (h, t) => { const n = parseInt(h.slice(1), 16), f = s => Math.round(((n >> s) & 255) * (1 - t) + 255 * t); return '#' + [16, 8, 0].map(s => f(s).toString(16).padStart(2, '0')).join(''); };
+  const ombre = (h, t) => { const n = parseInt(h.slice(1), 16), f = s => Math.round(((n >> s) & 255) * (1 - t)); return '#' + [16, 8, 0].map(s => f(s).toString(16).padStart(2, '0')).join(''); };
   let uid = 0;
-  // photo (facultative) : remplace l'illustration quand le propriétaire fournit une vraie photo
-  function visuel(p, c) {
-    if (p.photo) return `<img class="b-photo" src="${esc(p.photo)}" alt="${esc(p.nom)}" loading="lazy" decoding="async">`;
+  // Illustration du produit : métal clair (B), couleur du rayon (A) et corps sombre (K) en dégradés à trois tons, éclairage commun
+  // (lumière en haut à gauche), ombre au sol en dégradé radial. Le fond, le halo et les reflets sont dessinés par le CSS (.b-vis).
+  // photo : vraie photo libre de droits (img/boutique/<id>.webp, crédits dans credits-photos.html) ; sinon l'illustration dessinée
+  function visuel(p, c, grand) {
+    if (p.photo) return `<img class="b-photo" src="img/boutique/${p.id}-s.webp" srcset="img/boutique/${p.id}-s.webp 400w, img/boutique/${p.id}.webp 800w" sizes="${grand ? '(min-width: 960px) 520px, 92vw' : '(min-width: 960px) 260px, 46vw'}" alt="${esc(p.nom)}" width="400" height="400" loading="lazy" decoding="async">`;
     const k = ++uid, v = VIS[p.vis] || VIS.box;
     const corps = v.d.replaceAll('url(#B)', `url(#B${k})`).replaceAll('url(#A)', `url(#A${k})`).replaceAll('url(#K)', `url(#K${k})`).replaceAll('{c}', c);
     return `<svg class="b-svg" viewBox="0 0 200 150" aria-hidden="true" focusable="false"><defs>
-      <linearGradient id="B${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#c3ccdb"/></linearGradient>
-      <linearGradient id="A${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${melange(c, .35)}"/><stop offset="1" stop-color="${c}"/></linearGradient>
-      <linearGradient id="K${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4b5563"/><stop offset="1" stop-color="#111827"/></linearGradient></defs>
-      <ellipse cx="100" cy="134" rx="${v.w || 62}" ry="6.5" fill="#0b1220" opacity=".24"/>${corps}</svg>`;
+      <linearGradient id="B${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#e3e9f3"/><stop offset="1" stop-color="#b2bed2"/></linearGradient>
+      <linearGradient id="A${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${melange(c, .42)}"/><stop offset=".5" stop-color="${c}"/><stop offset="1" stop-color="${ombre(c, .28)}"/></linearGradient>
+      <linearGradient id="K${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5d687a"/><stop offset=".45" stop-color="#242d3d"/><stop offset="1" stop-color="#0a0f1a"/></linearGradient>
+      <radialGradient id="S${k}"><stop offset="0" stop-color="#050a14" stop-opacity=".55"/><stop offset="1" stop-color="#050a14" stop-opacity="0"/></radialGradient></defs>
+      <ellipse cx="100" cy="135" rx="${(v.w || 62) + 14}" ry="9" fill="url(#S${k})"/>${corps}</svg>`;
   }
-  const blocVis = (p, grand) => `<div class="b-vis${grand ? ' b-vis-g' : ''}">${visuel(p, catDe(p.cat).c)}${p.photo ? '' : '<span class="b-illu">Illustration</span>'}</div>`;
+  const blocVis = (p, grand) => `<div class="b-vis${grand ? ' b-vis-g' : ''}${p.photo ? ' b-vis-ph' : ''}">${visuel(p, catDe(p.cat).c, grand)}${p.photo ? (grand ? '<span class="b-illu">Photo non contractuelle</span>' : '') : '<span class="b-illu">Illustration</span>'}</div>`;
 
-  // ---------- recherche ----------
-  PRODUITS.forEach(p => { p.index = norm([p.nom, p.desc, ...p.points, catDe(p.cat).nom, srNom(p), ...p.car.map(x => x.join(' '))].join(' ')); });
+  // composition du premier écran : produits flottants autour d'un halo (mouvement doux en CSS, parallaxe GSAP quand il est chargé)
+  const HERO_ART = [['antenne', '#2b8cff'], ['camera', '#e11d48'], ['ups', '#f59e0b'], ['mesh', '#22d3ee'], ['laptop', '#7c3aed']];
+  const heroArt = () => '<div class="b-orbe"></div>' + HERO_ART.map(([vis, c], i) => `<div class="b-flot b-f${i + 1}" data-depth="${[.9, 1.4, 1.1, 1.7, .7][i]}"><div class="b-flot-in">${visuel({ vis }, c)}</div></div>`).join('');
+  // visuel d'un pack : trois produits en grappe
+  // visuel d'un pack : mosaïque des photos du produit de base et des deux premières options ; dessins si une photo manque
+  const packVis = pk => {
+    const ids = [...pk.base, ...pk.opts.map(o => o[0])].slice(0, 3);
+    if (ids.length === 3 && ids.every(id => AVEC_PHOTO.includes(id)))
+      return `<span class="b-pv-ph">${ids.map(id => `<img src="img/boutique/${id}-s.webp" alt="" width="400" height="400" loading="lazy" decoding="async">`).join('')}</span>`;
+    return `<span class="b-pv">${pk.vis.map((vis, i) => `<span class="b-pv${i + 1}">${visuel({ vis }, pk.c)}</span>`).join('')}</span>`;
+  };
+
+  // ---------- recherche : sans accents, tolérante aux fautes de frappe, avec quelques mots voisins et la référence IT-… ----------
+  // mots voisins ajoutés à l'index (ce que les clients tapent), par rayon et par sous-rayon
+  const MOTS_RAYON = { energie: 'coupure courant electricite parasurtenseur', starlink: 'internet satellite antenne', wifi: 'wifi wi-fi reseau box', securite: 'surveillance videosurveillance cam', ordi: 'pc ordinateur informatique', mobilite: 'electrique vae velo bicyclette ebike', maison: 'domotique connecte', pro: 'commerce magasin boutique' };
+  const MOTS_SR = { onduleurs: 'ups onduleur', batteries: 'cyclone secours solaire power station', cameras: 'camera cameras', velos: 'velo vae', trottinettes: 'trottinette', portables: 'laptop portable', fixes: 'tour bureau', mesh: 'repeteur wifi' };
+  const jetons = s => norm(s).split(/[^a-z0-9]+/).filter(Boolean);
+  const VOCAB = new Map();   // mot du catalogue → nombre de produits qui l'emploient (sert à corriger les fautes)
+  PRODUITS.forEach(p => {
+    const t = norm([p.nom, p.desc, ...p.points, catDe(p.cat).nom, srNom(p), MOTS_RAYON[p.cat] || '', MOTS_SR[p.sr] || '', ...p.car.map(x => x.join(' ')), refDe(p)].join(' '));
+    p.index = t + ' ' + t.replace(/-/g, '');
+    p.jt = new Set(jetons(p.index)); p.jt.forEach(j => VOCAB.set(j, (VOCAB.get(j) || 0) + 1));
+  });
+  CATS.forEach(c => jetons(c.nom + ' ' + c.sr.map(s => s[1]).join(' ')).forEach(j => VOCAB.set(j, (VOCAB.get(j) || 0) + 1)));
   const mots = q => norm(q).split(/\s+/).filter(Boolean);
+  // distance de Damerau-Levenshtein (une lettre en trop, en moins, changée ou deux lettres échangées comptent pour 1)
+  function dist(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return max + 1;
+    const d = []; for (let i = 0; i <= a.length; i++) { d[i] = [i]; } for (let j = 1; j <= b.length; j++) d[0][j] = j;
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+    return d[a.length][b.length];
+  }
+  const connu = new Set(); // mots déjà vérifiés
+  // mot du catalogue le plus proche d'un mot mal écrit (le mot lui-même s'il en est un morceau : « onduleu » reste « onduleu »)
+  function corrigerMot(w) {
+    if (w.length < 3 || /\d/.test(w) || connu.has(w)) return w;
+    for (const v of VOCAB.keys()) if (v.includes(w)) { connu.add(w); return w; }
+    const max = w.length <= 4 ? 1 : 2; let best = null, bd = max + 1, bn = 0;
+    for (const [v, n] of VOCAB) {
+      if (v.length < 3) continue;
+      const d = Math.min(dist(w, v, max), w.length < v.length ? dist(w, v.slice(0, w.length), max) + 1 : max + 1);   // frappe en cours : début de mot
+      if (d < bd || (d === bd && n > bn)) { best = v; bd = d; bn = n; }
+    }
+    return best && bd <= max ? best : w;
+  }
+  const corrigerRequete = q => { const m = mots(q), c = m.map(corrigerMot); return c.some((x, i) => x !== m[i]) ? c.join(' ') : null; };
   function chercher(q) {
-    const m = mots(q); if (!m.length) return [];
+    const m = mots(q).map(corrigerMot); if (!m.length) return [];
     return PRODUITS.map((p, i) => ({ p, i, s: m.every(x => p.index.includes(x)) ? m.reduce((t, x) => t + (norm(p.nom).includes(x) ? 3 : 0) + (norm(p.nom).startsWith(x) ? 1 : 0), 1) : 0 }))
       .filter(x => x.s).sort((a, b) => b.s - a.s || a.i - b.i).map(x => x.p);
   }
-  const rayonsCorrespondants = q => { const m = mots(q); return m.length ? CATS.filter(c => m.every(x => norm(c.nom + ' ' + c.sr.map(s => s[1]).join(' ')).includes(x))) : []; };
+  const rayonsCorrespondants = q => { const m = mots(q).map(corrigerMot); return m.length ? CATS.filter(c => m.every(x => norm(c.nom + ' ' + c.sr.map(s => s[1]).join(' ') + ' ' + (MOTS_RAYON[c.id] || '')).includes(x))) : []; };
 
   // ---------- pièces d'interface ----------
   const prixHtml = (p, grand) => { const px = prixDe(p); return px ? `<div class="b-prix${grand ? ' b-prix-g' : ''}"><strong>${eur(px)}</strong><small>prix indicatif TTC</small></div>` : `<div class="b-prix${grand ? ' b-prix-g' : ''}"><strong class="b-sd">Prix sur demande</strong><small>selon la marque et le modèle</small></div>`; };
   const dispoHtml = p => { const d = DISPOS[dispoDe(p)]; return `<span class="b-dispo b-d-${d[1]}">${esc(d[0])}</span>`; };
   const coeurBtn = p => { const f = favoris.includes(p.id); return `<button type="button" class="b-coeur" data-fav="${p.id}" aria-pressed="${f}" aria-label="${f ? 'Retirer des favoris' : 'Ajouter aux favoris'} : ${esc(p.nom)}">${ic('coeur')}</button>`; };
   const cmpCase = p => `<label class="b-cmp"><input type="checkbox" data-cmp="${p.id}"${comparer.includes(p.id) ? ' checked' : ''}><span>Comparer</span><span class="sr-only"> : ${esc(p.nom)}</span></label>`;
+  const tagAnt = p => ANT_TAG[p.id] ? `<a class="b-tag" href="#/antilles" aria-label="Spécial Antilles : ${esc(ANT_TAG[p.id])}">${ic('vague')}${esc(ANT_TAG[p.id])}</a>` : '';
 
-  function carte(p) {
+  // grande carte produit (map(carte) donne l'indice : les premières cartes apparaissent l'une après l'autre)
+  function carte(p, i) {
     const c = catDe(p.cat), n = panier[p.id] || 0;
-    return `<article class="b-carte" id="p-${p.id}" style="--bc:${c.c}">
-      <a class="b-carte-vis" href="#/produit/${p.id}" tabindex="-1" aria-hidden="true">${blocVis(p)}</a>${coeurBtn(p)}
+    return `<article class="b-carte" id="p-${p.id}" style="--bc:${c.c};--i:${Math.min(i || 0, 10)}">
+      <a class="b-carte-vis" href="#/produit/${p.id}" tabindex="-1" aria-hidden="true">${blocVis(p)}</a>${coeurBtn(p)}${tagAnt(p)}
       <div class="b-corps">
         <p class="b-sr">${esc(srNom(p))}${p.recond ? ' · <b>Reconditionné</b>' : ''}</p>
         <h3><a href="#/produit/${p.id}">${esc(p.nom)}</a></h3>
@@ -247,13 +382,20 @@
           ${n ? `<p class="b-dans">${ic('coche')} ${n} au panier</p>` : ''}</div>
       </div></article>`;
   }
+  // un pack : prix de départ = matériel de base (sans option ni pose)
+  const calculPack = (pk, sel, pose) => calculer([...pk.base, ...pk.opts.map(o => o[0]).filter(id => sel.has(id))].map(id => ({ p: parId(id), n: 1 })), () => pose);
+  const packCarte = pk => { const t = calculPack(pk, new Set(), false); return `<a class="b-pack" href="#/pack/${pk.id}" style="--bc:${pk.c}"><span class="b-pack-vis">${packVis(pk)}</span>
+      <span class="b-pack-t"><b>${esc(pk.nom)}</b><small>${esc(pk.acc)}</small><span class="b-pack-px"><span>dès</span> <strong class="mono">${eur(t.materiel)}</strong><span class="b-pack-n">${pk.opts.length} accessoires au choix</span></span></span><span class="b-pack-go" aria-hidden="true">${ic('fleche')}</span></a>`; };
 
   // ---------- routes ----------
   const main = () => $('#bMain');
   const titreSite = ' | Boutique IloTech';
   const FIL = (liens) => `<nav class="b-fil" aria-label="Fil d’Ariane"><ol>${liens.map(([t, h], i) => `<li>${h ? `<a href="${h}">${esc(t)}</a>` : `<span aria-current="page">${esc(t)}</span>`}</li>`).join('')}</ol></nav>`;
-  let L = { cle: '', tri: 'pert', vue: lire('itVue', 'grille') === 'liste' ? 'liste' : 'grille', sr: new Set(), min: '', max: '', dispo: new Set(), car: {} };
+  const nouvL = (cle, vue) => ({ cle, tri: 'pert', vue, sr: new Set(), min: '', max: '', dispo: new Set(), t: {}, pose: false });
+  let L = nouvL('', lire('itVue', 'grille') === 'liste' ? 'liste' : 'grille');
   let contexte = null;
+  let pkEtat = { id: '', sel: new Set(), pose: false };
+  let heroNode = null;   // le premier écran de l'accueil est écrit dans boutique.html (affichage immédiat) ; on le garde pour le remettre
 
   function aller(h) { if (location.hash === h) route(); else location.hash = h; }
 
@@ -265,42 +407,58 @@
     const [chemin, qs] = h.split('?'); const seg = chemin.split('/').filter(Boolean).map(decodeURIComponent); const q = new URLSearchParams(qs || '');
     fermerTout();
     let titre = 'Boutique IloTech : matériel informatique, Starlink, caméras, mobilité électrique | Martinique', html;
-    if (seg[0] === 'rayon' && catDe(seg[1])) { const c = catDe(seg[1]); [html, titre] = [pageListe({ type: 'rayon', cat: c, sr: q.get('sr') }), c.nom + titreSite]; }
+    if (seg[0] === 'rayon' && catDe(seg[1])) { const c = catDe(seg[1]); [html, titre] = [pageListe({ type: 'rayon', cat: c, sr: q.get('sr'), guide: q.get('guide') }), c.nom + titreSite]; }
     else if (seg[0] === 'recherche') { const t = (q.get('q') || '').trim(); [html, titre] = [pageListe({ type: 'recherche', q: t }), 'Recherche : ' + (t || 'tous les produits') + titreSite]; }
     else if (seg[0] === 'produit' && parId(seg[1])) { const p = parId(seg[1]); [html, titre] = [pageProduit(p), p.nom + titreSite]; }
+    else if (seg[0] === 'packs') [html, titre] = [pagePacks(), 'Packs configurables' + titreSite];
+    else if (seg[0] === 'pack' && packDe(seg[1])) { const pk = packDe(seg[1]); [html, titre] = [pagePack(pk), pk.nom + titreSite]; }
+    else if (seg[0] === 'antilles') [html, titre] = [pageAntilles(), 'Spécial Antilles : cyclones, coupures, air salin' + titreSite];
     else if (seg[0] === 'comparer') [html, titre] = [pageComparer(), 'Comparateur' + titreSite];
     else if (seg[0] === 'panier') [html, titre] = [pagePanier(), 'Panier' + titreSite];
     else if (seg[0] === 'favoris') [html, titre] = [pageFavoris(), 'Favoris' + titreSite];
-    else if (!seg.length) html = pageAccueil();
+    else if (!seg.length) html = null;
     else html = pageIntrouvable();
-    main().innerHTML = html; document.title = titre; majEntete();
+    if (html === null) montrerAccueil(); else main().innerHTML = html;
+    document.title = titre; majEntete();
     const apres = $('#bMain [data-liste]'); if (apres) majResultats();
-    if (!premiere) { scrollTo({ top: 0, behavior: 'auto' }); const t = $('#bMain h1'); if (t) { t.tabIndex = -1; t.focus({ preventScroll: true }); } }
+    if (seg[0] === 'pack') majPack(false);
+    if (seg[0] === 'antilles' && q.get('s') && $('#ant-' + q.get('s'))) { const e = $('#ant-' + q.get('s')); setTimeout(() => e.scrollIntoView({ behavior: calme() ? 'auto' : 'smooth', block: 'start' }), 60); return; }
+    if (!premiere) { scrollTo({ top: 0, behavior: 'auto' }); const t = $('#bMain h1'); if (t) { t.tabIndex = -1; t.focus({ preventScroll: true }); } animerPage(); }
   }
 
-  const pageIntrouvable = () => `<div class="b-vide"><h1>Page introuvable</h1><p>Ce produit ou ce rayon n’existe pas (ou plus).</p><a class="btn btn-primary" href="#/">Retour à la boutique</a></div>`;
+  const pageIntrouvable = () => `<div class="b-vide"><h1>Page introuvable</h1><p>Ce produit, ce pack ou ce rayon n’existe pas (ou plus).</p><a class="btn btn-primary" href="#/">Retour à la boutique</a></div>`;
 
   // ----- accueil -----
+  function montrerAccueil() {
+    const m = main(), reste = pageAccueil();
+    if (heroNode && heroNode.parentNode === m) { while (heroNode.nextSibling) heroNode.nextSibling.remove(); }
+    else { m.innerHTML = ''; if (heroNode) m.append(heroNode); }
+    if (heroNode) heroNode.insertAdjacentHTML('afterend', reste); else m.insertAdjacentHTML('beforeend', reste);
+    const art = $('#bHeroArt'); if (art && !art.firstChild) art.innerHTML = heroArt();
+  }
   function pageAccueil() {
     const vus = recents.map(parId).filter(Boolean).slice(0, 6);
-    const mobi = PRODUITS.filter(p => p.cat === 'mobilite');
-    return `<section class="b-hero" aria-labelledby="bTitre"><div><p class="b-sur">Boutique IloTech · Martinique</p>
-        <h1 id="bTitre">Le bon matériel, <em>choisi pour la Martinique</em>.</h1>
-        <p class="b-chapo">Vélos, trottinettes et motos électriques sur commande, et le matériel que nos techniciens installent chaque jour, choisi pour la chaleur, l’humidité et l’air salin.</p></div></section>
-      <ul class="b-avantages" aria-label="Nos engagements">
+    return `<ul class="b-avantages" aria-label="Nos engagements">
         <li>${ic('main')}<span><b>Retrait gratuit</b>à Ducos ou au Robert</span></li>
         <li>${ic('cle')}<span><b>Pose par nos techniciens</b>quand une pose existe pour le matériel</span></li>
         <li>${ic('bouclier')}<span><b>Garantie légale 2 ans</b>sur le neuf</span></li>
         <li>${ic('camion')}<span><b>Paiement à la remise</b>rien n’est payé en ligne</span></li></ul>
-      <section class="b-bloc" aria-labelledby="bRay"><h2 id="bRay">Les rayons</h2>
-        <div class="b-tuiles">${CATS.map(c => { const prods = PRODUITS.filter(p => p.cat === c.id); return `<a class="b-tuile" href="#/rayon/${c.id}" style="--bc:${c.c}">${blocVis({ vis: c.vis, cat: c.id, nom: c.nom })}<span class="b-tuile-t"><b>${esc(c.nom)}</b><small>${prods.length} produit${prods.length > 1 ? 's' : ''}</small></span></a>`; }).join('')}</div></section>
-      <section class="b-bloc" aria-labelledby="bSel"><h2 id="bSel">La sélection IloTech</h2><p class="b-sous">Une liste choisie par nos techniciens pour la Martinique.</p>
+      <section class="b-bloc" aria-labelledby="bRay"><div class="b-bloc-tete"><div><p class="b-sur">Rayons</p><h2 id="bRay">Tout le matériel, rayon par rayon</h2></div></div>
+        <div class="b-tuiles">${CATS.map((c, i) => { const prods = PRODUITS.filter(p => p.cat === c.id); return `<a class="b-tuile" href="#/rayon/${c.id}" style="--bc:${c.c};--i:${i}">${blocVis({ vis: c.vis, cat: c.id, nom: c.nom })}<span class="b-tuile-t"><b>${esc(c.nom)}</b><small>${prods.length} produit${prods.length > 1 ? 's' : ''}</small></span><span class="b-tuile-go" aria-hidden="true">${ic('fleche')}</span></a>`; }).join('')}</div></section>
+      <section class="b-bloc" aria-labelledby="bPk"><div class="b-bloc-tete"><div><p class="b-sur">Packs configurables</p><h2 id="bPk">Composez votre installation</h2><p class="b-sous">Un produit principal, les accessoires que vous cochez, la pose si vous la voulez : le total se calcule avec nos prix de devis.</p></div><a class="b-tout" href="#/packs">Tous les packs ${ic('fleche')}</a></div>
+        <div class="b-packs">${PACKS.slice(0, 3).map(packCarte).join('')}</div></section>
+      <section class="b-ant" aria-labelledby="bAnt"><div class="b-ant-txt"><p class="b-sur">Spécial Antilles</p><h2 id="bAnt">Pensé pour les cyclones, les coupures et l’air salin</h2>
+          <p>Du matériel choisi pour tenir quand le courant saute, que le vent se lève ou que le sel ronge les fixations.</p><a class="btn btn-primary" href="#/antilles">Voir la sélection</a></div>
+        <ul class="b-ant-cols">${ANT.map(a => `<li style="--bc:${a.c}"><a href="#/antilles?s=${a.id}">${ic(a.ic)}<b>${esc(a.t)}</b><small>${a.ids.length} produits</small></a></li>`).join('')}</ul></section>
+      <section class="b-bloc" aria-labelledby="bSel"><div class="b-bloc-tete"><div><p class="b-sur">Notre sélection</p><h2 id="bSel">La sélection IloTech</h2><p class="b-sous">Une liste choisie par nos techniciens pour la Martinique.</p></div></div>
         <div class="b-grille b-grille-acc">${SELECTION.map(parId).filter(Boolean).map(carte).join('')}</div></section>
       <section class="b-mobi" aria-labelledby="bMob" style="--bc:#16a34a"><div class="b-mobi-txt"><p class="b-sur">Sur commande</p><h2 id="bMob">Mobilité électrique</h2>
           <p>Vélos à assistance, trottinettes, motos légères type Sur-Ron ou Talaria, scooters : marque et modèle au choix, prix et délai sur demande. Nous vous indiquons la catégorie exacte et ce que dit la loi avant la commande.</p>
           <a class="btn btn-primary" href="#/rayon/mobilite">Voir la mobilité électrique</a></div>
         <div class="b-mobi-vis">${['vae-ville', 'trottinette', 'moto-tt', 'scooter'].map(parId).map(p => `<a href="#/produit/${p.id}" aria-label="${esc(p.nom)}">${blocVis(p)}</a>`).join('')}</div></section>
-      ${vus.length ? `<section class="b-bloc" aria-labelledby="bVus"><h2 id="bVus">Vus récemment</h2><p class="b-sous">Gardés sur cet appareil seulement.</p><div class="b-grille b-grille-acc">${vus.map(carte).join('')}</div></section>` : ''}
+      <section class="b-bloc" aria-labelledby="bGui"><div class="b-bloc-tete"><div><p class="b-sur">Guides d’achat</p><h2 id="bGui">Comment choisir</h2></div></div>
+        <div class="b-guides">${['energie', 'wifi', 'securite', 'starlink'].map(id => { const c = catDe(id); return `<a class="b-guide-c" href="#/rayon/${id}?guide=1" style="--bc:${c.c}">${ic('aide')}<b>${esc(GUIDES[id].t)}</b><small>${esc(GUIDES[id].l[0])}</small></a>`; }).join('')}</div></section>
+      ${vus.length ? `<section class="b-bloc" aria-labelledby="bVus"><div class="b-bloc-tete"><div><h2 id="bVus">Vus récemment</h2><p class="b-sous">Gardés sur cet appareil seulement.</p></div></div><div class="b-grille b-grille-acc">${vus.map(carte).join('')}</div></section>` : ''}
       <section class="b-bloc b-infos" aria-labelledby="bInfosT"><h2 id="bInfosT">Comment ça marche</h2><ol class="b-etapes">
         <li><b>Vous choisissez</b><span>Ajoutez les articles au panier, ou demandez un modèle précis.</span></li>
         <li><b>Nous confirmons</b><span>Prix du jour, disponibilité et délai, par WhatsApp ou email, sous 24 h ouvrées.</span></li>
@@ -310,16 +468,71 @@
   }
   const NOTE = '<p class="b-note">Prix indicatifs TTC, les mêmes que sur nos devis : le prix du jour vous est confirmé avant toute commande. Mobilité électrique et articles marqués « sur commande » : prix et délai sur demande. Les illustrations ne sont pas des photos du produit livré.</p>';
 
-  // ----- liste -----
+  // ----- packs configurables -----
+  function pagePacks() {
+    return `${FIL([['Boutique', '#/'], ['Packs']])}<div class="b-liste-tete"><div><p class="b-sur">Packs configurables</p><h1>Composez votre installation</h1></div></div>
+      <p class="b-chapo-p">Chaque pack part d’un produit principal ; vous cochez les accessoires utiles et la pose par un technicien. Le total est calculé avec les mêmes prix que nos devis : aucune remise inventée, aucun prix caché.</p>
+      <div class="b-packs b-packs-page">${PACKS.map(packCarte).join('')}</div>${NOTE}`;
+  }
+  function pagePack(pk) {
+    if (pkEtat.id !== pk.id) pkEtat = { id: pk.id, sel: new Set(pk.opts.filter(o => o[1]).map(o => o[0])), pose: false };
+    const ligne = (id, fixe) => { const p = parId(id), px = prixDe(p), pose = poseDe(p);
+      return `<${fixe ? 'div' : 'label'} class="b-pk-item${fixe ? ' b-pk-fixe' : ''}" style="--bc:${catDe(p.cat).c}">${fixe ? `<span class="b-pk-inclus">${ic('coche')}<span class="sr-only">Inclus</span></span>` : `<input type="checkbox" data-pk-opt="${id}"${pkEtat.sel.has(id) ? ' checked' : ''}>`}
+        <span class="b-pk-mini">${visuel(p, catDe(p.cat).c)}</span>
+        <span class="b-pk-nom"><b>${esc(p.nom)}</b><small>${esc(p.desc)}${pose ? ' · pose possible' : ''}</small></span>
+        <span class="b-pk-px mono">${px ? eur(px) : 'sur demande'}</span></${fixe ? 'div' : 'label'}>`; };
+    return `<div style="--bc:${pk.c}">${FIL([['Boutique', '#/'], ['Packs', '#/packs'], [pk.nom]])}
+      <article class="b-pk" aria-labelledby="bPkT">
+        <div class="b-pk-vis"><span class="b-pack-vis">${packVis(pk)}</span><span class="b-illu">${packVis(pk).includes('b-pv-ph') ? 'Photos non contractuelles' : 'Illustration'}</span></div>
+        <div class="b-pk-info">
+          <p class="b-sur">Pack configurable</p><h1 id="bPkT">${esc(pk.nom)}</h1><p class="b-accroche">${esc(pk.acc)}</p>
+          <fieldset class="b-pk-items"><legend>Inclus dans le pack</legend>${pk.base.map(id => ligne(id, true)).join('')}</fieldset>
+          <fieldset class="b-pk-items"><legend>À cocher selon vos besoins</legend>${pk.opts.map(([id]) => ligne(id, false)).join('')}</fieldset>
+          <label class="b-posebox" id="bPkPoseBox"><input type="checkbox" data-pk-pose${pkEtat.pose ? ' checked' : ''}><span><b>Avec la pose par un technicien IloTech</b><small id="bPkPoseT"></small></span></label>
+          <div class="b-pk-recap" id="bPkRecap" aria-live="polite"></div>
+          <div class="b-achat"><button type="button" class="btn btn-primary b-ajout-g" data-pk-add="${pk.id}">Ajouter le pack au panier</button></div>
+          <p class="b-aide">Le pack n’est qu’un regroupement : les articles arrivent dans le panier, que vous pouvez encore modifier. Rien n’est payé en ligne.</p>
+        </div></article>${NOTE}</div>`;
+  }
+  // met à jour le récapitulatif du pack (matériel, pose, total) sans recharger la page
+  function majPack(anime = true) {
+    const pk = packDe(pkEtat.id), rec = $('#bPkRecap'); if (!pk || !rec) return;
+    const t = calculPack(pk, pkEtat.sel, pkEtat.pose), seul = calculPack(pk, pkEtat.sel, true);
+    const tousPoseables = [...pk.base, ...pk.opts.map(o => o[0]).filter(id => pkEtat.sel.has(id))].some(id => poseDe(parId(id)));
+    const pb = $('#bPkPoseBox'); if (pb) pb.hidden = !tousPoseables;
+    const pt = $('#bPkPoseT'); if (pt) pt.textContent = seul.pose ? `+ ${eur(seul.pose)} : prise en charge et pose des articles qui en ont une, déplacement selon votre commune` : '';
+    rec.innerHTML = `<dl class="b-totaux"><div><dt>Matériel (${t.nb} article${t.nb > 1 ? 's' : ''})</dt><dd class="mono">${t.materiel ? eur(t.materiel) : '—'}</dd></div>
+      ${pkEtat.pose && t.pose ? `<div><dt>Pose par nos techniciens</dt><dd class="mono">${eur(t.pose)}</dd></div>` : ''}
+      ${t.surDemande ? `<div><dt>Articles sur demande</dt><dd>${t.surDemande} article${t.surDemande > 1 ? 's' : ''}</dd></div>` : ''}
+      <div class="b-tot"><dt>Total indicatif</dt><dd class="mono" data-total="${t.total}">${t.total ? eur(t.total) : 'Prix sur demande'}</dd></div></dl>
+      ${t.surDemande && t.total ? '<p class="b-aide">Les articles « prix sur demande » ne sont pas dans le total : nous vous donnons leur prix avec la confirmation.</p>' : ''}`;
+    if (anime) compter($('#bPkRecap [data-total]'), t.total);
+  }
+
+  // ----- Spécial Antilles -----
+  function pageAntilles() {
+    return `${FIL([['Boutique', '#/'], ['Spécial Antilles']])}
+      <header class="b-ant-tete"><p class="b-sur">Spécial Antilles</p><h1>Cyclones, coupures de courant, air salin</h1>
+        <p class="b-chapo-p">En Martinique, le matériel électronique vit avec les coupures, les surtensions, l’humidité et le sel. Voici ce que nous proposons pour chacun de ces cas, avec les prix de nos devis.</p></header>
+      ${ANT.map(a => `<section class="b-bloc b-ant-sec" id="ant-${a.id}" style="--bc:${a.c}" aria-labelledby="ant-t-${a.id}"><div class="b-bloc-tete"><div><p class="b-sur">${ic(a.ic)} ${esc(a.t)}</p><h2 id="ant-t-${a.id}">${esc(a.t)}</h2><p class="b-sous">${esc(a.txt)}</p></div></div>
+        <div class="b-grille b-grille-acc">${a.ids.map(parId).filter(Boolean).map(carte).join('')}</div></section>`).join('')}
+      <section class="b-bloc"><div class="b-bloc-tete"><div><h2>Un pack pour chaque cas</h2></div></div><div class="b-packs">${['cyclone', 'starlink-maison', 'securite-maison'].map(packDe).map(packCarte).join('')}</div></section>
+      <section class="b-bloc b-infos"><h2>Pour aller plus loin</h2><ul class="b-liens">${ANT_LIENS.map(([h, t]) => `<li><a href="${h}">${esc(t)} ${ic('fleche')}</a></li>`).join('')}</ul></section>${NOTE}`;
+  }
+
+  // ----- liste (rayon ou recherche) -----
   function portee() {
     const c = contexte; if (!c) return [];
     return c.type === 'rayon' ? PRODUITS.filter(p => p.cat === c.cat.id) : chercher(c.q);
   }
-  function facettes(base) {
-    const m = new Map();
-    base.forEach(p => p.car.forEach(([k, v]) => { const g = m.get(k) || m.set(k, { k, n: 0, vals: new Map() }).get(k); g.n++; g.vals.set(v, (g.vals.get(v) || 0) + 1); }));
-    return [...m.values()].filter(g => g.n >= 2 && (g.vals.size >= 2 || g.n < base.length)).sort((a, b) => b.n - a.n).slice(0, 5)
-      .map(g => ({ k: g.k, vals: [...g.vals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]) }));
+  // groupes de filtres techniques : seulement ceux qui séparent vraiment les produits de la liste
+  function groupesTech(base) {
+    const cats = [...new Set(base.map(p => p.cat))], gs = [];
+    cats.forEach(cid => filtresDe(cid).forEach(([k, nom]) => {
+      const ps = base.filter(p => p.cat === cid), vals = [...new Set(ps.map(p => valT(p, k)).filter(Boolean))];
+      if (vals.length && (vals.length >= 2 || ps.some(p => !valT(p, k)))) gs.push({ id: cid + '.' + k, nom: cats.length > 1 ? `${nom} (${catDe(cid).nom})` : nom, vals });
+    }));
+    return gs;
   }
   function appliquer(base) {
     let l = base.filter(p => {
@@ -327,29 +540,35 @@
       const px = prixDe(p), mn = parseFloat(L.min), mx = parseFloat(L.max);
       if ((Number.isFinite(mn) || Number.isFinite(mx)) && (px == null || (Number.isFinite(mn) && px < mn) || (Number.isFinite(mx) && px > mx))) return false;
       if (L.dispo.size && !L.dispo.has(dispoDe(p))) return false;
-      return Object.entries(L.car).every(([k, set]) => !set.size || p.car.some(([kk, v]) => kk === k && set.has(v)));
+      if (L.pose && !poseDe(p)) return false;
+      return Object.entries(L.t).every(([id, set]) => { if (!set.size) return true; const [c, k] = id.split('.'); return p.cat === c && set.has(valT(p, k)); });
     });
     if (L.tri === 'asc' || L.tri === 'desc') { const f = L.tri === 'asc' ? 1 : -1; l = [...l].sort((a, b) => { const x = prixDe(a), y = prixDe(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (x - y) * f; }); }
     else if (L.tri === 'nom') l = [...l].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
     return l;
   }
-  const nbFiltres = () => L.sr.size + (L.min !== '' ? 1 : 0) + (L.max !== '' ? 1 : 0) + L.dispo.size + Object.values(L.car).reduce((t, s) => t + s.size, 0);
+  const nbFiltres = () => L.sr.size + (L.min !== '' ? 1 : 0) + (L.max !== '' ? 1 : 0) + L.dispo.size + (L.pose ? 1 : 0) + Object.values(L.t).reduce((t, s) => t + s.size, 0);
 
   function pageListe(c) {
     contexte = c;
     const cle = c.type === 'rayon' ? 'r:' + c.cat.id : 's:' + c.q;
-    if (L.cle !== cle) { L = { cle, tri: 'pert', vue: L.vue, sr: new Set(), min: '', max: '', dispo: new Set(), car: {} }; if (c.sr) L.sr.add(c.sr); }
+    if (L.cle !== cle) { L = nouvL(cle, L.vue); if (c.sr) L.sr.add(c.sr); }
     else if (c.sr && !L.sr.has(c.sr)) { L.sr = new Set([c.sr]); }
     const base = portee(), couleur = c.type === 'rayon' ? c.cat.c : '#2b8cff';
     const titre = c.type === 'rayon' ? c.cat.nom : c.q ? `Recherche : « ${c.q} »` : 'Tous les produits';
     const fil = c.type === 'rayon' ? [['Boutique', '#/'], [c.cat.nom]] : [['Boutique', '#/'], ['Recherche']];
     const sousRayons = c.type === 'rayon' ? c.cat.sr.filter(s => base.some(p => p.sr === s[0])) : [...new Set(base.map(p => p.cat))].map(id => [id, catDe(id).nom]);
-    const fac = facettes(base), dispos = [...new Set(base.map(dispoDe))];
-    const groupe = (t, inner) => `<fieldset class="b-fg"><legend>${esc(t)}</legend>${inner}</fieldset>`;
+    const gt = groupesTech(base), dispos = [...new Set(base.map(dispoDe))], poseMixte = base.some(p => poseDe(p)) && base.some(p => !poseDe(p));
+    const groupe = (t, inner) => `<fieldset class="b-fg"><legend>${esc(t)}</legend><div class="b-fpuces">${inner}</div></fieldset>`;
     const cases = (nom, val, texte, coche) => `<label class="b-fcase"><input type="checkbox" data-f="${nom}" value="${esc(val)}"${coche ? ' checked' : ''}><span>${esc(texte)}</span></label>`;
-    const rayonsLiens = c.type === 'recherche' && rayonsCorrespondants(c.q).length ? `<p class="b-rayons-trouves">Rayons : ${rayonsCorrespondants(c.q).map(r => `<a href="#/rayon/${r.id}">${esc(r.nom)}</a>`).join(', ')}</p>` : '';
+    const rl = c.type === 'recherche' ? rayonsCorrespondants(c.q) : [];
+    const rayonsLiens = rl.length ? `<p class="b-rayons-trouves">Rayons : ${rl.map(r => `<a href="#/rayon/${r.id}">${esc(r.nom)}</a>`).join(', ')}</p>` : '';
+    const corr = c.type === 'recherche' && c.q ? corrigerRequete(c.q) : null;
+    const corrige = corr ? `<p class="b-corrige">${ic('aide')}<span>Aucun article ne s’appelle « ${esc(c.q)} » : voici les résultats pour <b>« ${esc(corr)} »</b>.</span></p>` : '';
+    const guide = c.type === 'rayon' && GUIDES[c.cat.id] ? `<details class="b-guide"${c.guide ? ' open' : ''}><summary>${ic('aide')}<span>${esc(GUIDES[c.cat.id].t)}</span><small>guide d’achat</small></summary><ul>${GUIDES[c.cat.id].l.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>` : '';
+    const chips = c.type === 'rayon' && sousRayons.length > 1 ? `<nav class="b-chips" aria-label="Sous-rayons"><a href="#/rayon/${c.cat.id}"${!L.sr.size ? ' aria-current="true"' : ''}>Tout</a>${sousRayons.map(([id, nom]) => `<a href="#/rayon/${c.cat.id}?sr=${id}"${L.sr.has(id) ? ' aria-current="true"' : ''}>${esc(nom)}</a>`).join('')}</nav>` : '';
     return `<div data-liste style="--bc:${couleur}">${FIL(fil)}
-      <div class="b-liste-tete"><h1>${esc(titre)}</h1><p class="b-nb" id="bNb" aria-live="polite"></p></div>${rayonsLiens}
+      <header class="b-ray-tete"><div><h1>${esc(titre)}</h1><p class="b-nb" id="bNb" aria-live="polite"></p></div></header>${rayonsLiens}${corrige}${guide}${chips}
       <div class="b-outils-liste">
         <button type="button" class="btn b-filtrer" data-filtres="ouvrir" aria-controls="bFiltres" aria-expanded="false">${ic('filtre')}<span id="bFiltrerT">Filtrer</span></button>
         <label class="b-tri"><span>Trier par</span><select id="bTri" data-tri>${[['pert', 'Pertinence'], ['asc', 'Prix croissant'], ['desc', 'Prix décroissant'], ['nom', 'Nom']].map(([v, t]) => `<option value="${v}"${L.tri === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
@@ -358,10 +577,12 @@
         <div class="b-voile" data-filtres="fermer"></div>
         <aside class="b-filtres" id="bFiltres" aria-label="Filtres" tabindex="-1">
           <div class="b-filtres-tete"><h2>Filtres</h2><button type="button" class="b-x" data-filtres="fermer" aria-label="Fermer les filtres">${ic('croix')}</button></div>
-          ${sousRayons.length > 1 ? groupe(c.type === 'rayon' ? 'Sous-rayons' : 'Rayons', sousRayons.map(([id, nom]) => cases(c.type === 'rayon' ? 'sr' : 'sr-cat', id, nom, c.type === 'rayon' && L.sr.has(id))).join('')) : ''}
+          ${gt.map(g => groupe(g.nom, g.vals.map(v => cases('t:' + g.id, v, v, (L.t[g.id] || new Set()).has(v))).join(''))).join('')}
+          ${poseMixte ? groupe('Installation', cases('pose', 'oui', 'Pose par un technicien possible', L.pose)) : ''}
+          ${sousRayons.length > 1 && c.type === 'recherche' ? groupe('Rayons', sousRayons.map(([id, nom]) => cases('sr-cat', id, nom, false)).join('')) : ''}
+          ${c.type === 'rayon' && sousRayons.length > 1 ? groupe('Sous-rayons', sousRayons.map(([id, nom]) => cases('sr', id, nom, L.sr.has(id))).join('')) : ''}
           ${groupe('Prix (€)', `<div class="b-prixf"><label>Minimum<input type="number" inputmode="decimal" min="0" step="1" data-prix="min" value="${esc(L.min)}" placeholder="0"></label><label>Maximum<input type="number" inputmode="decimal" min="0" step="1" data-prix="max" value="${esc(L.max)}" placeholder="Sans limite"></label></div><p class="b-aide">Les articles « prix sur demande » sont masqués quand un prix est choisi.</p>`)}
           ${dispos.length ? groupe('Disponibilité', dispos.map(d => cases('dispo', d, DISPOS[d][0], L.dispo.has(d))).join('')) : ''}
-          ${fac.map(g => groupe(g.k, g.vals.map(v => cases('car:' + g.k, v, v, (L.car[g.k] || new Set()).has(v))).join(''))).join('')}
           <div class="b-filtres-pied"><button type="button" class="btn" data-f-raz>Tout effacer</button><button type="button" class="btn btn-primary" data-filtres="fermer" id="bVoirRes">Voir les résultats</button></div>
         </aside>
         <div class="b-res"><div id="bRes" class="b-grille b-vue-${L.vue}" aria-live="polite"></div></div></div>
@@ -369,11 +590,11 @@
       ${NOTE}</div>`;
   }
 
-  function majResultats() {
+  function majResultats(sansAnim) {
     const res = $('#bRes'); if (!res) return;
     const base = portee(), l = appliquer(base), c = contexte;
     $('#bNb').textContent = l.length + (l.length > 1 ? ' produits' : ' produit');
-    res.className = 'b-grille b-vue-' + L.vue;
+    res.className = 'b-grille b-vue-' + L.vue + (sansAnim ? ' b-calme' : '');
     res.innerHTML = l.length ? l.map(carte).join('') : `<div class="b-vide"><p><b>${base.length ? 'Aucun produit ne correspond à ces filtres.' : `Aucun article ne correspond à « ${esc(c.q || '')} ».`}</b></p>
       <p>${base.length ? 'Essayez d’élargir le prix ou de retirer un filtre.' : 'Demandez-nous : nous trouvons souvent le matériel sur commande.'}</p>
       ${base.length ? '<button type="button" class="btn btn-primary" data-f-raz>Effacer les filtres</button>' : `<a class="btn btn-primary" href="${waUrl(CONFIG.whatsapp || AGENCES.ducos.tel, 'Bonjour IloTech, je cherche : ' + (c.q || ''))}" target="_blank" rel="noopener">Demander sur WhatsApp</a>`}</div>`;
@@ -387,9 +608,14 @@
     const c = catDe(p.cat), pose = poseDe(p), px = prixDe(p), lien = (CONFIG.siteUrl || '') + 'boutique.html#/produit/' + p.id;
     const assoc = [...new Set([...(p.assoc || []), ...PRODUITS.filter(x => x.cat === p.cat).map(x => x.id)])].filter(id => id !== p.id).map(parId).filter(Boolean).slice(0, 4);
     const garantie = p.recond ? 'Garantie légale de conformité d’au moins 1 an sur le reconditionné, en plus de la garantie du fabricant ou du reconditionneur.' : 'Garantie légale de conformité de 2 ans sur le neuf (articles L.217-3 et suivants du Code de la consommation), en plus de la garantie du fabricant.';
+    // compatibilité : seulement ce que disent les caractéristiques de data.js, puis les produits qui se complètent
+    const compat = p.car.filter(([k]) => /compatib|^pour$|alimentation|fixation|passe-câble|visserie|logement/i.test(k));
+    const compl = (p.assoc || []).map(parId).filter(Boolean);
+    const guide = GUIDES[p.cat];
+    const ant = ANT.filter(a => a.ids.includes(p.id));
     return `<div style="--bc:${c.c}">${FIL([['Boutique', '#/'], [c.nom, '#/rayon/' + c.id], [srNom(p), '#/rayon/' + c.id + '?sr=' + p.sr], [p.nom]])}
       <article class="b-fiche" aria-labelledby="bFicheT">
-        <div class="b-fiche-vis">${blocVis(p, true)}</div>
+        <div class="b-fiche-vis">${blocVis(p, true)}${tagAnt(p)}</div>
         <div class="b-fiche-info">
           <p class="b-ref">Référence <span class="mono">${refDe(p)}</span></p>
           <h1 id="bFicheT">${esc(p.nom)}</h1><p class="b-accroche">${esc(p.desc)}</p>
@@ -409,13 +635,16 @@
       <div class="b-sections">
         <section aria-labelledby="bsD"><h2 id="bsD">Description</h2><p>${esc(p.desc)}</p><ul class="b-pts">${p.points.map(x => `<li>${esc(x)}</li>`).join('')}</ul>${p.svc ? `<p><a href="index.html?svc=${encodeURIComponent(p.svc)}">Voir la prestation de pose et d’installation →</a></p>` : ''}</section>
         <section aria-labelledby="bsC"><h2 id="bsC">Caractéristiques</h2><table class="b-tableau"><tbody>${p.car.map(([k, v]) => `<tr><th scope="row">${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}</tbody></table></section>
+        ${compat.length || compl.length ? `<section class="b-compat" aria-labelledby="bsK"><h2 id="bsK">Compatibilité et accessoires</h2>${compat.length ? `<ul class="b-pts">${compat.map(([k, v]) => `<li><b>${esc(k)} :</b> ${esc(v)}</li>`).join('')}</ul>` : ''}${compl.length ? `<p class="b-aide">Se complète avec :</p><p class="b-liens-p">${compl.map(x => `<a href="#/produit/${x.id}">${esc(x.nom)}</a>`).join('')}</p>` : ''}</section>` : ''}
+        ${guide ? `<section class="b-guide-s" aria-labelledby="bsG0"><h2 id="bsG0">${esc(guide.t)}</h2><ul class="b-pts">${guide.l.map(x => `<li>${esc(x)}</li>`).join('')}</ul></section>` : ''}
+        ${ant.length ? `<section class="b-ant-note" aria-labelledby="bsA"><h2 id="bsA">Spécial Antilles</h2>${ant.map(a => `<p><b>${esc(a.t)}.</b> ${esc(a.txt)}</p>`).join('')}<p><a href="#/antilles">Voir toute la sélection Spécial Antilles →</a></p></section>` : ''}
         <section aria-labelledby="bsL"><h2 id="bsL">Livraison et retrait</h2><p>Retrait gratuit à Ducos ou au Robert. Livraison en Martinique, ou livraison avec pose par un technicien : les modalités vous sont confirmées avec le prix. Nous confirmons le prix, la disponibilité et le délai par WhatsApp ou email, sous 24 h ouvrées. ${p.dispo === 'stock' ? '' : 'Article sur commande : le délai exact dépend du fournisseur.'}</p></section>
         <section aria-labelledby="bsG"><h2 id="bsG">Garanties et retours</h2><ul><li>${garantie}</li><li>Rétractation de 14 jours pour une commande passée à distance (site, WhatsApp, téléphone), à compter de la remise de l’article : voir nos <a href="cgv.html#boutique">conditions générales de vente</a>.</li>
           <li>Éco-participation incluse dans le prix des appareils électriques et électroniques, détaillée sur la facture.</li><li>Reprise gratuite de votre ancien appareil du même type à l’achat d’un neuf, et des batteries usagées, pour qu’ils soient recyclés.</li>
           <li>Paiement à la remise, au retrait ou à la livraison. ${dispoDe(p) === 'stock' ? '' : 'Les articles « sur commande » peuvent demander un acompte, indiqué avant la commande.'}</li></ul></section>
         ${p.regle ? `<section class="b-regle" aria-labelledby="bsR"><h2 id="bsR">Ce que dit la loi</h2><p>${esc(REGLES[p.regle])}</p></section>` : ''}
       </div>
-      ${assoc.length ? `<section class="b-bloc" aria-labelledby="bAssoc"><h2 id="bAssoc">Souvent pris avec</h2><div class="b-grille b-grille-acc">${assoc.map(carte).join('')}</div></section>` : ''}${NOTE}</div>`;
+      ${assoc.length ? `<section class="b-bloc" aria-labelledby="bAssoc"><div class="b-bloc-tete"><div><h2 id="bAssoc">Souvent pris avec</h2></div></div><div class="b-grille b-grille-acc">${assoc.map(carte).join('')}</div></section>` : ''}${NOTE}</div>`;
   }
 
   // ----- comparateur -----
@@ -484,7 +713,7 @@
       d.note ? `Précision : ${d.note}` : '', 'Merci de me confirmer le prix et la disponibilité.'].filter(Boolean).join('\n');
   }
 
-  // ---------- en-tête, suggestions, méga-menu, mini-panier ----------
+  // ---------- en-tête, comparateur flottant, suggestions, méga-menu, mini-panier ----------
   function majEntete() {
     const t = totaux();
     const mets = (k, n) => $$(`[data-n="${k}"]`).forEach(e => { e.textContent = n; e.hidden = !n; });
@@ -493,50 +722,113 @@
     $('#bPanierLien').setAttribute('aria-label', 'Panier : ' + t.nb + (t.nb > 1 ? ' articles' : ' article') + (t.total ? ', ' + eur(t.total) : ''));
     $('#bFavLien').setAttribute('aria-label', 'Favoris : ' + favoris.length);
     $('#bCmpLien').setAttribute('aria-label', 'Comparateur : ' + comparer.length + ' sur 4');
+    barreComparer();
+  }
+  // barre du bas : apparaît dès qu'un produit est coché « Comparer »
+  function barreComparer() {
+    const n = comparer.length, h = location.hash, visible = n > 0 && !h.startsWith('#/comparer') && !h.startsWith('#/panier');
+    let b = $('#bCmpBar');
+    if (!b) { if (!visible) return; b = document.createElement('div'); b.id = 'bCmpBar'; b.className = 'b-cmpbar'; document.body.appendChild(b); }
+    b.hidden = !visible;
+    if (visible) b.innerHTML = `<span class="b-cmpbar-t">${ic('balance')}<span><b>${n}</b> produit${n > 1 ? 's' : ''} à comparer</span></span><a class="btn btn-primary" href="#/comparer">Comparer</a><button type="button" class="btn" data-cmp-vider>Vider</button>`;
   }
   function fermerTout() { fermerSug(); fermerMega(); fermerFiltres(); fermerMini(); }
   function annoncer(t) { const z = $('#bAnnonce'); z.textContent = ''; setTimeout(() => { z.textContent = t; }, 30); }
 
   const sug = { actif: -1, items: [] };
+  const recherches = () => { const v = lire('itRecherches', []); return Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, 5) : []; };
+  const noterRecherche = q => ecrire('itRecherches', [q, ...recherches().filter(x => x !== q)].slice(0, 5));
   function majSug() {
-    const inp = $('#bCherche'), q = inp.value.trim(), ul = $('#bSug');
-    if (!q) return fermerSug();
-    const rs = rayonsCorrespondants(q).slice(0, 3), ps = chercher(q).slice(0, 6);
-    sug.items = [...rs.map(r => ({ href: '#/rayon/' + r.id, html: `<span class="b-sug-t">${esc(r.nom)}</span><span class="b-sug-k">Rayon</span>` })),
-      ...ps.map(p => ({ href: '#/produit/' + p.id, html: `<span class="b-sug-t">${esc(p.nom)}</span><span class="b-sug-k">${prixDe(p) ? eur(prixDe(p)) : 'Prix sur demande'}</span>` })),
-      { href: '#/recherche?q=' + encodeURIComponent(q), html: `<span class="b-sug-t">Voir tous les résultats pour « ${esc(q)} »</span>` }];
+    const inp = $('#bCherche'), q = inp.value.trim(), ul = $('#bSug'); let info = '';
+    if (!q) {   // champ vide : les dernières recherches, gardées sur cet appareil
+      const r = recherches(); if (!r.length) return fermerSug();
+      sug.items = r.map(x => ({ href: '#/recherche?q=' + encodeURIComponent(x), html: `<span class="b-sug-t">${ic('horloge')}${esc(x)}</span><span class="b-sug-k">Récent</span>` }));
+    } else {
+      const rs = rayonsCorrespondants(q).slice(0, 3), ps = chercher(q).slice(0, 6), corr = corrigerRequete(q);
+      if (corr) info = `<li class="b-sug-info" role="presentation">Résultats pour « ${esc(corr)} »</li>`;
+      sug.items = [...rs.map(r => ({ href: '#/rayon/' + r.id, html: `<span class="b-sug-t">${esc(r.nom)}</span><span class="b-sug-k">Rayon</span>` })),
+        ...ps.map(p => ({ href: '#/produit/' + p.id, html: `<span class="b-sug-t">${esc(p.nom)}</span><span class="b-sug-k">${prixDe(p) ? eur(prixDe(p)) : 'Prix sur demande'}</span>` })),
+        { href: '#/recherche?q=' + encodeURIComponent(q), html: `<span class="b-sug-t">Voir tous les résultats pour « ${esc(q)} »</span>` }];
+    }
     sug.actif = -1;
-    ul.innerHTML = sug.items.map((s, i) => `<li role="option" id="bSug${i}" data-href="${esc(s.href)}" aria-selected="false">${s.html}</li>`).join('');
+    ul.innerHTML = info + sug.items.map((s, i) => `<li role="option" id="bSug${i}" data-href="${esc(s.href)}" aria-selected="false">${s.html}</li>`).join('');
     ul.hidden = false; inp.setAttribute('aria-expanded', 'true'); inp.removeAttribute('aria-activedescendant');
   }
   function fermerSug() { const u = $('#bSug'); if (!u || u.hidden) return; u.hidden = true; const i = $('#bCherche'); i.setAttribute('aria-expanded', 'false'); i.removeAttribute('aria-activedescendant'); }
   function activerSug(i) {
     const n = sug.items.length; if (!n) return; sug.actif = (i + n) % n;
-    $$('#bSug li').forEach((li, k) => li.setAttribute('aria-selected', String(k === sug.actif)));
+    $$('#bSug li[role="option"]').forEach((li, k) => li.setAttribute('aria-selected', String(k === sug.actif)));
     $('#bCherche').setAttribute('aria-activedescendant', 'bSug' + sug.actif);
     $('#bSug' + sug.actif).scrollIntoView({ block: 'nearest' });
   }
 
+  // méga-menu à deux niveaux : les rayons à gauche, le détail du rayon survolé à droite (construit à la première ouverture)
   function construireMega() {
-    $('#bMega').innerHTML = `<div class="b-mega-in">${CATS.map(c => `<div class="b-mega-col" style="--bc:${c.c}"><a class="b-mega-t" href="#/rayon/${c.id}">${esc(c.nom)}</a><ul>${c.sr.map(([id, nom]) => `<li><a href="#/rayon/${c.id}?sr=${id}">${esc(nom)}</a></li>`).join('')}</ul></div>`).join('')}</div>`;
+    const m = $('#bMega'); if (m.firstChild) return;
+    m.innerHTML = `<div class="b-mega-in"><ul class="b-mega-ray">${CATS.map((c, i) => `<li><a href="#/rayon/${c.id}" data-ray="${c.id}" class="${i ? '' : 'on'}" style="--bc:${c.c}"><span class="b-mega-mini">${visuel({ vis: c.vis }, c.c)}</span><b>${esc(c.nom)}</b>${ic('flecheD')}</a></li>`).join('')}</ul>
+      <div class="b-mega-pan">${CATS.map((c, i) => { const vedettes = PRODUITS.filter(p => p.cat === c.id && prixDe(p)).slice(0, 2); return `<div class="b-mega-p" data-pan="${c.id}"${i ? ' hidden' : ''} style="--bc:${c.c}"><a class="b-mega-t" href="#/rayon/${c.id}">Tout le rayon ${esc(c.nom)} ${ic('fleche')}</a>
+          <ul class="b-mega-sr">${c.sr.map(([id, nom]) => `<li><a href="#/rayon/${c.id}?sr=${id}">${esc(nom)}</a></li>`).join('')}</ul>
+          ${vedettes.length ? `<ul class="b-mega-ved">${vedettes.map(p => `<li><a href="#/produit/${p.id}"><span>${esc(p.nom)}</span><b class="mono">${eur(prixDe(p))}</b></a></li>`).join('')}</ul>` : ''}</div>`; }).join('')}
+        <div class="b-mega-pied"><a href="#/packs">${ic('pack')}Packs configurables</a><a href="#/antilles">${ic('vague')}Spécial Antilles</a><a href="#/comparer">${ic('balance')}Comparateur</a></div></div></div>`;
   }
-  function ouvrirMega() { $('#bMega').hidden = false; $('#bRayonsBtn').setAttribute('aria-expanded', 'true'); const a = $('#bMega a'); if (a) a.focus(); }
+  function panneauMega(id) {
+    $$('#bMega [data-ray]').forEach(a => a.classList.toggle('on', a.dataset.ray === id));
+    $$('#bMega [data-pan]').forEach(p => { p.hidden = p.dataset.pan !== id; });
+  }
+  function ouvrirMega() { construireMega(); $('#bMega').hidden = false; $('#bRayonsBtn').setAttribute('aria-expanded', 'true'); const a = $('#bMega a'); if (a) a.focus(); }
   function fermerMega(rendre) { const m = $('#bMega'); if (!m || m.hidden) return; m.hidden = true; const b = $('#bRayonsBtn'); b.setAttribute('aria-expanded', 'false'); if (rendre) b.focus(); }
-
   let derniereFocus = null;
   function ouvrirFiltres() { const f = $('#bFiltres'); if (!f) return; derniereFocus = document.activeElement; document.body.classList.add('b-filtres-ouverts'); $$('[data-filtres="ouvrir"]').forEach(b => b.setAttribute('aria-expanded', 'true')); f.focus(); }
   function fermerFiltres(rendre) { if (!document.body.classList.contains('b-filtres-ouverts')) return; document.body.classList.remove('b-filtres-ouverts'); $$('[data-filtres="ouvrir"]').forEach(b => b.setAttribute('aria-expanded', 'false')); if (rendre && derniereFocus && derniereFocus.focus) derniereFocus.focus(); }
 
   let minuteur = 0;
-  function ouvrirMini(p) {
+  function ouvrirMini(p, pack, k) {
     const t = totaux(), m = $('#bMini'), n = panier[p.id] || 0;
-    $('#bMiniCorps').innerHTML = `<div class="b-mini-art" style="--bc:${catDe(p.cat).c}">${blocVis(p)}<div><p class="b-mini-ok">${ic('coche')} Ajouté au panier</p><b>${esc(p.nom)}</b><span>${n} dans le panier</span></div></div>
-      <p class="b-mini-tot"><span>${t.nb} article${t.nb > 1 ? 's' : ''}</span><strong class="mono">${t.total ? eur(t.total) : 'Prix sur demande'}</strong></p>${t.surDemande && t.total ? `<p class="b-aide">+ ${t.surDemande} article${t.surDemande > 1 ? 's' : ''} au prix sur demande</p>` : ''}`;
+    $('#bMiniCorps').innerHTML = (pack
+      ? `<div class="b-mini-art" style="--bc:${pack.c}"><span class="b-pack-vis b-pack-vis-s">${packVis(pack)}</span><div><p class="b-mini-ok">${ic('coche')} Pack ajouté au panier</p><b>${esc(pack.nom)}</b><span>${k} article${k > 1 ? 's' : ''} ajouté${k > 1 ? 's' : ''}</span></div></div>`
+      : `<div class="b-mini-art" style="--bc:${catDe(p.cat).c}">${blocVis(p)}<div><p class="b-mini-ok">${ic('coche')} Ajouté au panier</p><b>${esc(p.nom)}</b><span>${n} dans le panier</span></div></div>`)
+      + `<p class="b-mini-tot"><span>${t.nb} article${t.nb > 1 ? 's' : ''}</span><strong class="mono">${t.total ? eur(t.total) : 'Prix sur demande'}</strong></p>${t.surDemande && t.total ? `<p class="b-aide">+ ${t.surDemande} article${t.surDemande > 1 ? 's' : ''} au prix sur demande</p>` : ''}`;
     if (!m.open) { m.show(); if (!calme()) m.animate([{ transform: 'translateX(110%)', opacity: .4 }, { transform: 'translateX(0)', opacity: 1 }], { duration: 240, easing: 'ease-out' }); }
     clearTimeout(minuteur); minuteur = setTimeout(() => { if (!m.matches(':hover') && !m.contains(document.activeElement)) fermerMini(); }, 7000);
   }
   function fermerMini() { const m = $('#bMini'); if (m && m.open) { clearTimeout(minuteur); m.close(); } }
 
+  // ---------- animations : GSAP chargé au repos (vendor/gsap.min.js) ; sans lui, tout fonctionne et les mouvements CSS restent ----------
+  let G = null, totPack = 0;
+  const fmtTot = x => (x ? eur(Math.round(x * 100) / 100) : 'Prix sur demande');
+  // le total d'un pack « roule » d'un montant à l'autre
+  function compter(el, v) {
+    if (!el) return;
+    if (!G || calme() || !v) { el.textContent = fmtTot(v); totPack = v; return; }
+    const o = { x: totPack || 0 }; totPack = v;
+    G.to(o, { x: v, duration: .45, ease: 'power2.out', overwrite: true, onUpdate: () => { el.textContent = fmtTot(o.x); }, onComplete: () => { el.textContent = fmtTot(v); } });
+  }
+  function animerPage() { if (G && !calme()) G.fromTo('#bMain', { opacity: 0 }, { opacity: 1, duration: .3, ease: 'power1.out', clearProps: 'opacity' }); }
+  // premier écran : les produits entrent un à un, puis suivent doucement le pointeur
+  function animerAccueil() {
+    const h = $('.b-hero', main()) || heroNode; if (!G || !h || h.dataset.px) return; h.dataset.px = '1';
+    if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    const els = $$('.b-flot', h).map(e => ({ x: G.quickTo(e, 'x', { duration: .9, ease: 'power3.out' }), y: G.quickTo(e, 'y', { duration: .9, ease: 'power3.out' }), d: parseFloat(e.dataset.depth) || 1 }));
+    h.addEventListener('pointermove', ev => { const r = h.getBoundingClientRect(), nx = (ev.clientX - r.left) / r.width - .5, ny = (ev.clientY - r.top) / r.height - .5; els.forEach(o => { o.x(nx * 40 * o.d); o.y(ny * 28 * o.d); }); });
+    h.addEventListener('pointerleave', () => els.forEach(o => { o.x(0); o.y(0); }));
+  }
+  // cartes produit : légère inclinaison suivant le pointeur (souris seulement)
+  function inclinaison() {
+    if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    document.addEventListener('pointermove', e => {
+      const v = e.target.closest && e.target.closest('.b-carte-vis'); if (!v || !G) return;
+      const r = v.getBoundingClientRect(), nx = (e.clientX - r.left) / r.width - .5, ny = (e.clientY - r.top) / r.height - .5;
+      G.to(v, { rotationY: nx * 9, rotationX: -ny * 7, transformPerspective: 800, duration: .35, ease: 'power2.out', overwrite: 'auto' });
+    });
+    document.addEventListener('pointerout', e => { const v = e.target.closest && e.target.closest('.b-carte-vis'); if (v && G && !v.contains(e.relatedTarget)) G.to(v, { rotationX: 0, rotationY: 0, duration: .5, ease: 'power3.out', overwrite: 'auto' }); });
+  }
+  function chargerAnim() {
+    if (calme() || G !== null) return; G = false;
+    const s = document.createElement('script'); s.src = 'vendor/gsap.min.js?v=1'; s.async = true;
+    s.onload = () => { G = window.gsap || false; if (G) { G.config({ nullTargetWarn: false }); animerAccueil(); inclinaison(); } };
+    s.onerror = () => { G = false; };
+    document.head.appendChild(s);
+  }
   // retour visuel à l'ajout : une pastille qui vole vers l'icône du panier, puis l'icône qui gonfle (Web Animations, sans bibliothèque)
   function voler(depuis, couleur) {
     if (calme() || !depuis) return;
@@ -547,7 +839,6 @@
       d.remove(); $('#bPanierLien').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.22)' }, { transform: 'scale(1)' }], { duration: 300, easing: 'ease-out' });
     };
   }
-
   // ---------- actions ----------
   function changer(id, delta, depuis) {
     const p = parId(id); if (!p) return;
@@ -559,6 +850,7 @@
     reRendreSiBesoin();
     if (idFoc) { const b = $(`#bMain [data-add="${idFoc}"]`); if (b) b.focus({ preventScroll: true }); }
   }
+
   // met à jour la page courante sans la recharger quand elle montre l'état du panier, des favoris ou du comparateur
   function reRendreSiBesoin() {
     const h = location.hash;
@@ -566,8 +858,8 @@
       const foc = document.activeElement, sel = foc && foc.dataset ? Object.entries(foc.dataset).map(([k, v]) => `[data-${k.replace(/[A-Z]/g, m => '-' + m.toLowerCase())}="${v}"]`)[0] : null;
       const y = scrollY; main().innerHTML = h.startsWith('#/panier') ? pagePanier() : h.startsWith('#/comparer') ? pageComparer() : pageFavoris(); scrollTo(0, y);
       if (sel) { const e = $('#bMain ' + sel); if (e) e.focus(); } else if (foc && foc.id) { const e = document.getElementById(foc.id); if (e) e.focus(); }
-    } else if ($('#bRes')) majResultats();
-    else if (h.startsWith('#/produit') || h === '' || h === '#/' || h === '#') { $$('#bMain .b-carte').forEach(el => { const p = parId(el.id.slice(2)); if (p) el.outerHTML = carte(p); }); }
+    } else if ($('#bRes')) majResultats(true);
+    else { $$('#bMain .b-carte').forEach(el => { const p = parId(el.id.slice(2)); if (p) el.outerHTML = carte(p).replace('class="b-carte"', 'class="b-carte b-sans-anim"'); }); }
   }
   function basculer(tableau, id, max) {
     const i = tableau.indexOf(id); if (i >= 0) tableau.splice(i, 1); else { if (max && tableau.length >= max) return false; tableau.push(id); }
@@ -579,10 +871,17 @@
     else window.prompt('Copiez le lien :', texte);
   }
 
+  // ajoute au panier les articles du pack coché (la pose seulement pour ceux qui en ont une)
+  function ajouterPack(pk) {
+    const ids = [...pk.base, ...pk.opts.map(o => o[0]).filter(id => pkEtat.sel.has(id))];
+    ids.forEach(id => { panier[id] = Math.min(20, (panier[id] || 0) + 1); if (pkEtat.pose && poseDe(parId(id))) poses[id] = true; });
+    garder(); majEntete(); annoncer(pk.nom + ' ajouté au panier'); ouvrirMini(parId(ids[0]), pk, ids.length);
+  }
+
   function initialiser() {
-    construireMega();
+    heroNode = $('#bMain .b-hero');
     document.addEventListener('click', e => {
-      const t = e.target.closest('[data-add],[data-fav],[data-plus],[data-moins],[data-retirer],[data-cmp-retirer],[data-envoi],[data-copier],[data-vue],[data-filtres],[data-f-raz],[data-qm],[data-qp],[data-fermer-mini],[data-href]');
+      const t = e.target.closest('[data-add],[data-fav],[data-plus],[data-moins],[data-retirer],[data-cmp-retirer],[data-cmp-vider],[data-pk-add],[data-envoi],[data-copier],[data-vue],[data-filtres],[data-f-raz],[data-qm],[data-qp],[data-fermer-mini],[data-href]');
       const dansMega = e.target.closest('#bMega, #bRayonsBtn'), dansRech = e.target.closest('.b-recherche');
       if (!dansMega) fermerMega(); if (!dansRech) fermerSug();
       if (e.target.closest('#bRayonsBtn')) { if ($('#bMega').hidden) ouvrirMega(); else fermerMega(true); return; }
@@ -591,15 +890,17 @@
       const d = t.dataset;
       if (d.href) { aller(d.href); fermerSug(); }
       else if (d.add) { const q = d.qte !== undefined ? Math.max(1, Math.min(20, parseInt($('#bQte').value, 10) || 1)) : 1; changer(d.add, q, t); }
+      else if (d.pkAdd) { const pk = packDe(d.pkAdd); if (pk) { ajouterPack(pk); voler(t, pk.c); } }
       else if (d.fav) { basculer(favoris, d.fav); ecrire('itFavoris', favoris); majEntete(); annoncer(favoris.includes(d.fav) ? 'Ajouté aux favoris' : 'Retiré des favoris'); if (location.hash.startsWith('#/favoris')) reRendreSiBesoin(); else $$(`[data-fav="${d.fav}"]`).forEach(b => { const p = parId(d.fav), f = favoris.includes(d.fav); b.setAttribute('aria-pressed', String(f)); b.setAttribute('aria-label', (f ? 'Retirer des favoris' : 'Ajouter aux favoris') + ' : ' + p.nom); if (f && !calme()) b.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.3)' }, { transform: 'scale(1)' }], { duration: 280 }); }); }
       else if (d.plus) changer(d.plus, 1, t);
       else if (d.moins) changer(d.moins, -1);
       else if (d.retirer) { delete panier[d.retirer]; delete poses[d.retirer]; garder(); majEntete(); reRendreSiBesoin(); annoncer('Article retiré du panier'); }
       else if (d.cmpRetirer) { basculer(comparer, d.cmpRetirer); ecrire('itComparer', comparer); majEntete(); reRendreSiBesoin(); }
+      else if (d.cmpVider !== undefined) { comparer = []; ecrire('itComparer', comparer); majEntete(); $$('[data-cmp]').forEach(c => { c.checked = false; }); }
       else if (d.copier !== undefined) copier(d.copier, t);
-      else if (d.vue) { L.vue = d.vue; ecrire('itVue', d.vue); $$('[data-vue]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.vue === L.vue))); majResultats(); }
+      else if (d.vue) { L.vue = d.vue; ecrire('itVue', d.vue); $$('[data-vue]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.vue === L.vue))); majResultats(true); }
       else if (d.filtres === 'ouvrir') ouvrirFiltres(); else if (d.filtres === 'fermer') fermerFiltres(true);
-      else if (d.fRaz !== undefined) { L = { ...L, sr: new Set(), min: '', max: '', dispo: new Set(), car: {} }; const c = { ...contexte, sr: null }; contexte = c; main().innerHTML = pageListe(c); majResultats(); }
+      else if (d.fRaz !== undefined) { L = { ...L, sr: new Set(), min: '', max: '', dispo: new Set(), t: {}, pose: false }; const c = { ...contexte, sr: null }; contexte = c; main().innerHTML = pageListe(c); majResultats(true); }
       else if (d.qm !== undefined || d.qp !== undefined) { const i = $('#bQte'); i.value = Math.max(1, Math.min(20, (parseInt(i.value, 10) || 1) + (d.qp !== undefined ? 1 : -1))); }
       else if (d.fermerMini !== undefined) fermerMini();
       else if (d.envoi) {
@@ -616,32 +917,40 @@
         ecrire('itComparer', comparer); majEntete(); $$(`[data-cmp="${t.dataset.cmp}"]`).forEach(c => { c.checked = comparer.includes(t.dataset.cmp); });
       } else if (t.matches('[data-pose]')) {
         const id = t.dataset.pose; if (t.checked) poses[id] = true; else delete poses[id]; garder(); majEntete(); if (location.hash.startsWith('#/panier')) reRendreSiBesoin();
-      } else if (t.matches('[data-tri]')) { L.tri = t.value; majResultats(); }
+      } else if (t.matches('[data-pk-opt]')) { t.checked ? pkEtat.sel.add(t.dataset.pkOpt) : pkEtat.sel.delete(t.dataset.pkOpt); majPack(); }
+      else if (t.matches('[data-pk-pose]')) { pkEtat.pose = t.checked; majPack(); }
+      else if (t.matches('[data-tri]')) { L.tri = t.value; majResultats(true); }
       else if (t.matches('[data-f]')) {
-        const k = t.dataset.f, v = t.value, set = k === 'sr' ? L.sr : k === 'dispo' ? L.dispo : k.startsWith('car:') ? (L.car[k.slice(4)] || (L.car[k.slice(4)] = new Set())) : null;
+        const k = t.dataset.f, v = t.value;
         if (k === 'sr-cat') { const r = catDe(v); if (r) aller('#/rayon/' + v); return; }
-        if (set) { t.checked ? set.add(v) : set.delete(v); majResultats(); }
-      } else if (t.matches('[data-prix]')) { L[t.dataset.prix] = t.value; majResultats(); }
+        if (k === 'pose') { L.pose = t.checked; majResultats(true); return; }
+        const set = k === 'sr' ? L.sr : k === 'dispo' ? L.dispo : k.startsWith('t:') ? (L.t[k.slice(2)] || (L.t[k.slice(2)] = new Set())) : null;
+        if (set) { t.checked ? set.add(v) : set.delete(v); majResultats(true); }
+      } else if (t.matches('[data-prix]')) { L[t.dataset.prix] = t.value; majResultats(true); }
       else if (t.closest('#bForm') && t.name === 'mode') formEtat.mode = t.value;
     });
     document.addEventListener('input', e => {
       const t = e.target;
       if (t.id === 'bCherche') majSug();
-      else if (t.matches('[data-prix]')) { L[t.dataset.prix] = t.value; majResultats(); }
+      else if (t.matches('[data-prix]')) { L[t.dataset.prix] = t.value; majResultats(true); }
       else if (t.closest('#bForm') && t.name && t.name !== 'mode') formEtat[t.name] = t.value;
     });
+    $('#bCherche').addEventListener('focus', () => { if (!$('#bCherche').value.trim()) majSug(); });
     $('#bRecherche').addEventListener('submit', e => {
       e.preventDefault(); const q = $('#bCherche').value.trim();
-      if (sug.actif >= 0 && sug.items[sug.actif]) aller(sug.items[sug.actif].href); else if (q) aller('#/recherche?q=' + encodeURIComponent(q));
+      if (sug.actif >= 0 && sug.items[sug.actif]) aller(sug.items[sug.actif].href); else if (q) { noterRecherche(q); aller('#/recherche?q=' + encodeURIComponent(q)); }
       fermerSug();
     });
+    // méga-menu : le rayon survolé ou atteint au clavier montre son détail
+    document.addEventListener('mouseover', e => { const a = e.target.closest && e.target.closest('#bMega [data-ray]'); if (a) panneauMega(a.dataset.ray); });
+    document.addEventListener('focusin', e => { const a = e.target.closest && e.target.closest('#bMega [data-ray]'); if (a) panneauMega(a.dataset.ray); });
     document.addEventListener('keydown', e => {
       if (e.target.id === 'bCherche') {
         if (e.key === 'ArrowDown') { e.preventDefault(); if ($('#bSug').hidden) majSug(); activerSug(sug.actif + 1); }
         else if (e.key === 'ArrowUp') { e.preventDefault(); activerSug(sug.actif - 1); }
       }
       if (e.target.closest && e.target.closest('#bMega')) {
-        const liens = $$('#bMega a'), i = liens.indexOf(document.activeElement);
+        const liens = $$('#bMega a').filter(a => a.offsetParent !== null), i = liens.indexOf(document.activeElement);
         const aller_ = k => { e.preventDefault(); liens[(k + liens.length) % liens.length].focus(); };
         if (e.key === 'ArrowDown' || e.key === 'ArrowRight') aller_(i + 1); else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') aller_(i - 1);
         else if (e.key === 'Home') aller_(0); else if (e.key === 'End') aller_(liens.length - 1);
@@ -661,6 +970,10 @@
       if (['itPanier', 'itPose', 'itFavoris', 'itComparer'].includes(e.key)) { panier = lirePanier(); poses = lire('itPose', {}) || {}; favoris = tab('itFavoris'); comparer = tab('itComparer'); majEntete(); reRendreSiBesoin(); }
     });
     route(true);
+    // GSAP : après l'affichage, quand le navigateur est au repos
+    const repos = window.requestIdleCallback || (f => setTimeout(f, 800));
+    const plus_tard = () => repos(chargerAnim, { timeout: 3000 });
+    if (document.readyState === 'complete') plus_tard(); else window.addEventListener('load', plus_tard);
   }
 
   document.addEventListener('DOMContentLoaded', initialiser);
