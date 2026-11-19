@@ -18,7 +18,7 @@ const APP = {
     if (/^#\/(compte|connexion|inscription)/.test(p)) return moi ? '#/compte' : '#/connexion';
     return '#/';
   },
-  parent: h => /^#\/(recap|engagement)\//.test(h) ? h.replace(/^#\/(recap|engagement)\//, '#/t/') : '#/'
+  parent: h => /^#\/(recap|engagement|attestation)\//.test(h) ? h.replace(/^#\/(recap|engagement|attestation)\//, '#/t/') : '#/'
 };
 
 (() => {
@@ -59,7 +59,7 @@ const APP = {
   // 4e lot (sousou4.sql : renouveler, importer, engagement signé) : caché tant que sou_version() < 4
   let versionB = null;   // version de la base Sousou (0 si inconnue) : 4 = renouveler, importer, engagement ; 5 = remplacer un membre, double main
   const versionBase = () => versionB || (versionB = q(sb.rpc('sou_version')).then(v => Number(v) || 0, () => 0));
-  const lot4Pret = () => versionBase().then(v => v >= 4), lot5Pret = () => versionBase().then(v => v >= 5);
+  const lot4Pret = () => versionBase().then(v => v >= 4), lot5Pret = () => versionBase().then(v => v >= 5), lot6Pret = () => versionBase().then(v => v >= 6);   // 6 = attestation pour la banque
 
   let minuteur = null, instantane = '';
   APP.quitter = h => {
@@ -306,7 +306,8 @@ const APP = {
     const entete = `<section class="carte t-haut"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><h1>${t.objectif_emoji ? `<span aria-hidden="true">${esc(t.objectif_emoji)}</span> ` : ''}${esc(t.nom)}</h1>${tagStatut(t.statut)}</div>
       <div class="t-resume">${t.nb_membres} ${d4 && d4.parts && Object.values(d4.parts).some(x => x > 1) ? 'places' : 'membres'} × ${eur(t.montant)} = <b>${eur(cagnotte)}</b> par tour · ${t.periodicite === 'mensuelle' ? 'chaque mois' : 'chaque semaine'} · à partir du ${esc(jourLong(t.debut))}</div>${d4 && d4.origine ? `<p class="petit muted" style="margin:6px 0 0">Suite de <a href="#/t/${esc(d4.origine.id)}">« ${esc(d4.origine.nom)} »</a></p>` : ''}${d4 && d4.deja ? `<p class="petit muted" style="margin:6px 0 0">Tontine reprise dans Sousou : ${d4.deja > 1 ? 'les tours 1 à ' + d4.deja + ' ont été réglés' : 'le tour 1 a été réglé'} entre les membres avant.</p>` : ''}</section>`;
     const fil = v2 ? filMessages(d, actif) : '';
-    const hist = v2 && (t.statut === 'en_cours' || t.statut === 'terminee') ? `<a class="btn btn-sec btn-plein" href="#/recap/${t.id}">Historique et récapitulatif imprimable</a>` : '';
+    const hist = v2 && (t.statut === 'en_cours' || t.statut === 'terminee') ? `<a class="btn btn-sec btn-plein" href="#/recap/${t.id}">Historique et récapitulatif imprimable</a>`
+      + (d4 && d4.lot6 ? `<a class="btn btn-sec btn-plein" id="lienAttest" href="#/attestation/${t.id}">Attestation pour la banque</a>` : '') : '';
     let corps = '', agirHaut = '';
     if (t.statut === 'preparation') {
       const parts = id => (d4 && d4.parts && d4.parts[id]) || 1, prises = d.membres.flatMap(m => Array(parts(m.id)).fill(m)), manque = t.nb_membres - prises.length;
@@ -431,7 +432,8 @@ const APP = {
     if (!exigeCompte()) return;
     attente();
     const M_ID = () => d.moi.id;
-    const avec4 = await lot4Pret(), lire4 = () => avec4 ? q(sb.rpc('sou_detail4', { t_id: id })).catch(() => null) : Promise.resolve(null);
+    const avec4 = await lot4Pret(), avec6 = await lot6Pret();
+    const lire4 = () => avec4 ? q(sb.rpc('sou_detail4', { t_id: id })).then(x => x && Object.assign(x, { lot6: avec6 })).catch(() => null) : Promise.resolve(null);
     let [d, d4] = await Promise.all([q(sb.rpc('sou_detail', { t_id: id })), lire4()]);
     let emoji = '';
     const dessiner = (x, garder = true) => {
@@ -655,7 +657,7 @@ const APP = {
       <section class="carte"><h2>Essayer sans risque</h2><p>Pour découvrir, créez une tontine de 2 ou 3 proches avec la cotisation minimale (10 €) : tant que vous ne l’avez pas démarrée, vous pouvez l’annuler sans rien devoir à personne. Sousou ne prélève jamais d’argent : les virements, c’est vous qui les faites, entre vous.</p>
         <p class="muted petit">Astuce : le bouton « Texte plus grand » (sur l’accueil et dans le profil) agrandit tout l’écran ; « Contraste renforcé » épaissit les contours.</p></section>
       <div class="avert"><b>Les risques, sans détour.</b> Si un membre ne verse plus après avoir reçu la cagnotte, le groupe perd cet argent : Sousou ne peut ni le rembourser ni le récupérer. Ce n’est ni un placement ni un crédit, et rien n’est garanti. Ne rejoignez que des personnes de confiance et ne cotisez que ce que vous pouvez vous permettre de perdre.</div>
-      <p class="petit"><a href="cgu.html">Conditions d’utilisation et risques</a> · <a href="confidentialite.html">Confidentialité</a></p></div>`);
+      <p class="petit"><a href="cgu.html">Conditions d’utilisation et risques</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="#/verifier">Vérifier une attestation (banques)</a></p></div>`);
   }
   async function compte() {
     if (!moi) return aller('#/connexion');
@@ -742,7 +744,56 @@ const APP = {
     });
   }
 
-  Object.assign(APP.pages, { '': accueil, t: tontine, recap, engagement, place, creer, rejoindre, avis, aide, compte });
+  // ---------------------------------------------------------------- F. attestation de participation pour la banque (chiffres figés par la base, code vérifiable sans compte)
+  const lienVerif = code => location.origin + location.pathname + '#/verifier?code=' + encodeURIComponent(code);
+  function docAttestation(a, verifiee) {
+    const ponct = a.ponctualite == null ? 'pas encore d’échéance' : `${a.ponctualite} % à l’heure`, ponctD = a.ponctualite == null ? '' : `${pluriel(a.a_l_heure, 'cotisation', 'cotisations')} à l’heure, ${pluriel(a.retards, 'retard', 'retards')}`;
+    const recus = (a.recus || []).map(r => `<li><span>Tour ${r.numero} · ${esc(jourLong(r.echeance))}</span><b>${r.statut === 'a_venir' ? 'à venir' : Number(r.recu) ? eur(r.recu) + ' reçus' : r.statut === 'en_cours' ? 'en cours' : 'rien de confirmé'}</b></li>`).join('');
+    return `<section class="carte doc-eng doc-attest"><p class="etiq-doc">Sousou · tontine entre proches</p><h1>Attestation de participation</h1>
+      <p style="margin:8px 0 14px">Sousou atteste que <b>${esc(a.nom)}</b> participe à la tontine « ${esc(a.tontine)} » : ${a.places} places, ${eur(a.montant)} ${a.periodicite === 'mensuelle' ? 'chaque mois' : 'chaque semaine'}${a.parts > 1 ? ' par part, avec 2 parts' : ''}, du ${esc(jourLong(a.debut))} au ${esc(jourLong(a.fin))}${a.statut === 'terminee' ? ' (tontine terminée)' : ''}. Situation au ${esc(jourLong(a.au))}.</p>
+      <ul class="recap-l attest-chiffres"><li><span>Versé aux autres membres<small>${pluriel(a.nb_verse, 'versement confirmé', 'versements confirmés')} par le bénéficiaire</small></span><b>${eur(a.verse)}</b></li>
+        <li><span>Reçu des autres membres<small>à ${(a.recus || []).length > 1 ? 'ses tours' : 'son tour'}</small></span><b>${eur(a.recu)}</b></li>
+        <li><span>Reste à verser jusqu’au dernier tour<small>sur un engagement de ${eur(a.engagement)}</small></span><b>${eur(a.reste)}</b></li>
+        <li><span>Ponctualité${ponctD ? `<small>${esc(ponctD)}</small>` : ''}</span><b>${esc(ponct)}</b></li></ul>
+      ${recus ? `<h2 class="attest-h2">${(a.recus || []).length > 1 ? 'Ses tours' : 'Son tour'}</h2><ul class="recap-l">${recus}</ul>` : ''}
+      ${a.deja ? `<p class="petit muted">Tontine reprise dans Sousou au tour ${a.deja + 1} : les tours précédents, réglés entre les membres avant, ne sont pas comptés ici${a.avant_sousou ? ` (dont ${pluriel(a.avant_sousou, 'cagnotte reçue', 'cagnottes reçues')} par ce membre)` : ''}.</p>` : ''}
+      <div class="avert attest-banque"><b>Pour la banque.</b> Une tontine est une épargne tournante entre proches : chaque membre verse la même somme à chaque échéance et reçoit, à son tour, la cagnotte du groupe. Les virements entre particuliers visibles sur le relevé correspondent à ces versements. Ce n’est ni un prêt ni un revenu : chaque membre récupère ce qu’il a versé. Sousou n’encaisse pas l’argent ; les montants sont ceux déclarés par les membres et confirmés par le bénéficiaire.</div>
+      <div class="signature attest-code"><span class="petit muted">${verifiee ? 'Attestation authentique, faite le' : 'Faite le'} ${esc(new Date(a.emise_at).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Martinique' }))} (heure de Martinique). Code de vérification</span><span class="code-verif">${esc(a.code)}</span><span class="petit muted">À vérifier sans compte sur ilo-tech.com/sousou, rubrique « Vérifier une attestation », ou à l’adresse ${esc(lienVerif(a.code))}</span></div>`;
+  }
+  async function attestation(id) {
+    if (!exigeCompte()) return;
+    attente();
+    let a;
+    try { a = await q(sb.rpc('sou_attestation', { t_id: id })); } catch (err) {
+      return vue(`<div class="wrap sou"><div class="vide-etat"><h3>Attestation indisponible</h3><p class="muted">${esc(erreur(err))}</p><a class="btn btn-p" href="#/t/${esc(id)}">Retour à la tontine</a></div></div>`);
+    }
+    vue(`<div class="wrap sou recap attestation"><div class="no-print"><a href="#/t/${esc(id)}">‹ Retour à la tontine</a></div>${docAttestation(a, false)}
+      <p class="actions-r no-print" style="margin-top:4px"><button class="btn btn-p" data-act="imprimer">Imprimer ou enregistrer en PDF</button><button class="btn btn-sec" data-act="copier">Copier le lien de vérification</button></p>
+      <p class="petit muted no-print">Les chiffres sont figés à la date du jour. Si quelque chose change (une cotisation confirmée, un tour reçu), une nouvelle attestation avec un nouveau code sera faite ; les anciennes restent vérifiables telles quelles.</p></div>`);
+    $('#app').onclick = async ev => {
+      const b = ev.target.closest('[data-act]'); if (!b) return;
+      if (b.dataset.act === 'imprimer') window.print();
+      if (b.dataset.act === 'copier') { try { await navigator.clipboard.writeText(lienVerif(a.code)); toast('Lien copié : vous pouvez l’envoyer à votre banquier.'); } catch (x) { toast('Code de vérification : ' + a.code); } }
+    };
+  }
+  async function verifier() {   // ouverte à tous, sans compte : le banquier tape le code imprimé sur l'attestation
+    const code = (param().code || '').trim().toUpperCase();
+    const forme = `<form class="rejoindre-f" id="fVerif"><input class="champ" name="code" maxlength="16" placeholder="SOU-XXXX-XXXX" autocomplete="off" autocapitalize="characters" aria-label="Code de vérification" value="${esc(code)}" required style="min-height:56px;font-size:20px"><button class="btn btn-p btn-gros">Vérifier</button></form>`;
+    const lier = () => { $('#app').onsubmit = ev => { ev.preventDefault(); aller('#/verifier?code=' + encodeURIComponent(ev.target.code.value.trim().toUpperCase())); }; $('#app').onclick = ev => { if (ev.target.closest('[data-act=imprimer]')) window.print(); }; };
+    if (!code) { vue(`<div class="wrap sou"><div class="entrer">${logoEntrer('Vérifier une attestation', 'Tapez le code imprimé en bas de l’attestation Sousou.')}${forme}</div></div>`); return lier(); }
+    attente();
+    let a = null;
+    try { a = await q(sb.rpc('sou_verifier_attestation', { code_c: code })); } catch (err) { a = undefined; }
+    if (!a) {
+      vue(`<div class="wrap sou"><div class="entrer">${logoEntrer('Vérifier une attestation', 'Tapez le code imprimé en bas de l’attestation Sousou.')}<div class="avert"><b>${a === undefined ? 'Vérification impossible pour l’instant.' : 'Aucune attestation ne porte ce code.'}</b> ${a === undefined ? 'Réessayez dans un moment.' : 'Vérifiez qu’il est bien recopié (SOU-, puis 4 et 4 caractères). Une attestation sans code valable ne vient pas de Sousou.'}</div>${forme}</div></div>`);
+      return lier();
+    }
+    vue(`<div class="wrap sou recap attestation"><div class="verif-ok no-print" role="status"><b>Attestation authentique</b><span>Ce code correspond à une attestation faite par Sousou. Voici son contenu exact, à comparer avec le document reçu.</span></div>${docAttestation(a, true)}
+      <p class="actions-r no-print"><button class="btn btn-sec" data-act="imprimer">Imprimer</button><a class="btn btn-sec" href="#/verifier">Vérifier un autre code</a></p></div>`);
+    lier();
+  }
+
+  Object.assign(APP.pages, { '': accueil, t: tontine, recap, engagement, attestation, verifier, place, creer, rejoindre, avis, aide, compte });
 /* service worker : enregistré par pwa.js (commun/pwa.js) */
   demarrer();
 })();
