@@ -7,13 +7,18 @@
   const g = () => window.gsap;
 
   // ---------------------------------------------------------------- menu du haut (ordinateur) et rayons
-  APP.menu = () => [['#/', 'Accueil'], ['#/encheres', 'Enchères'], ['#/recherche?mode=location', 'Location'], ['#/atelier', 'Atelier'], ['#/roue', '🎡 Roue'], ['#/fidelite', 'Fidélité'], ['#/favoris', '♥'], ['#/panier', 'Panier' + (APP.nbPanier() ? ' (' + APP.nbPanier() + ')' : '')], [moi ? '#/compte' : '#/inscription', moi ? 'Mon compte' : 'Créer un compte']];
-  const chips = [['#/encheres', '🔨 Enchères', 'hot'], ['#/recherche?mode=location', '📅 Location'], ['#/recherche?promo=1&tri=promos', '⚡ Promos'], ['#/roue', '🎡 Roue gratuite'], ['#/atelier', '🧵 Sur mesure']];
+  APP.menu = () => [['#/', 'Accueil'], ['#/recherche?mode=enchere&tri=fin_proche', 'Enchères'], ['#/recherche?mode=location', 'Location'], ['#/atelier', 'Atelier'], ['#/roue', '🎡 Roue'], ['#/fidelite', 'Fidélité'], ['#/favoris', '♥'], ['#/panier', 'Panier' + (APP.nbPanier() ? ' (' + APP.nbPanier() + ')' : '')], [moi ? '#/compte' : '#/inscription', moi ? 'Mon compte' : 'Créer un compte']];
+  const chips = [['#/recherche?mode=enchere&tri=fin_proche', '🔨 Enchères', 'hot'], ['#/recherche?mode=location', '📅 Location'], ['#/recherche?promo=1&tri=promos', '⚡ Promos'], ['#/roue', '🎡 Roue gratuite'], ['#/atelier', '🧵 Sur mesure']];
   let rayonsFaits = false;
   APP.apresNav = async () => {
     const z = $('#rayonsH'); if (!z) return;
     if (!rayonsFaits) { rayonsFaits = true; let rs = []; try { rs = TK.familles(await TK.rayons()); } catch (e) { /* la base n'est pas installée */ }
       z.innerHTML = chips.map(([h, t, c]) => `<a href="${h}" class="${c || ''}">${t}</a>`).join('') + rs.map(r => `<a href="#/recherche?rayon=${r.code}">${esc(r.icone)} ${esc(r.nom)}</a>`).join(''); }
+    // lien éclairé : la base ne compare que le début de l'adresse (« Location » s'allumait sur « Tous les articles ») ; ici on compare aussi le mode, les promos et le rayon
+    const sig = h => { const [c, q = ''] = (h || '#/').split('?'), u = new URLSearchParams(q); if (c === '#/encheres') return '#/recherche|enchere||';
+      return c === '#/recherche' ? `${c}|${u.get('mode') || ''}|${u.get('promo') || ''}|${u.get('rayon') || ''}` : c; };
+    const ici = sig(location.hash || '#/');
+    document.querySelectorAll('#nav a, #rayonsH a').forEach(a => { const on = sig(a.getAttribute('href')) === ici; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     const t = $('#themeT'); if (t) t.setAttribute('aria-label', document.documentElement.dataset.theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre');
   };
   const q0 = APP.quitter; let minuteurs = [];

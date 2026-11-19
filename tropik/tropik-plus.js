@@ -7,12 +7,6 @@
   const reduit = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ---------------------------------------------------------------- enchères
-  const pageEncheres = ouverte(async () => {
-    const l = await rpc('tk_encheres_liste', { f: { limite: 48 } });
-    vue(`<div class="wrap tk"><h1>Enchères</h1><p class="muted">Le prix de départ, le pas minimum et le gagnant sont décidés par Tropik. Une offre dans les 2 dernières minutes repousse la fin de 2 minutes. Le gagnant reçoit une commande à payer à la remise ou au retrait.</p>
-      ${l.length ? grille(l) : vide('🔨', 'Aucune enchère en cours', 'Les vendeurs lancent leurs enchères depuis leur espace. Revenez bientôt, ou lancez la vôtre.', '#/devenir-vendeur', 'Vendre sur Tropik')}${moi ? '<p><a class="btn btn-sec" href="#/mes-encheres">Mes enchères</a></p>' : ''}</div>`);
-    TK.apresVue && TK.apresVue('liste');
-  });
   const pageMesEncheres = ouverte(async () => {
     if (!connecte()) return;
     const l = await rpc('tk_mes_encheres');
@@ -191,6 +185,7 @@
       else if (k === 'code') { await rpc('tk_code_creer', { d: { code: d.code, type: d.type, valeur: Number(d.valeur || 0), minimum: d.minimum, plafond: d.plafond, max_usages: d.max_usages } }); toast('Code créé.'); rendre(); }
     } catch (err) { toast(erreur(err), true); } finally { if (btn && btn.isConnected) btn.disabled = false; }
   });
-  Object.assign(APP.pages, { encheres: pageEncheres, 'mes-encheres': pageMesEncheres, locations: pageLocations, 'locations-a-louer': () => aller('#/recherche?mode=location'), roue: pageRoue, fidelite: pageFidelite, atelier: pageAtelier,
+  Object.assign(APP.pages, { encheres: () => location.replace('#/recherche?mode=enchere&tri=fin_proche'),   // ancienne adresse : même liste, avec les filtres
+    'mes-encheres': pageMesEncheres, locations: pageLocations, 'locations-a-louer': () => aller('#/recherche?mode=location'), roue: pageRoue, fidelite: pageFidelite, atelier: pageAtelier,
     'commander-sur-mesure': pageCmdPerso, messages: pageMessages, alertes: pageAlertes, compte: pageCompte, 'outils-moderation': pageOutils, faq, tailles });
 })();

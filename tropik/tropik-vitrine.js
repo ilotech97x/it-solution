@@ -64,7 +64,7 @@
       <section class="sect-s" aria-labelledby="hR"><div class="sect-t"><h2 id="hR">Les rayons</h2><a href="#/rayons">Tout voir</a></div>
         <div class="rayons-g">${familles(rs).map(r => `<a class="rayon-c" href="#/recherche?rayon=${r.code}"><span aria-hidden="true">${esc(r.icone)}</span>${esc(r.nom)}</a>`).join('')}</div></section>
       ${a.flash.length ? `<section class="flash-b en-vue" aria-labelledby="hF"><div class="sect-t"><h2 id="hF">⚡ Ventes flash</h2><a href="#/recherche?promo=1&tri=promos">Tout voir</a></div>${rail(a.flash)}</section>` : ''}
-      ${section('hE', '🔨 Enchères en cours', '#/encheres', 'Toutes les enchères', a.encheres.length ? rail(a.encheres) : '')}
+      ${section('hE', '🔨 Enchères en cours', '#/recherche?mode=enchere&tri=fin_proche', 'Toutes les enchères', a.encheres.length ? rail(a.encheres) : '')}
       ${section('hN', 'Nouveautés', '#/recherche?tri=recents', 'Tout voir', a.nouveautes.length ? rail(a.nouveautes) : '')}
       ${section('hL', 'À louer', '#/recherche?mode=location', 'Toutes les locations', a.locations.length ? rail(a.locations) : '')}
       ${section('hC', 'Collections', null, '', coll)}
@@ -109,10 +109,13 @@
     for (const k of LISTES) for (const v of sel(k)) actifs.push([k, v, MODES[v] || v]);
     for (const [k, t] of [['etat', p.etat === 'occasion' ? 'Occasion' : 'Neuf'], ['public', PUBLICS[p.public]], ['pmin', 'Dès ' + p.pmin + ' €'], ['pmax', 'Jusqu’à ' + p.pmax + ' €'], ['dispo', 'En stock'], ['promo', 'Promotions'], ['vendeur', 'Un vendeur'], ['rayon', nomRayon(rs, p.rayon)], ['q', '« ' + p.q + ' »']]) if (p[k]) actifs.push([k, '', t]);
     const total = r.total, fam = p.rayon ? (rs.find(x => x.code === p.rayon) || {}) : {}, famCode = fam.parent || fam.code || '';
-    const titre = p.rayon ? nomRayon(rs, p.rayon) : p.q ? 'Recherche' : 'Tous les articles';
+    const seul = sel('mode').length === 1 ? sel('mode')[0] : '';   // Enchères, Location et Promotions : la même page, avec les mêmes filtres
+    const titre = p.rayon ? nomRayon(rs, p.rayon) : p.q ? 'Recherche' : seul === 'enchere' ? 'Enchères' : seul === 'location' ? 'Location' : seul === 'vente' ? 'En vente' : p.promo ? 'Promotions' : p.vendeur ? 'Articles de la boutique' : 'Tous les articles';
+    const intro = seul === 'enchere' ? `<p class="muted">Le prix de départ, le pas minimum et le gagnant sont décidés par Tropik. Une offre dans les 2 dernières minutes repousse la fin de 2 minutes. Le gagnant reçoit une commande à payer à la remise ou au retrait.${moi ? ' <a href="#/mes-encheres">Mes enchères</a>' : ''}</p>`
+      : seul === 'location' ? `<p class="muted">Louez pour quelques jours : choisissez vos dates sur la fiche, le vendeur accepte ou refuse.${moi ? ' <a href="#/locations">Mes locations</a>' : ''}</p>` : '';
     const sous = famCode ? rs.filter(s => s.parent === famCode) : [];
     const cnt = Object.fromEntries((fa.rayons || []).map(x => [x.v, x.n]));
-    vue(`<div class="wrap tk rech-t"><h1>${esc(titre)}</h1>
+    vue(`<div class="wrap tk rech-t"><h1>${esc(titre)}</h1>${intro}
       <form class="rech" id="fRech" role="search"><input class="champ" name="q" type="search" value="${esc(p.q || '')}" placeholder="Une marque, un article…" aria-label="Rechercher un article" autocomplete="off"><button class="btn btn-p">Chercher</button></form>
       <div class="puces-m" role="group" aria-label="Vente, location ou enchère"><button type="button" data-x="mode-un" data-v="" aria-pressed="${!sel('mode').length}">Tout</button>${['vente', 'location', 'enchere'].map(m => `<button type="button" data-x="mode-un" data-v="${m}" aria-pressed="${sel('mode').length === 1 && sel('mode')[0] === m}">${MODES[m]}${(fa.modes.find(x => x.v === m) || {}).n ? ' (' + fa.modes.find(x => x.v === m).n + ')' : ''}</button>`).join('')}</div>
       ${sous.length ? `<div class="puces-m" role="group" aria-label="Types">${sous.map(s => `<a href="${hashDe({ ...p, rayon: s.code })}" class="${p.rayon === s.code ? 'on' : ''}">${esc(s.nom)}${cnt[s.code] ? ' (' + cnt[s.code] + ')' : ''}</a>`).join('')}</div>` : ''}
@@ -278,7 +281,7 @@
         <label>Précisions<textarea name="details" maxlength="1000"></textarea></label><button class="btn btn-sec">Envoyer le signalement</button></form></details>` : ''}</section>
       ${v.vedettes.length ? `<section class="sect-s"><h2>Coups de cœur</h2>${rail(v.vedettes)}</section>` : ''}
       ${v.collections.length ? `<section class="sect-s"><h2>Collections</h2><div class="rail-h">${v.collections.map(c => `<a class="coll-c" href="#/collection/${c.id}"${fond(c.image)}><b>${esc(c.titre)}</b><span>${pluriel(c.nb, 'article', 'articles')}${c.fin ? ' · jusqu’au ' + esc(jourLong(c.fin)) : ''}</span></a>`).join('')}</div></section>` : ''}
-      <section class="sect-s"><h2>${pluriel(r.total, 'article en vente', 'articles en vente')}</h2>${r.total ? grille(r.produits) : '<div class="vide-etat"><span class="ico" aria-hidden="true">🛍️</span><h3>Rien en vente pour l’instant</h3><p>Cette boutique n’a pas encore publié d’article.</p></div>'}</section></div>`);
+      <section class="sect-s"><h2>${pluriel(r.total, 'article en vente', 'articles en vente')}</h2>${r.total > 1 ? `<p><a class="btn btn-sec btn-filtres" href="#/recherche?vendeur=${v.id}">Filtrer et trier ces articles</a></p>` : ''}${r.total ? grille(r.produits) : '<div class="vide-etat"><span class="ico" aria-hidden="true">🛍️</span><h3>Rien en vente pour l’instant</h3><p>Cette boutique n’a pas encore publié d’article.</p></div>'}</section></div>`);
     TK.apresVue && TK.apresVue('boutique');
   });
   const pageCollection = ouverte(async (i, id) => {
