@@ -492,6 +492,13 @@ html[data-theme=sombre] .glisse-t,html:not([data-theme=clair]) .glisse-t{color:#
 .deux-parts{align-self:center;padding:2px 10px;border-radius:999px;background:var(--or-doux);color:var(--encre);font-weight:800;font-size:12px;white-space:nowrap}
 .carte-rempl{border-color:var(--or)}
 .carte-rempl h2{margin-top:0}
+/* ergonomie (19/11) : case à cocher à côté de son texte (la règle commune « .f label » la mettait au-dessus), texte d'engagement replié,
+   et « Inviter vos proches » en tête tant que le groupe n'est pas complet */
+.f .case-ok,.case-ok{display:flex;flex-direction:row;gap:10px;align-items:flex-start;font-weight:600;font-size:14.5px;line-height:1.45}
+.f .case-ok input,.case-ok input{width:22px;height:22px;min-height:0;flex:none;margin:1px 0 0;padding:0}
+.eng-texte.replie{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.lien-plus{background:none;border:0;padding:4px 0 10px;color:var(--action);font:inherit;font-weight:800;text-decoration:underline;cursor:pointer}
+@media (max-width:999px){.sou-2.inviter-dabord{display:flex;flex-direction:column;gap:16px}.sou-2.inviter-dabord>div{display:contents}.sou-2.inviter-dabord .code-zone{order:-1}}
 @media print{.sou.recap{max-width:none;padding:0}.carte{box-shadow:none;break-inside:avoid}.bas,.rail-logo,.demarrage{display:none!important}}
 html[data-grand] .sou{zoom:1.2}
 html[data-contraste]{--texte-2:#1F3328;--ligne:#7E9A89;--bord-champ:#2F4A3B;--action-doux:#D3EBDD;--or-doux:#FFE9B0}

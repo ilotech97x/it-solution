@@ -240,7 +240,7 @@ const APP = {
       return `<a class="t-carte" href="#/t/${x.id}"><div class="t-tete"><span class="t-ico" aria-hidden="true">${x.objectif_emoji ? esc(x.objectif_emoji) : IC.accueil}</span><b class="t-nom">${esc(x.nom)}</b>${tagStatut(x.statut)}</div>
         ${x.objectif ? `<div class="t-sous">Objectif : <b>${esc(x.objectif)}</b></div>` : ''}
         <div class="t-sous">${eur(x.montant)} par ${rythme(x.periodicite)} · ${x.nb_membres} membres · cagnotte ${eur(x.montant * x.nb_membres)}</div>
-        ${x.statut === 'preparation' ? `<div class="t-sous">${x.inscrits} inscrit${x.inscrits > 1 ? 's' : ''} sur ${x.nb_membres}${x.role === 'organisateur' ? ' · à vous de démarrer quand le groupe est prêt' : ' · en attente du démarrage'}</div>` : ''}
+        ${x.statut === 'preparation' ? `<div class="t-sous">${x.mes_parts != null ? `${x.inscrits} place${x.inscrits > 1 ? 's' : ''} prise${x.inscrits > 1 ? 's' : ''}` : `${x.inscrits} inscrit${x.inscrits > 1 ? 's' : ''}`} sur ${x.nb_membres}${x.role === 'organisateur' ? ' · à vous de démarrer quand le groupe est prêt' : ' · en attente du démarrage'}</div>` : ''}
         ${enCours ? `<span class="mini-prog" role="img" aria-label="Tour ${x.tour_actuel} sur ${x.nb_membres}"><i style="width:${fait}%"></i></span>
           <div class="t-sous">Tour ${x.tour_actuel}/${x.nb_membres} : ${x.tour_pour_moi ? '<b>c’est votre tour</b>' : 'pour <b>' + esc(x.tour_beneficiaire) + '</b>'} · échéance ${esc(jour(x.tour_echeance))}</div>` : ''}
         ${enCours && !x.tour_pour_moi && x.mon_tour_jours != null ? `<div class="t-sous">Votre tour (n° ${x.mon_tour}) : <b>${dans(x.mon_tour_jours)}</b></div>` : ''}
@@ -312,8 +312,8 @@ const APP = {
       const parts = id => (d4 && d4.parts && d4.parts[id]) || 1, prises = d.membres.flatMap(m => Array(parts(m.id)).fill(m)), manque = t.nb_membres - prises.length;
       const lot5 = !!(d4 && d4.parts), mesParts = parts(M.id);
       const lien = lienInvitation(t.code), msg = `Rejoins ma tontine « ${t.nom} » sur Sousou : ${t.nb_membres} personnes, ${t.montant} € par ${rythme(t.periodicite)}. Code : ${t.code}\n${lien}`;
-      corps = `<div class="sou-2"><div>
-        <section class="carte"><h2>Le groupe : ${prises.length} ${lot5 ? 'places' : ''} sur ${t.nb_membres}</h2><div class="attente-membres" aria-hidden="true">${Array.from({ length: t.nb_membres }, (_, i) => prises[i] ? `<span class="place pris">${esc(ini(prises[i].prenom))}</span>` : `<span class="place">${IC.plus}</span>`).join('')}</div><ul class="membres-l">${d.membres.map(m => `<li><span class="pastille" aria-hidden="true">${esc(ini(m.prenom))}</span><span class="m-nom">${esc(m.prenom)}${m.id === M.id ? ' (vous)' : ''}${m.role === 'organisateur' ? '<small>Organisateur</small>' : ''}</span>${parts(m.id) > 1 ? '<span class="deux-parts" title="Double main : 2 parts">2 parts</span>' : '<span></span>'}</li>`).join('')}</ul>
+      corps = `<div class="sou-2 ${manque > 0 ? 'inviter-dabord' : ''}"><div>
+        <section class="carte"><h2>Le groupe : ${lot5 ? pluriel(prises.length, 'place', 'places') : prises.length} sur ${t.nb_membres}</h2><div class="attente-membres" aria-hidden="true">${Array.from({ length: t.nb_membres }, (_, i) => prises[i] ? `<span class="place pris">${esc(ini(prises[i].prenom))}</span>` : `<span class="place">${IC.plus}</span>`).join('')}</div><ul class="membres-l">${d.membres.map(m => `<li><span class="pastille" aria-hidden="true">${esc(ini(m.prenom))}</span><span class="m-nom">${esc(m.prenom)}${m.id === M.id ? ' (vous)' : ''}${m.role === 'organisateur' ? '<small>Organisateur</small>' : ''}</span>${parts(m.id) > 1 ? '<span class="deux-parts" title="Double main : 2 parts">2 parts</span>' : '<span></span>'}</li>`).join('')}</ul>
           ${lot5 && (mesParts > 1 || manque > 0) ? `<p style="margin:10px 0 0"><button class="btn btn-sec btn-s" data-act="parts" data-n="${mesParts > 1 ? 1 : 2}">${mesParts > 1 ? 'Revenir à une seule part' : 'Prendre une 2e part (double main)'}</button></p><p class="muted petit" style="margin:4px 0 0">Double main : vous versez 2 fois la cotisation à chaque tour et recevez la cagnotte 2 fois.</p>` : ''}
           ${manque > 0 ? `<p class="muted petit">Il manque encore ${lot5 ? pluriel(manque, 'place', 'places') : pluriel(manque, 'personne', 'personnes')}. Vous pouvez démarrer sans attendre : le groupe sera de ${lot5 ? pluriel(prises.length, 'place', 'places') : d.membres.length}.</p>` : '<p class="petit"><b>Le groupe est complet.</b></p>'}</section>
         ${orga && d4 && d4.deja ? `<section class="carte"><h2>Reprendre la tontine dans Sousou</h2><p class="muted petit">Placez les membres dans l’ordre réel des tours. ${d4.deja > 1 ? 'Les ' + d4.deja + ' premiers ont' : 'Le premier a'} déjà reçu sa cagnotte : Sousou suit la tontine à partir du tour ${d4.deja + 1}.</p>
@@ -384,7 +384,7 @@ const APP = {
     let lot4 = '';
     if (d4 && t.statut === 'terminee') {
       const s = d4.suite;
-      lot4 = s ? `<section class="carte carte-suite"><h2>La suite : « ${esc(t.nom)} » recommence</h2><p class="petit muted" style="margin:0">${s.inscrits} inscrit${s.inscrits > 1 ? 's' : ''} sur ${s.nb_membres} · début le ${esc(jourLong(s.debut))}${s.statut === 'en_cours' ? ' · en cours' : ''}</p>
+      lot4 = s ? `<section class="carte carte-suite"><h2>La suite : « ${esc(t.nom)} » recommence</h2><p class="petit muted" style="margin:0">${s.inscrits} place${s.inscrits > 1 ? 's' : ''} prise${s.inscrits > 1 ? 's' : ''} sur ${s.nb_membres} · début le ${esc(jourLong(s.debut))}${s.statut === 'en_cours' ? ' · en cours' : ''}</p>
           <p style="margin:12px 0 0">${s.membre ? `<a class="btn btn-p btn-plein" href="#/t/${esc(s.id)}">Ouvrir la nouvelle tontine</a>` : s.statut === 'preparation' ? `<a class="btn btn-p btn-plein" href="#/rejoindre?code=${esc(s.code)}">Je suis partant(e) : rejoindre</a>` : ''}</p></section>`
         : orga ? `<section class="carte carte-suite"><div class="avert" style="margin:0 0 12px"><b>« ${esc(t.nom)} » est terminée.</b> ${t.nb_membres} tours sur ${t.nb_membres} : tout le monde a reçu sa cagnotte.</div><h2>On recommence ?</h2>
           <ul class="recap-l"><li><span>Mêmes membres</span><b>${d.membres.length}, invités à confirmer</b></li><li><span>Cotisation</span><b>${eur(t.montant)} ${t.periodicite === 'mensuelle' ? 'chaque mois' : 'chaque semaine'}</b></li><li><span>Ordre des tours</span><b>Nouveau, au démarrage</b></li></ul>
@@ -418,8 +418,8 @@ const APP = {
       const e = d4.mon_engagement, n = d4.signes.length, manquent = d.membres.filter(m => !d4.signes.includes(m.id));
       lot4 = e ? `<section class="carte carte-eng ok"><div class="a-titre"><span class="t-ico" aria-hidden="true">${IC.coche}</span><div><b>Engagement signé</b><small>le ${esc(jourHeure(e.signe_at))}</small></div></div>
           <p class="petit muted" style="margin:8px 0">${n} membre${n > 1 ? 's' : ''} sur ${d.membres.length} ${n > 1 ? 'ont' : 'a'} signé.${orga && manquent.length ? ' Pas encore : ' + manquent.map(m => esc(m.prenom)).join(', ') + '.' : ''}</p><a class="btn btn-sec btn-plein" href="#/engagement/${t.id}">Voir et télécharger le document</a></section>`
-        : `<section class="carte carte-eng"><h2>Mon engagement</h2><p class="petit muted" style="margin:0 0 8px">Un écrit simple qui rassure ceux qui reçoivent en dernier. ${n} membre${n > 1 ? 's' : ''} sur ${d.membres.length} ${n > 1 ? 'ont' : 'a'} déjà signé.</p>
-          <blockquote class="eng-texte">${esc(d4.brouillon || '')}</blockquote>
+        : `<section class="carte carte-eng"><h2>Signez votre engagement</h2><p class="petit muted" style="margin:0 0 8px">Une minute, un écrit simple qui rassure ceux qui reçoivent en dernier. ${n} membre${n > 1 ? 's' : ''} sur ${d.membres.length} ${n > 1 ? 'ont' : 'a'} déjà signé.</p>
+          <blockquote class="eng-texte replie" id="engTexte">${esc(d4.brouillon || '')}</blockquote><button type="button" class="lien-plus" data-act="eng-lire" aria-controls="engTexte" aria-expanded="false">Lire tout le texte</button>
           <div class="f"><label>Votre prénom et votre nom<input class="champ" id="engNom" maxlength="80" autocomplete="name" value="${esc([profil?.prenom, profil?.nom].filter(Boolean).join(' '))}"></label>
           <label class="case-ok"><input type="checkbox" id="engOk"> <span>J’ai lu ce texte et je m’engage envers les membres du groupe.</span></label>
           <button class="btn btn-p btn-plein" data-act="signer">Signer mon engagement</button></div></section>`;
@@ -462,6 +462,7 @@ const APP = {
           const n = numE164($('#inNumPays').value, $('#inNum').value); if (!n) return toast('Entrez le numéro de la personne, par exemple 0696 12 34 56.', true);
           garderPays($('#inNumPays').value); window.open('https://wa.me/' + n.slice(1) + '?text=' + encodeURIComponent(b.dataset.msg), '_blank', 'noopener'); return;
         }
+        if (act === 'eng-lire') { const x = $('#engTexte'), ouvert = x.classList.toggle('replie') === false; b.setAttribute('aria-expanded', String(ouvert)); b.textContent = ouvert ? 'Replier le texte' : 'Lire tout le texte'; return; }
         if (act === 'copier') { try { await navigator.clipboard.writeText(b.dataset.lien); toast('Lien copié : collez-le dans un message.'); } catch (x) { toast('Copiez le code : ' + d.tontine.code); } return; }
         if (['annuler', 'quitter', 'retard', 'ech-non', 'verse', 'msg-del', 'rempl-moi', 'rempl-orga', 'rempl-annuler'].includes(act) && !doubleClic(b)) return;
         b.disabled = true;
