@@ -18,7 +18,7 @@ const APP = {
     if (/^#\/(compte|connexion|inscription)/.test(p)) return moi ? '#/compte' : '#/connexion';
     return '#/';
   },
-  parent: h => /^#\/recap\//.test(h) ? h.replace('#/recap/', '#/t/') : '#/'
+  parent: h => /^#\/(recap|engagement)\//.test(h) ? h.replace(/^#\/(recap|engagement)\//, '#/t/') : '#/'
 };
 
 (() => {
@@ -56,6 +56,9 @@ const APP = {
   // les nouveautés du 2e lot (sousou2.sql) restent cachées tant que la base ne l'a pas : sou_version() absente = lot non installé
   let lot2 = null;   // la promesse est gardée : deux appels simultanés partagent la même réponse (appelé seulement une fois connecté)
   const lot2Pret = () => lot2 || (lot2 = q(sb.rpc('sou_version')).then(() => true, () => false));
+  // 4e lot (sousou4.sql : renouveler, importer, engagement signé) : caché tant que sou_version() < 4
+  let lot4 = null;
+  const lot4Pret = () => lot4 || (lot4 = q(sb.rpc('sou_version')).then(v => Number(v) >= 4, () => false));
 
   let minuteur = null, instantane = '';
   APP.quitter = h => {
@@ -66,6 +69,7 @@ const APP = {
 
   // ---------------------------------------------------------------- petits outils
   const aujourdhui = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const dansJours = n => { const x = new Date(); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
   const jour = d => fmt(d + 'T12:00:00', { weekday: 'short', day: 'numeric', month: 'short' });
   const jourLong = d => fmt(d + 'T12:00:00', { day: 'numeric', month: 'long', year: 'numeric' });
   const rythme = p => p === 'mensuelle' ? 'mois' : 'semaine';
@@ -286,7 +290,7 @@ const APP = {
     document.body.appendChild(f); setTimeout(() => f.remove(), 3800);
   };
   const EMOJIS = ['🎒', '🏖️', '🏠', '🎄', '🚗', '💍', '🎉', '🌱'];
-  function pageTontine(d) {
+  function pageTontine(d, d4) {   // d4 : ce qu'ajoute le 4e lot (null tant que sousou4.sql n'est pas installé)
     const t = d.tontine, M = d.moi, nomDe = id => { const m = d.membres.find(x => x.id === id); return m ? m.prenom + (id === M.id ? ' (vous)' : '') : '?'; };
     const orga = M.role === 'organisateur', cagnotte = Number(t.cagnotte);
     const tour = d.tours.find(x => x.statut === 'en_cours'), versesN = d.tours.filter(x => x.statut === 'verse').length;
@@ -299,7 +303,7 @@ const APP = {
         <div class="emojis" role="group" aria-label="Choisir une image">${EMOJIS.map(e => `<button type="button" class="emo ${e === t.objectif_emoji ? 'sel' : ''}" data-emoji="${e}" aria-pressed="${e === t.objectif_emoji}" aria-label="Image ${e}">${e}</button>`).join('')}</div>
         <button class="btn btn-sec" data-act="objectif">Enregistrer l’objectif</button></div></details>` : ''}</section>` : '';
     const entete = `<section class="carte t-haut"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><h1>${t.objectif_emoji ? `<span aria-hidden="true">${esc(t.objectif_emoji)}</span> ` : ''}${esc(t.nom)}</h1>${tagStatut(t.statut)}</div>
-      <div class="t-resume">${t.nb_membres} membres × ${eur(t.montant)} = <b>${eur(cagnotte)}</b> par tour · ${t.periodicite === 'mensuelle' ? 'chaque mois' : 'chaque semaine'} · à partir du ${esc(jourLong(t.debut))}</div></section>`;
+      <div class="t-resume">${t.nb_membres} membres × ${eur(t.montant)} = <b>${eur(cagnotte)}</b> par tour · ${t.periodicite === 'mensuelle' ? 'chaque mois' : 'chaque semaine'} · à partir du ${esc(jourLong(t.debut))}</div>${d4 && d4.origine ? `<p class="petit muted" style="margin:6px 0 0">Suite de <a href="#/t/${esc(d4.origine.id)}">« ${esc(d4.origine.nom)} »</a></p>` : ''}${d4 && d4.deja ? `<p class="petit muted" style="margin:6px 0 0">Tontine reprise dans Sousou : ${d4.deja > 1 ? 'les tours 1 à ' + d4.deja + ' ont été réglés' : 'le tour 1 a été réglé'} entre les membres avant.</p>` : ''}</section>`;
     const fil = v2 ? filMessages(d, actif) : '';
     const hist = v2 && (t.statut === 'en_cours' || t.statut === 'terminee') ? `<a class="btn btn-sec btn-plein" href="#/recap/${t.id}">Historique et récapitulatif imprimable</a>` : '';
     let corps = '', agirHaut = '';
@@ -309,7 +313,10 @@ const APP = {
       corps = `<div class="sou-2"><div>
         <section class="carte"><h2>Le groupe : ${d.membres.length} sur ${t.nb_membres}</h2><div class="attente-membres" aria-hidden="true">${Array.from({ length: t.nb_membres }, (_, i) => d.membres[i] ? `<span class="place pris">${esc(ini(d.membres[i].prenom))}</span>` : `<span class="place">${IC.plus}</span>`).join('')}</div><ul class="membres-l">${d.membres.map(m => `<li><span class="pastille" aria-hidden="true">${esc(ini(m.prenom))}</span><span class="m-nom">${esc(m.prenom)}${m.id === M.id ? ' (vous)' : ''}${m.role === 'organisateur' ? '<small>Organisateur</small>' : ''}</span><span></span></li>`).join('')}</ul>
           ${manque > 0 ? `<p class="muted petit">Il manque encore ${pluriel(manque, 'personne', 'personnes')}. Vous pouvez démarrer sans attendre : le groupe sera de ${d.membres.length}.</p>` : '<p class="petit"><b>Le groupe est complet.</b></p>'}</section>
-        ${orga ? `<section class="carte"><h2>Démarrer la tontine</h2><p class="muted petit">L’ordre des tours est fixé une seule fois, au démarrage. Ensuite, un échange de tour demande l’accord de l’organisateur et des deux membres.</p>
+        ${orga && d4 && d4.deja ? `<section class="carte"><h2>Reprendre la tontine dans Sousou</h2><p class="muted petit">Placez les membres dans l’ordre réel des tours. ${d4.deja > 1 ? 'Les ' + d4.deja + ' premiers ont' : 'Le premier a'} déjà reçu sa cagnotte : Sousou suit la tontine à partir du tour ${d4.deja + 1}.</p>
+          <input type="radio" name="mode" value="choisi" checked hidden><ol class="ordre-l" id="ordreL"></ol>
+          <p style="margin-top:12px"><button class="btn btn-p btn-plein" data-act="demarrer" ${d.membres.length < t.nb_membres ? 'disabled' : ''}>Reprendre au tour ${d4.deja + 1}</button></p>${d.membres.length < t.nb_membres ? `<p class="muted petit">Il faut que les ${t.nb_membres} membres aient rejoint : il en manque ${t.nb_membres - d.membres.length}.</p>` : ''}</section>`
+        : orga ? `<section class="carte"><h2>Démarrer la tontine</h2><p class="muted petit">L’ordre des tours est fixé une seule fois, au démarrage. Ensuite, un échange de tour demande l’accord de l’organisateur et des deux membres.</p>
           <div class="choix-2" role="radiogroup" aria-label="Ordre des tours"><label><input type="radio" name="mode" value="tirage" checked>Tirage au sort<small>Équitable, fait par le serveur</small></label><label><input type="radio" name="mode" value="choisi">Je choisis l’ordre<small>Vous placez chacun</small></label></div>
           <ol class="ordre-l" id="ordreL" hidden></ol>
           <p style="margin-top:12px"><button class="btn btn-p btn-plein" data-act="demarrer" ${d.membres.length < 2 ? 'disabled' : ''}>Démarrer la tontine</button></p>${d.membres.length < 2 ? '<p class="muted petit">Il faut au moins 2 membres : partagez le code.</p>' : ''}</section>` : ''}</div><div>
@@ -371,26 +378,49 @@ const APP = {
         ${hist}${fil}
         <section class="carte petit muted">Rappel : l’argent passe directement entre les membres, jamais par Sousou. Vous restez engagé jusqu’au dernier tour, même après avoir reçu la cagnotte. <a href="#/aide">Voir les règles et les risques</a>.</section></div></div>`;
     }
-    return `<div class="wrap sou">${entete}${agirHaut}${objectif}${corps}</div>`;
+    let lot4 = '';
+    if (d4 && t.statut === 'terminee') {
+      const s = d4.suite;
+      lot4 = s ? `<section class="carte carte-suite"><h2>La suite : « ${esc(t.nom)} » recommence</h2><p class="petit muted" style="margin:0">${s.inscrits} inscrit${s.inscrits > 1 ? 's' : ''} sur ${s.nb_membres} · début le ${esc(jourLong(s.debut))}${s.statut === 'en_cours' ? ' · en cours' : ''}</p>
+          <p style="margin:12px 0 0">${s.membre ? `<a class="btn btn-p btn-plein" href="#/t/${esc(s.id)}">Ouvrir la nouvelle tontine</a>` : s.statut === 'preparation' ? `<a class="btn btn-p btn-plein" href="#/rejoindre?code=${esc(s.code)}">Je suis partant(e) : rejoindre</a>` : ''}</p></section>`
+        : orga ? `<section class="carte carte-suite"><div class="avert" style="margin:0 0 12px"><b>« ${esc(t.nom)} » est terminée.</b> ${t.nb_membres} tours sur ${t.nb_membres} : tout le monde a reçu sa cagnotte.</div><h2>On recommence ?</h2>
+          <ul class="recap-l"><li><span>Mêmes membres</span><b>${d.membres.length}, invités à confirmer</b></li><li><span>Cotisation</span><b>${eur(t.montant)} ${t.periodicite === 'mensuelle' ? 'chaque mois' : 'chaque semaine'}</b></li><li><span>Ordre des tours</span><b>Nouveau, au démarrage</b></li></ul>
+          <div class="f"><label>Date du premier tour<input class="champ" id="renDebut" type="date" min="${aujourdhui()}" value="${dansJours(7)}"></label></div>
+          <p class="petit muted">Chaque membre reçoit une invitation et confirme en rejoignant : personne n’est inscrit d’office.</p>
+          <p style="margin:0;display:grid;gap:8px"><button class="btn btn-p btn-plein" data-act="renouveler">Renouveler la tontine</button><a class="btn btn-sec btn-plein" href="#/creer?nom=${encodeURIComponent(t.nom)}&montant=${t.montant}&per=${t.periodicite}&nb=${t.nb_membres}">Changer quelque chose d’abord</a></p></section>` : '';
+    }
+    if (d4 && t.statut === 'en_cours') {
+      const e = d4.mon_engagement, n = d4.signes.length, manquent = d.membres.filter(m => !d4.signes.includes(m.id));
+      lot4 = e ? `<section class="carte carte-eng ok"><div class="a-titre"><span class="t-ico" aria-hidden="true">${IC.coche}</span><div><b>Engagement signé</b><small>le ${esc(jourHeure(e.signe_at))}</small></div></div>
+          <p class="petit muted" style="margin:8px 0">${n} membre${n > 1 ? 's' : ''} sur ${d.membres.length} ${n > 1 ? 'ont' : 'a'} signé.${orga && manquent.length ? ' Pas encore : ' + manquent.map(m => esc(m.prenom)).join(', ') + '.' : ''}</p><a class="btn btn-sec btn-plein" href="#/engagement/${t.id}">Voir et télécharger le document</a></section>`
+        : `<section class="carte carte-eng"><h2>Mon engagement</h2><p class="petit muted" style="margin:0 0 8px">Un écrit simple qui rassure ceux qui reçoivent en dernier. ${n} membre${n > 1 ? 's' : ''} sur ${d.membres.length} ${n > 1 ? 'ont' : 'a'} déjà signé.</p>
+          <blockquote class="eng-texte">${esc(d4.brouillon || '')}</blockquote>
+          <div class="f"><label>Votre prénom et votre nom<input class="champ" id="engNom" maxlength="80" autocomplete="name" value="${esc([profil?.prenom, profil?.nom].filter(Boolean).join(' '))}"></label>
+          <label class="case-ok"><input type="checkbox" id="engOk"> <span>J’ai lu ce texte et je m’engage envers les membres du groupe.</span></label>
+          <button class="btn btn-p btn-plein" data-act="signer">Signer mon engagement</button></div></section>`;
+    }
+    return `<div class="wrap sou">${entete}${agirHaut}${t.statut === 'terminee' ? lot4 : ''}${objectif}${t.statut === 'en_cours' ? lot4 : ''}${corps}</div>`;
   }
 
   async function tontine(id) {
     if (!exigeCompte()) return;
     attente();
-    let d = await q(sb.rpc('sou_detail', { t_id: id }));
+    const avec4 = await lot4Pret(), lire4 = () => avec4 ? q(sb.rpc('sou_detail4', { t_id: id })).catch(() => null) : Promise.resolve(null);
+    let [d, d4] = await Promise.all([q(sb.rpc('sou_detail', { t_id: id })), lire4()]);
     let emoji = '';
     const dessiner = (x, garder = true) => {
       const m0 = $('#msgTexte'), brouillon = garder && m0 ? m0.value : '';   // un message en cours d'écriture survit au rafraîchissement
-      instantane = JSON.stringify(x); d = x; emoji = x.tontine.objectif_emoji || ''; vue(pageTontine(x)); lier();
+      instantane = JSON.stringify(x); d = x; emoji = x.tontine.objectif_emoji || ''; vue(pageTontine(x, d4)); lier();
       const m1 = $('#msgTexte'); if (m1 && brouillon) m1.value = brouillon;
       const fil = $('.msgs'); if (fil) fil.scrollTop = fil.scrollHeight;
       const fr = $('#frise'), cur = fr && fr.querySelector('.en_cours'); if (cur) fr.scrollLeft = cur.offsetLeft - fr.clientWidth / 2 + cur.offsetWidth / 2;
     };
-    const recharger = async (garder = true) => { oublier(''); dessiner(await q(sb.rpc('sou_detail', { t_id: id })), garder); majNotifs(); };
+    const recharger = async (garder = true) => { oublier(''); const [x, y] = await Promise.all([q(sb.rpc('sou_detail', { t_id: id })), lire4()]); d4 = y; dessiner(x, garder); majNotifs(); };
     let ordre = [];
-    const dessinerOrdre = () => { const ol = $('#ordreL'); if (!ol) return; ol.innerHTML = ordre.map((m, i) => `<li><b>${i + 1}</b><span>${esc(m.prenom)}</span><button data-ord="-1" data-i="${i}" aria-label="Monter ${esc(m.prenom)}" ${i === 0 ? 'disabled' : ''}>↑</button><button data-ord="1" data-i="${i}" aria-label="Descendre ${esc(m.prenom)}" ${i === ordre.length - 1 ? 'disabled' : ''}>↓</button></li>`).join(''); };
+    const dessinerOrdre = () => { const ol = $('#ordreL'); if (!ol) return; ol.innerHTML = ordre.map((m, i) => `<li><b>${i + 1}</b><span>${esc(m.prenom)}${i < (d4?.deja || 0) ? ' <small class="deja-recu">a déjà reçu</small>' : ''}</span><button data-ord="-1" data-i="${i}" aria-label="Monter ${esc(m.prenom)}" ${i === 0 ? 'disabled' : ''}>↑</button><button data-ord="1" data-i="${i}" aria-label="Descendre ${esc(m.prenom)}" ${i === ordre.length - 1 ? 'disabled' : ''}>↓</button></li>`).join(''); };
     const lier = () => {
       ordre = d.membres.slice();
+      if (d4 && d4.deja && $('#ordreL')) dessinerOrdre();   // tontine reprise : l'ordre réel se place tout de suite
       const a = $('#app');
       a.onchange = e => { if (e.target.name === 'mode') { const ol = $('#ordreL'); ol.hidden = e.target.value !== 'choisi'; dessinerOrdre(); } };
       a.onclick = async e => {
@@ -417,7 +447,13 @@ const APP = {
           else if (act === 'conf') { await q(sb.rpc('sou_confirmer_cotisation', { c_id: cible })); toast('Réception confirmée.'); }
           else if (act === 'retard') { await q(sb.rpc('sou_marquer_en_retard', { c_id: cible })); toast('Cotisation marquée en retard, le membre est prévenu.'); }
           else if (act === 'verse') { await q(sb.rpc('sou_declarer_versement', { tour_c: cible })); celebrer(); toast('🎉 Cagnotte reçue : le tour suivant commence.'); }
-          else if (act === 'objectif') { await q(sb.rpc('sou_objectif', { t_id: id, texte_o: $('#objTexte').value, emoji_o: emoji || null })); toast('Objectif enregistré.'); }
+          else if (act === 'renouveler') {
+            const v = $('#renDebut').value; if (!v || v < aujourdhui()) { b.disabled = false; return toast('Choisissez une date à partir d’aujourd’hui.', true); }
+            const nid = await q(sb.rpc('sou_renouveler', { t_id: id, debut_c: v })); toast('C’est reparti ! Les membres sont invités à confirmer.'); oublier(''); return aller('#/t/' + nid);
+          } else if (act === 'signer') {
+            if (!$('#engOk').checked) { b.disabled = false; return toast('Cochez la case pour confirmer votre engagement.', true); }
+            await q(sb.rpc('sou_signer', { t_id: id, nom_s: $('#engNom').value })); toast('Engagement signé. Merci pour le groupe !');
+          } else if (act === 'objectif') { await q(sb.rpc('sou_objectif', { t_id: id, texte_o: $('#objTexte').value, emoji_o: emoji || null })); toast('Objectif enregistré.'); }
           else if (act === 'msg') { await q(sb.rpc('sou_poster', { t_id: id, texte_m: $('#msgTexte').value })); }
           else if (act === 'msg-del') { await q(sb.rpc('sou_effacer_message', { m_id: cible })); toast('Message effacé.'); }
           else if (act === 'annuler') { await q(sb.rpc('sou_annuler', { t_id: id })); toast('Tontine annulée.'); }
@@ -452,9 +488,13 @@ const APP = {
   // ---------------------------------------------------------------- créer : 3 écrans (combien et quand, avec qui, on vérifie)
   async function creer() {
     if (!exigeCompte()) return;
-    const avec = await lot2Pret();
+    const avec = await lot2Pret(), avec4 = await lot4Pret(), pa = param();
     const dans = n => { const x = new Date(); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
-    const e = { etape: 1, nom: '', per: 'mensuelle', nb: 5, montant: 50, debut: dans(7), majeur: false, objectif: '', emo: '' };
+    const e = { etape: 1, nom: '', per: 'mensuelle', nb: 5, montant: 50, debut: dans(7), majeur: false, objectif: '', emo: '', importe: false, deja: 1 };
+    if (pa.nom) e.nom = String(pa.nom).slice(0, 60);   // « Changer quelque chose d'abord » depuis une tontine terminée : mêmes réglages, modifiables
+    if (Number(pa.montant) >= 10 && Number(pa.montant) <= 2000) e.montant = Number(pa.montant);
+    if (pa.per === 'hebdomadaire' || pa.per === 'mensuelle') e.per = pa.per;
+    if (Number.isInteger(Number(pa.nb)) && Number(pa.nb) >= 2 && Number(pa.nb) <= 30) e.nb = Number(pa.nb);
     const resume = () => {
       const tot = e.nb * e.montant, mois = e.per === 'mensuelle' ? pluriel(e.nb, 'mois', 'mois') : pluriel(e.nb, 'semaine', 'semaines');
       return `<div class="resume-c" id="resume"><p>${e.nb} membres × ${eur(e.montant)} =</p><span class="gros-montant">${eur(tot)}</span><p>par tour, ${e.per === 'mensuelle' ? 'chaque mois' : 'chaque semaine'}</p><p class="muted petit" style="font-weight:600">Durée : ${mois}. Chacun verse ${eur(tot)} au total et reçoit ${eur(tot)} une fois.</p></div>`;
@@ -466,6 +506,8 @@ const APP = {
       if (g('cNb')) e.nb = Number(g('cNb').value) || 0;
       if (g('cMontant')) e.montant = Number(g('cMontant').value) || 0;
       if (g('cDebut')) { e.debut = g('cDebut').value; e.majeur = g('cMajeur').checked; if (g('cObj')) e.objectif = g('cObj').value; }
+      const im = document.querySelector('[name=importe]:checked'); if (im) e.importe = im.value === 'oui';
+      if (g('cDeja')) e.deja = Number(g('cDeja').value) || 0;
     };
     const pas = (id, cle, d, lib, min, max, step) => `<div class="stepper"><button type="button" data-pas="${cle}" data-d="-${d}" aria-label="${lib} de moins">−</button><input class="champ" id="${id}" type="number" inputmode="numeric" min="${min}" max="${max}" step="${step}" value="${e[cle]}" aria-label="${lib}"><button type="button" data-pas="${cle}" data-d="${d}" aria-label="${lib} de plus">+</button></div>`;
     const dessiner = () => {
@@ -479,24 +521,28 @@ const APP = {
         <div class="puces" role="group" aria-label="Idées de noms">${['La famille', 'Les amis', 'Le bureau', 'Les voisins'].map(n => `<button type="button" class="puce" data-nom="${n}">${n}</button>`).join('')}</div></div>${resume()}`;
       else c = `<h1 class="creer-q">On vérifie ensemble</h1>${resume()}
         <section class="carte"><ul class="recap-l"><li><span>Nom</span><b>${esc(e.nom)}</b></li><li><span>Cotisation</span><b>${eur(e.montant)} ${e.per === 'mensuelle' ? 'chaque mois' : 'chaque semaine'}</b></li><li><span>Membres</span><b>${e.nb} personnes, vous comprise</b></li><li><span>Cagnotte à chaque tour</span><b>${eur(e.nb * e.montant)}</b></li></ul></section>
-        <div class="f"><label>Date du premier tour<input class="champ" id="cDebut" type="date" min="${dans(0)}" max="${dans(365)}" value="${esc(e.debut)}"></label>
+        ${avec4 ? `<fieldset class="f" style="border:0;padding:0;margin:0 0 12px"><legend style="font-weight:800;margin-bottom:6px">Cette tontine tourne-t-elle déjà ?</legend><div class="choix-2"><label><input type="radio" name="importe" value="non" ${e.importe ? '' : 'checked'}>Non, elle commence<small>Premier tour à venir</small></label><label><input type="radio" name="importe" value="oui" ${e.importe ? 'checked' : ''}>Oui, elle a déjà commencé<small>Sur un cahier ou WhatsApp</small></label></div>
+          ${e.importe ? `<label for="cDeja">Tours déjà réglés entre vous <span class="aide">(1 à ${e.nb - 1})</span></label>${pas('cDeja', 'deja', 1, 'Tours réglés', 1, e.nb - 1, 1)}<p class="muted petit" style="margin:0">Ces tours sont notés « réglés hors Sousou ». Chaque membre le confirme en rejoignant.</p>` : ''}</fieldset>` : ''}
+        <div class="f"><label>${e.importe ? 'Échéance du prochain tour (le premier suivi dans Sousou)' : 'Date du premier tour'}<input class="champ" id="cDebut" type="date" min="${dans(0)}" max="${dans(365)}" value="${esc(e.debut)}"></label>
         ${avec ? `<label>Un objectif ? <span class="aide">(facultatif : rentrée, vacances, projet…)</span><input class="champ" id="cObj" maxlength="60" value="${esc(e.objectif)}" placeholder="Ex. : Les vacances d’été"></label>
         <div class="emojis" role="group" aria-label="Choisir une image">${EMOJIS.map(m => `<button type="button" class="emo ${m === e.emo ? 'sel' : ''}" data-emo="${m}" aria-pressed="${m === e.emo}" aria-label="Image ${m}">${m}</button>`).join('')}</div>` : ''}
         <label class="case-ok"><input type="checkbox" id="cMajeur" ${e.majeur ? 'checked' : ''}> <span>J’ai 18 ans ou plus et je comprends que Sousou ne touche pas à l’argent : il passe directement entre les membres, chacun s’engage envers le groupe.</span></label></div>
-        <div class="avert">L’ordre des tours sera tiré au sort ou choisi par vous au démarrage, puis il ne bouge plus. Ensuite, vous invitez vos proches par WhatsApp.</div>`;
+        <div class="avert">${e.importe ? `Au démarrage, vous placerez les membres dans l’ordre réel : ${e.deja > 1 ? 'les ' + e.deja + ' premiers ont' : 'le premier a'} déjà reçu sa cagnotte. Tout le groupe (${e.nb} personnes) doit avoir rejoint avant.` : 'L’ordre des tours sera tiré au sort ou choisi par vous au démarrage, puis il ne bouge plus.'} Ensuite, vous invitez vos proches par WhatsApp.</div>`;
       vue(`<div class="wrap sou">${barre}${c}<div class="btns-bas">${e.etape > 1 ? '<button class="btn btn-sec" data-nav="-1">Retour</button>' : ''}<button class="btn btn-p" data-nav="1" id="suite">${e.etape === 3 ? 'Créer la tontine' : 'Continuer'}</button></div></div>`);
     };
     const valider = () => {
       if (e.etape >= 1 && (!(e.montant >= 10) || e.montant > 2000)) return 'La cotisation doit être comprise entre 10 € et 2 000 €.';
       if (e.etape >= 2 && (!Number.isInteger(e.nb) || e.nb < 2 || e.nb > 30)) return 'Une tontine compte entre 2 et 30 membres.';
       if (e.etape >= 2 && e.nom.trim().length < 2) return 'Donnez un nom à votre tontine (2 caractères au moins).';
-      if (e.etape === 3 && (!e.debut || e.debut < aujourdhui())) return 'Choisissez une date de début à partir d’aujourd’hui.';
+      if (e.etape === 3 && (!e.debut || e.debut < aujourdhui())) return e.importe ? 'Choisissez l’échéance du prochain tour, à partir d’aujourd’hui.' : 'Choisissez une date de début à partir d’aujourd’hui.';
+      if (e.etape === 3 && e.importe && (!Number.isInteger(e.deja) || e.deja < 1 || e.deja > e.nb - 1)) return `Indiquez entre 1 et ${e.nb - 1} tours déjà réglés.`;
       if (e.etape === 3 && !e.majeur) return 'Cochez la case pour confirmer que vous avez 18 ans ou plus.';
       return '';
     };
     dessiner();
     const a = $('#app');
     a.oninput = () => { lire(); const r = $('#resume'); if (r && e.etape === 2) r.outerHTML = resume(); };
+    a.onchange = ev => { if (ev.target.name === 'importe') { lire(); e.deja = Math.min(Math.max(1, e.deja), e.nb - 1); dessiner(); } };
     a.onclick = async ev => {
       const em = ev.target.closest('[data-emo]');
       if (em) { e.emo = e.emo === em.dataset.emo ? '' : em.dataset.emo; a.querySelectorAll('[data-emo]').forEach(x => { const on = x.dataset.emo === e.emo; x.classList.toggle('sel', on); x.setAttribute('aria-pressed', String(on)); }); return; }
@@ -504,14 +550,15 @@ const APP = {
       if (mo) { e.montant = Number(mo.dataset.montant); $('#cMontant').value = e.montant; a.querySelectorAll('[data-montant]').forEach(x => x.setAttribute('aria-pressed', String(x === mo))); return; }
       const no = ev.target.closest('[data-nom]'); if (no) { e.nom = no.dataset.nom; $('#cNom').value = e.nom; return; }
       const p = ev.target.closest('[data-pas]');
-      if (p) { lire(); const k = p.dataset.pas, v = k === 'nb' ? Math.min(30, Math.max(2, e.nb + Number(p.dataset.d))) : Math.min(2000, Math.max(10, e.montant + Number(p.dataset.d))); e[k] = v; $(k === 'nb' ? '#cNb' : '#cMontant').value = v; const r = $('#resume'); if (r) r.outerHTML = resume(); return; }
+      if (p) { lire(); const k = p.dataset.pas, v = k === 'nb' ? Math.min(30, Math.max(2, e.nb + Number(p.dataset.d))) : k === 'deja' ? Math.min(e.nb - 1, Math.max(1, e.deja + Number(p.dataset.d))) : Math.min(2000, Math.max(10, e.montant + Number(p.dataset.d))); e[k] = v; $(k === 'nb' ? '#cNb' : k === 'deja' ? '#cDeja' : '#cMontant').value = v; if (k === 'deja') return dessiner(); const r = $('#resume'); if (r) r.outerHTML = resume(); return; }
       const n = ev.target.closest('[data-nav]'); if (!n) return;
       lire();
       if (n.dataset.nav === '-1') { e.etape--; return dessiner(); }
       const m = valider(); if (m) return toast(m, true);
       if (e.etape < 3) { e.etape++; window.scrollTo(0, 0); return dessiner(); }
       n.disabled = true;
-      try { const id = await q(sb.rpc('sou_creer', { nom_c: e.nom.trim(), montant_c: e.montant, periodicite_c: e.per, nb_c: e.nb, debut_c: e.debut }));
+      try { const id = await q(avec4 ? sb.rpc('sou_creer2', { nom_c: e.nom.trim(), montant_c: e.montant, periodicite_c: e.per, nb_c: e.nb, prochaine_c: e.debut, deja_c: e.importe ? e.deja : 0 })
+          : sb.rpc('sou_creer', { nom_c: e.nom.trim(), montant_c: e.montant, periodicite_c: e.per, nb_c: e.nb, debut_c: e.debut }));
         if (avec && e.objectif.trim()) { try { await q(sb.rpc('sou_objectif', { t_id: id, texte_o: e.objectif, emoji_o: e.emo || null })); } catch (x) { /* l'objectif se refait depuis la page de la tontine */ } }
         oublier(''); toast('Tontine créée ! Invitez maintenant vos proches.'); aller('#/t/' + id); }
       catch (err) { toast(erreur(err), true); n.disabled = false; }
@@ -533,14 +580,15 @@ const APP = {
       vue(`<div class="wrap sou"><div class="vide-etat"><h3>Code inconnu</h3><p class="muted">${esc(erreur(err))}</p><a class="btn btn-p" href="#/rejoindre">Essayer un autre code</a></div></div>`); return;
     }
     const places = t.nb_membres - t.inscrits, ouvert = t.statut === 'preparation' && places > 0 && !t.deja_membre;
-    vue(`<div class="wrap sou"><div class="entrer">${logoEntrer('Rejoindre « ' + esc(t.nom) + ' »', 'Organisé par <b>' + esc(t.organisateur) + '</b>')}<section class="carte"><div class="gros-montant">${eur(t.montant)} <small>par ${rythme(t.periodicite)}</small></div>
+    vue(`<div class="wrap sou"><div class="entrer">${logoEntrer('Rejoindre « ' + esc(t.nom) + ' »', 'Organisé par <b>' + esc(t.organisateur) + '</b>' + (t.suite_de ? ' · suite de « ' + esc(t.suite_de) + ' »' : ''))}<section class="carte"><div class="gros-montant">${eur(t.montant)} <small>par ${rythme(t.periodicite)}</small></div>
       <p style="margin:8px 0 0">${t.nb_membres} membres : cagnotte de <b>${eur(t.montant * t.nb_membres)}</b> à chaque tour. Début prévu le ${esc(jourLong(t.debut))}.</p>
       <p class="muted petit" style="margin:6px 0 0">${t.inscrits} inscrit${t.inscrits > 1 ? 's' : ''} sur ${t.nb_membres}.</p></section>
       ${t.deja_membre ? `<div class="avert">Vous faites déjà partie de cette tontine.</div><a class="btn btn-p btn-gros btn-plein" href="#/t/${t.id}">Ouvrir la tontine</a>`
         : t.statut !== 'preparation' ? '<div class="avert"><b>Cette tontine a déjà démarré ou n’existe plus.</b> On ne peut plus la rejoindre.</div><a class="btn btn-sec btn-plein" href="#/">Mes tontines</a>'
         : places <= 0 ? '<div class="avert"><b>Cette tontine est complète.</b></div><a class="btn btn-sec btn-plein" href="#/">Mes tontines</a>'
         : `<div class="avert"><b>Avant de vous engager.</b> Vous versez ${eur(t.montant)} à chaque échéance directement au membre qui reçoit, jusqu’au dernier tour, y compris après avoir reçu votre tour. Sousou ne touche pas à l’argent.</div>
-          <form class="f" id="fJoin"><label class="case-ok"><input type="checkbox" required> <span>J’ai 18 ans ou plus, je connais les membres et je m’engage envers le groupe. <a href="cgu.html" target="_blank">Conditions et risques</a></span></label><button class="btn btn-p btn-gros btn-plein" ${ouvert ? '' : 'disabled'}>Rejoindre la tontine</button></form>`}</div></div>`);
+          ${t.deja ? `<div class="avert"><b>Cette tontine a déjà commencé</b> entre les membres : ${t.deja > 1 ? 'les tours 1 à ' + t.deja + ' sont réglés' : 'le tour 1 est réglé'}. Sousou la suit à partir du tour ${t.deja + 1}.</div>` : ''}
+          <form class="f" id="fJoin">${t.deja ? `<label class="case-ok"><input type="checkbox" required> <span>Je confirme que ${t.deja > 1 ? 'les ' + t.deja + ' premiers tours ont' : 'le premier tour a'} déjà été réglé${t.deja > 1 ? 's' : ''} entre nous.</span></label>` : ''}<label class="case-ok"><input type="checkbox" required> <span>J’ai 18 ans ou plus, je connais les membres et je m’engage envers le groupe. <a href="cgu.html" target="_blank">Conditions et risques</a></span></label><button class="btn btn-p btn-gros btn-plein" ${ouvert ? '' : 'disabled'}>Rejoindre la tontine</button></form>`}</div></div>`);
     const f = $('#fJoin');
     if (f) f.addEventListener('submit', async ev => {
       ev.preventDefault(); const b = f.querySelector('button'); b.disabled = true;
@@ -617,7 +665,24 @@ const APP = {
     };
   }
 
-  Object.assign(APP.pages, { '': accueil, t: tontine, recap, creer, rejoindre, avis, aide, compte });
+  // ---------------------------------------------------------------- C. le document d'engagement (texte figé par la base au moment de la signature)
+  async function engagement(id) {
+    if (!exigeCompte()) return;
+    attente();
+    const [d, d4] = await Promise.all([q(sb.rpc('sou_detail', { t_id: id })), q(sb.rpc('sou_detail4', { t_id: id }))]);
+    const t = d.tontine, e = d4.mon_engagement;
+    if (!e) return vue(`<div class="wrap sou"><div class="vide-etat"><h3>Pas encore signé</h3><p class="muted">Signez votre engagement depuis la page de la tontine.</p><a class="btn btn-p" href="#/t/${t.id}">Retour à la tontine</a></div></div>`);
+    vue(`<div class="wrap sou recap engagement"><div class="no-print"><a href="#/t/${t.id}">‹ Retour à la tontine</a></div>
+      <section class="carte doc-eng"><p class="etiq-doc">Sousou · tontine entre proches</p><h1>Engagement de participation</h1>
+        <p class="muted" style="margin:4px 0 16px">Tontine « ${esc(t.nom)} » · code ${esc(t.code)} · ${t.nb_membres} membres × ${eur(t.montant)} ${t.periodicite === 'mensuelle' ? 'chaque mois' : 'chaque semaine'}</p>
+        <p class="eng-texte doc">${esc(e.texte)}</p>
+        <div class="signature"><span class="petit muted">Signé en ligne par</span><span class="sig-nom">${esc(e.nom)}</span><span class="petit muted">le ${esc(jourHeure(e.signe_at))}, depuis son compte Sousou. ${d4.signes.length} membre${d4.signes.length > 1 ? 's' : ''} sur ${t.nb_membres} ${d4.signes.length > 1 ? 'ont' : 'a'} signé.</span></div>
+        <p class="petit muted" style="margin:16px 0 0">Ce document n’est pas un prêt et ne fait pas de Sousou une partie : l’argent passe directement entre les membres. Il sert de trace écrite entre membres d’une tontine.</p>
+        <p class="actions-r no-print" style="margin-top:16px"><button class="btn btn-p" data-act="imprimer">Imprimer ou enregistrer en PDF</button></p></section></div>`);
+    $('#app').onclick = ev => { if (ev.target.closest('[data-act=imprimer]')) window.print(); };
+  }
+
+  Object.assign(APP.pages, { '': accueil, t: tontine, recap, engagement, creer, rejoindre, avis, aide, compte });
 /* service worker : enregistré par pwa.js (commun/pwa.js) */
   demarrer();
 })();
