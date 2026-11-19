@@ -57,8 +57,9 @@ const APP = {
   let lot2 = null;   // la promesse est gardée : deux appels simultanés partagent la même réponse (appelé seulement une fois connecté)
   const lot2Pret = () => lot2 || (lot2 = q(sb.rpc('sou_version')).then(() => true, () => false));
   // 4e lot (sousou4.sql : renouveler, importer, engagement signé) : caché tant que sou_version() < 4
-  let lot4 = null;
-  const lot4Pret = () => lot4 || (lot4 = q(sb.rpc('sou_version')).then(v => Number(v) >= 4, () => false));
+  let versionB = null;   // version de la base Sousou (0 si inconnue) : 4 = renouveler, importer, engagement ; 5 = remplacer un membre, double main
+  const versionBase = () => versionB || (versionB = q(sb.rpc('sou_version')).then(v => Number(v) || 0, () => 0));
+  const lot4Pret = () => versionBase().then(v => v >= 4), lot5Pret = () => versionBase().then(v => v >= 5);
 
   let minuteur = null, instantane = '';
   APP.quitter = h => {
@@ -291,7 +292,7 @@ const APP = {
   };
   const EMOJIS = ['🎒', '🏖️', '🏠', '🎄', '🚗', '💍', '🎉', '🌱'];
   function pageTontine(d, d4) {   // d4 : ce qu'ajoute le 4e lot (null tant que sousou4.sql n'est pas installé)
-    const t = d.tontine, M = d.moi, nomDe = id => { const m = d.membres.find(x => x.id === id); return m ? m.prenom + (id === M.id ? ' (vous)' : '') : '?'; };
+    const t = d.tontine, M = d.moi, nomDe = id => { const m = d.membres.find(x => x.id === id); return m ? m.prenom + (id === M.id ? ' (vous)' : '') : 'Ancien membre'; };
     const orga = M.role === 'organisateur', cagnotte = Number(t.cagnotte);
     const tour = d.tours.find(x => x.statut === 'en_cours'), versesN = d.tours.filter(x => x.statut === 'verse').length;
     const v2 = !!d.v2, actif = t.statut === 'preparation' || t.statut === 'en_cours', monJ = M.mon_tour_jours;
@@ -303,19 +304,21 @@ const APP = {
         <div class="emojis" role="group" aria-label="Choisir une image">${EMOJIS.map(e => `<button type="button" class="emo ${e === t.objectif_emoji ? 'sel' : ''}" data-emoji="${e}" aria-pressed="${e === t.objectif_emoji}" aria-label="Image ${e}">${e}</button>`).join('')}</div>
         <button class="btn btn-sec" data-act="objectif">Enregistrer l’objectif</button></div></details>` : ''}</section>` : '';
     const entete = `<section class="carte t-haut"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><h1>${t.objectif_emoji ? `<span aria-hidden="true">${esc(t.objectif_emoji)}</span> ` : ''}${esc(t.nom)}</h1>${tagStatut(t.statut)}</div>
-      <div class="t-resume">${t.nb_membres} membres × ${eur(t.montant)} = <b>${eur(cagnotte)}</b> par tour · ${t.periodicite === 'mensuelle' ? 'chaque mois' : 'chaque semaine'} · à partir du ${esc(jourLong(t.debut))}</div>${d4 && d4.origine ? `<p class="petit muted" style="margin:6px 0 0">Suite de <a href="#/t/${esc(d4.origine.id)}">« ${esc(d4.origine.nom)} »</a></p>` : ''}${d4 && d4.deja ? `<p class="petit muted" style="margin:6px 0 0">Tontine reprise dans Sousou : ${d4.deja > 1 ? 'les tours 1 à ' + d4.deja + ' ont été réglés' : 'le tour 1 a été réglé'} entre les membres avant.</p>` : ''}</section>`;
+      <div class="t-resume">${t.nb_membres} ${d4 && d4.parts && Object.values(d4.parts).some(x => x > 1) ? 'places' : 'membres'} × ${eur(t.montant)} = <b>${eur(cagnotte)}</b> par tour · ${t.periodicite === 'mensuelle' ? 'chaque mois' : 'chaque semaine'} · à partir du ${esc(jourLong(t.debut))}</div>${d4 && d4.origine ? `<p class="petit muted" style="margin:6px 0 0">Suite de <a href="#/t/${esc(d4.origine.id)}">« ${esc(d4.origine.nom)} »</a></p>` : ''}${d4 && d4.deja ? `<p class="petit muted" style="margin:6px 0 0">Tontine reprise dans Sousou : ${d4.deja > 1 ? 'les tours 1 à ' + d4.deja + ' ont été réglés' : 'le tour 1 a été réglé'} entre les membres avant.</p>` : ''}</section>`;
     const fil = v2 ? filMessages(d, actif) : '';
     const hist = v2 && (t.statut === 'en_cours' || t.statut === 'terminee') ? `<a class="btn btn-sec btn-plein" href="#/recap/${t.id}">Historique et récapitulatif imprimable</a>` : '';
     let corps = '', agirHaut = '';
     if (t.statut === 'preparation') {
-      const manque = t.nb_membres - d.membres.length;
+      const parts = id => (d4 && d4.parts && d4.parts[id]) || 1, prises = d.membres.flatMap(m => Array(parts(m.id)).fill(m)), manque = t.nb_membres - prises.length;
+      const lot5 = !!(d4 && d4.parts), mesParts = parts(M.id);
       const lien = lienInvitation(t.code), msg = `Rejoins ma tontine « ${t.nom} » sur Sousou : ${t.nb_membres} personnes, ${t.montant} € par ${rythme(t.periodicite)}. Code : ${t.code}\n${lien}`;
       corps = `<div class="sou-2"><div>
-        <section class="carte"><h2>Le groupe : ${d.membres.length} sur ${t.nb_membres}</h2><div class="attente-membres" aria-hidden="true">${Array.from({ length: t.nb_membres }, (_, i) => d.membres[i] ? `<span class="place pris">${esc(ini(d.membres[i].prenom))}</span>` : `<span class="place">${IC.plus}</span>`).join('')}</div><ul class="membres-l">${d.membres.map(m => `<li><span class="pastille" aria-hidden="true">${esc(ini(m.prenom))}</span><span class="m-nom">${esc(m.prenom)}${m.id === M.id ? ' (vous)' : ''}${m.role === 'organisateur' ? '<small>Organisateur</small>' : ''}</span><span></span></li>`).join('')}</ul>
-          ${manque > 0 ? `<p class="muted petit">Il manque encore ${pluriel(manque, 'personne', 'personnes')}. Vous pouvez démarrer sans attendre : le groupe sera de ${d.membres.length}.</p>` : '<p class="petit"><b>Le groupe est complet.</b></p>'}</section>
+        <section class="carte"><h2>Le groupe : ${prises.length} ${lot5 ? 'places' : ''} sur ${t.nb_membres}</h2><div class="attente-membres" aria-hidden="true">${Array.from({ length: t.nb_membres }, (_, i) => prises[i] ? `<span class="place pris">${esc(ini(prises[i].prenom))}</span>` : `<span class="place">${IC.plus}</span>`).join('')}</div><ul class="membres-l">${d.membres.map(m => `<li><span class="pastille" aria-hidden="true">${esc(ini(m.prenom))}</span><span class="m-nom">${esc(m.prenom)}${m.id === M.id ? ' (vous)' : ''}${m.role === 'organisateur' ? '<small>Organisateur</small>' : ''}</span>${parts(m.id) > 1 ? '<span class="deux-parts" title="Double main : 2 parts">2 parts</span>' : '<span></span>'}</li>`).join('')}</ul>
+          ${lot5 && (mesParts > 1 || manque > 0) ? `<p style="margin:10px 0 0"><button class="btn btn-sec btn-s" data-act="parts" data-n="${mesParts > 1 ? 1 : 2}">${mesParts > 1 ? 'Revenir à une seule part' : 'Prendre une 2e part (double main)'}</button></p><p class="muted petit" style="margin:4px 0 0">Double main : vous versez 2 fois la cotisation à chaque tour et recevez la cagnotte 2 fois.</p>` : ''}
+          ${manque > 0 ? `<p class="muted petit">Il manque encore ${lot5 ? pluriel(manque, 'place', 'places') : pluriel(manque, 'personne', 'personnes')}. Vous pouvez démarrer sans attendre : le groupe sera de ${lot5 ? pluriel(prises.length, 'place', 'places') : d.membres.length}.</p>` : '<p class="petit"><b>Le groupe est complet.</b></p>'}</section>
         ${orga && d4 && d4.deja ? `<section class="carte"><h2>Reprendre la tontine dans Sousou</h2><p class="muted petit">Placez les membres dans l’ordre réel des tours. ${d4.deja > 1 ? 'Les ' + d4.deja + ' premiers ont' : 'Le premier a'} déjà reçu sa cagnotte : Sousou suit la tontine à partir du tour ${d4.deja + 1}.</p>
           <input type="radio" name="mode" value="choisi" checked hidden><ol class="ordre-l" id="ordreL"></ol>
-          <p style="margin-top:12px"><button class="btn btn-p btn-plein" data-act="demarrer" ${d.membres.length < t.nb_membres ? 'disabled' : ''}>Reprendre au tour ${d4.deja + 1}</button></p>${d.membres.length < t.nb_membres ? `<p class="muted petit">Il faut que les ${t.nb_membres} membres aient rejoint : il en manque ${t.nb_membres - d.membres.length}.</p>` : ''}</section>`
+          <p style="margin-top:12px"><button class="btn btn-p btn-plein" data-act="demarrer" ${manque > 0 ? 'disabled' : ''}>Reprendre au tour ${d4.deja + 1}</button></p>${manque > 0 ? `<p class="muted petit">Il faut que les ${t.nb_membres} places soient prises : il en manque ${manque}.</p>` : ''}</section>`
         : orga ? `<section class="carte"><h2>Démarrer la tontine</h2><p class="muted petit">L’ordre des tours est fixé une seule fois, au démarrage. Ensuite, un échange de tour demande l’accord de l’organisateur et des deux membres.</p>
           <div class="choix-2" role="radiogroup" aria-label="Ordre des tours"><label><input type="radio" name="mode" value="tirage" checked>Tirage au sort<small>Équitable, fait par le serveur</small></label><label><input type="radio" name="mode" value="choisi">Je choisis l’ordre<small>Vous placez chacun</small></label></div>
           <ol class="ordre-l" id="ordreL" hidden></ol>
@@ -389,6 +392,28 @@ const APP = {
           <p class="petit muted">Chaque membre reçoit une invitation et confirme en rejoignant : personne n’est inscrit d’office.</p>
           <p style="margin:0;display:grid;gap:8px"><button class="btn btn-p btn-plein" data-act="renouveler">Renouveler la tontine</button><a class="btn btn-sec btn-plein" href="#/creer?nom=${encodeURIComponent(t.nom)}&montant=${t.montant}&per=${t.periodicite}&nb=${t.nb_membres}">Changer quelque chose d’abord</a></p></section>` : '';
     }
+    let rempl = '';
+    if (d4 && d4.parts && t.statut === 'en_cours') {
+      const r = d4.remplacement, peutMoi = d4.remplacables.includes(M.id), autres = d4.remplacables.filter(x => x !== M.id);
+      if (r) {
+        const besoin = Math.floor(r.votants / 2) + 1, moiSort = r.sortant === M.id, gere = r.demandeur === M.id || orga;
+        const lienP = location.origin + location.pathname + '#/place?code=' + r.code, msgP = `Une place se libère dans la tontine « ${t.nom} » sur Sousou (${t.montant} € par ${rythme(t.periodicite)}). Tu reprendrais la place de ${r.sortant_prenom}. Voici le lien :\n${lienP}`;
+        rempl = `<section class="carte carte-rempl"><h2>${moiSort ? 'Votre remplacement' : esc(r.sortant_prenom) + ' doit être remplacé(e)'}</h2>
+          ${r.statut === 'vote' ? `<ul class="recap-l"><li><span>${moiSort ? 'Votre accord' : 'Accord de ' + esc(r.sortant_prenom)}</span><b>${r.accord_sortant === true ? '✓ oui' : r.accord_sortant === false ? 'non' : 'en attente'}</b></li><li><span>Le groupe</span><b>${r.oui} oui sur ${besoin} nécessaires</b></li></ul>
+            <p class="petit muted">La personne qui reprend la place reçoit les mêmes tours et rembourse directement à ${esc(r.sortant_prenom)} ce qu’il ou elle a déjà versé.</p>
+            <p class="actions" style="display:flex;gap:8px;flex-wrap:wrap;margin:0">${moiSort && r.accord_sortant === null ? `<button class="btn btn-p btn-s" data-act="rempl-oui" data-id="${r.id}">Je suis d’accord</button><button class="btn btn-sec btn-s" data-act="rempl-non" data-id="${r.id}">Je refuse</button>`
+              : !moiSort && r.mon_vote === null ? `<button class="btn btn-p btn-s" data-act="rempl-oui" data-id="${r.id}">D’accord</button><button class="btn btn-sec btn-s" data-act="rempl-non" data-id="${r.id}">Pas d’accord</button>` : '<span class="petit muted">Votre réponse est enregistrée.</span>'}
+            ${gere ? `<button class="lien-danger" data-act="rempl-annuler" data-id="${r.id}">Annuler la demande</button>` : ''}</p>`
+          : `<div class="avert" style="margin:0 0 10px"><b>Le groupe est d’accord.</b> Envoyez ce lien à la personne qui reprend la place de ${esc(r.sortant_prenom)}.</div>
+            <a class="btn btn-wa-sou btn-plein" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msgP)}">Envoyer l’invitation par WhatsApp</a>
+            <p style="margin:8px 0 0;display:grid;gap:8px"><button class="btn btn-sec btn-plein" data-act="copier" data-lien="${esc(lienP)}">Copier le lien</button>${gere ? `<button class="lien-danger" data-act="rempl-annuler" data-id="${r.id}">Annuler la demande</button>` : ''}</p>`}</section>`;
+      } else if (peutMoi || (orga && autres.length)) {
+        rempl = `<section class="carte"><details class="plus-options"><summary>${peutMoi ? 'Je dois partir : être remplacé(e)' : 'Remplacer un membre qui doit partir'}</summary>
+          <p class="petit muted">Possible tant que la personne n’a pas commencé à recevoir la cagnotte. Il faut son accord et celui de la majorité des autres membres. La personne qui reprend la place reçoit les mêmes tours et lui rembourse directement ce qu’elle a déjà versé.</p>
+          ${peutMoi ? `<button class="btn btn-sec" data-act="rempl-moi">Demander à être remplacé(e)</button>` : `<div class="f"><label>Membre à remplacer<select id="remplQui">${autres.map(x => `<option value="${esc(x)}">${esc(nomDe(x))}</option>`).join('')}</select></label><button class="btn btn-sec" data-act="rempl-orga">Proposer le remplacement</button></div>`}</details></section>`;
+      }
+      if (d4.remplaces.length) rempl += `<section class="carte petit muted">${d4.remplaces.map(x => `${esc(x.entrant || 'Un membre')} a remplacé ${esc(x.sortant)} le ${esc(jourLong(String(x.quand).slice(0, 10)))}${Number(x.du) ? ' (remboursement de ' + eur(x.du) + ' convenu entre eux)' : ''}.`).join('<br>')}</section>`;
+    }
     if (d4 && t.statut === 'en_cours') {
       const e = d4.mon_engagement, n = d4.signes.length, manquent = d.membres.filter(m => !d4.signes.includes(m.id));
       lot4 = e ? `<section class="carte carte-eng ok"><div class="a-titre"><span class="t-ico" aria-hidden="true">${IC.coche}</span><div><b>Engagement signé</b><small>le ${esc(jourHeure(e.signe_at))}</small></div></div>
@@ -399,12 +424,13 @@ const APP = {
           <label class="case-ok"><input type="checkbox" id="engOk"> <span>J’ai lu ce texte et je m’engage envers les membres du groupe.</span></label>
           <button class="btn btn-p btn-plein" data-act="signer">Signer mon engagement</button></div></section>`;
     }
-    return `<div class="wrap sou">${entete}${agirHaut}${t.statut === 'terminee' ? lot4 : ''}${objectif}${t.statut === 'en_cours' ? lot4 : ''}${corps}</div>`;
+    return `<div class="wrap sou">${entete}${agirHaut}${t.statut === 'terminee' ? lot4 : ''}${objectif}${t.statut === 'en_cours' ? rempl + lot4 : ''}${corps}</div>`;
   }
 
   async function tontine(id) {
     if (!exigeCompte()) return;
     attente();
+    const M_ID = () => d.moi.id;
     const avec4 = await lot4Pret(), lire4 = () => avec4 ? q(sb.rpc('sou_detail4', { t_id: id })).catch(() => null) : Promise.resolve(null);
     let [d, d4] = await Promise.all([q(sb.rpc('sou_detail', { t_id: id })), lire4()]);
     let emoji = '';
@@ -419,7 +445,7 @@ const APP = {
     let ordre = [];
     const dessinerOrdre = () => { const ol = $('#ordreL'); if (!ol) return; ol.innerHTML = ordre.map((m, i) => `<li><b>${i + 1}</b><span>${esc(m.prenom)}${i < (d4?.deja || 0) ? ' <small class="deja-recu">a déjà reçu</small>' : ''}</span><button data-ord="-1" data-i="${i}" aria-label="Monter ${esc(m.prenom)}" ${i === 0 ? 'disabled' : ''}>↑</button><button data-ord="1" data-i="${i}" aria-label="Descendre ${esc(m.prenom)}" ${i === ordre.length - 1 ? 'disabled' : ''}>↓</button></li>`).join(''); };
     const lier = () => {
-      ordre = d.membres.slice();
+      ordre = d.membres.flatMap(m => Array((d4 && d4.parts && d4.parts[m.id]) || 1).fill(m));   // double main : 2 places dans l'ordre
       if (d4 && d4.deja && $('#ordreL')) dessinerOrdre();   // tontine reprise : l'ordre réel se place tout de suite
       const a = $('#app');
       a.onchange = e => { if (e.target.name === 'mode') { const ol = $('#ordreL'); ol.hidden = e.target.value !== 'choisi'; dessinerOrdre(); } };
@@ -437,7 +463,7 @@ const APP = {
           garderPays($('#inNumPays').value); window.open('https://wa.me/' + n.slice(1) + '?text=' + encodeURIComponent(b.dataset.msg), '_blank', 'noopener'); return;
         }
         if (act === 'copier') { try { await navigator.clipboard.writeText(b.dataset.lien); toast('Lien copié : collez-le dans un message.'); } catch (x) { toast('Copiez le code : ' + d.tontine.code); } return; }
-        if (['annuler', 'quitter', 'retard', 'ech-non', 'verse', 'msg-del'].includes(act) && !doubleClic(b)) return;
+        if (['annuler', 'quitter', 'retard', 'ech-non', 'verse', 'msg-del', 'rempl-moi', 'rempl-orga', 'rempl-annuler'].includes(act) && !doubleClic(b)) return;
         b.disabled = true;
         try {
           if (act === 'demarrer') {
@@ -450,6 +476,11 @@ const APP = {
           else if (act === 'renouveler') {
             const v = $('#renDebut').value; if (!v || v < aujourdhui()) { b.disabled = false; return toast('Choisissez une date à partir d’aujourd’hui.', true); }
             const nid = await q(sb.rpc('sou_renouveler', { t_id: id, debut_c: v })); toast('C’est reparti ! Les membres sont invités à confirmer.'); oublier(''); return aller('#/t/' + nid);
+          } else if (act === 'parts') { await q(sb.rpc('sou_mes_parts', { t_id: id, parts_c: Number(b.dataset.n) })); toast(b.dataset.n === '2' ? 'Vous prenez 2 parts (double main).' : 'Vous revenez à une seule part.');
+          } else if (act === 'rempl-moi' || act === 'rempl-orga') {
+            await q(sb.rpc('sou_demander_remplacement', { t_id: id, sortant_c: act === 'rempl-moi' ? M_ID() : $('#remplQui').value })); toast('Demande envoyée : les membres vont répondre.');
+          } else if (act === 'rempl-oui' || act === 'rempl-non') { await q(sb.rpc('sou_voter_remplacement', { r_id: cible, oui_c: act === 'rempl-oui' })); toast('Réponse enregistrée.');
+          } else if (act === 'rempl-annuler') { await q(sb.rpc('sou_annuler_remplacement', { r_id: cible })); toast('Demande annulée.');
           } else if (act === 'signer') {
             if (!$('#engOk').checked) { b.disabled = false; return toast('Cochez la case pour confirmer votre engagement.', true); }
             await q(sb.rpc('sou_signer', { t_id: id, nom_s: $('#engNom').value })); toast('Engagement signé. Merci pour le groupe !');
@@ -576,23 +607,24 @@ const APP = {
     }
     attente();
     let t;
-    try { t = await q(sb.rpc('sou_apercu', { code_c: code })); } catch (err) {
+    try { t = await q(sb.rpc('sou_apercu', { code_c: code })); t.lot5 = await lot5Pret(); } catch (err) {
       vue(`<div class="wrap sou"><div class="vide-etat"><h3>Code inconnu</h3><p class="muted">${esc(erreur(err))}</p><a class="btn btn-p" href="#/rejoindre">Essayer un autre code</a></div></div>`); return;
     }
     const places = t.nb_membres - t.inscrits, ouvert = t.statut === 'preparation' && places > 0 && !t.deja_membre;
     vue(`<div class="wrap sou"><div class="entrer">${logoEntrer('Rejoindre « ' + esc(t.nom) + ' »', 'Organisé par <b>' + esc(t.organisateur) + '</b>' + (t.suite_de ? ' · suite de « ' + esc(t.suite_de) + ' »' : ''))}<section class="carte"><div class="gros-montant">${eur(t.montant)} <small>par ${rythme(t.periodicite)}</small></div>
-      <p style="margin:8px 0 0">${t.nb_membres} membres : cagnotte de <b>${eur(t.montant * t.nb_membres)}</b> à chaque tour. Début prévu le ${esc(jourLong(t.debut))}.</p>
-      <p class="muted petit" style="margin:6px 0 0">${t.inscrits} inscrit${t.inscrits > 1 ? 's' : ''} sur ${t.nb_membres}.</p></section>
+      <p style="margin:8px 0 0">${t.nb_membres} ${t.lot5 ? 'places' : 'membres'} : cagnotte de <b>${eur(t.montant * t.nb_membres)}</b> à chaque tour. Début prévu le ${esc(jourLong(t.debut))}.</p>
+      <p class="muted petit" style="margin:6px 0 0">${t.lot5 ? `${t.inscrits} place${t.inscrits > 1 ? 's' : ''} prise${t.inscrits > 1 ? 's' : ''} sur ${t.nb_membres}.` : `${t.inscrits} inscrit${t.inscrits > 1 ? 's' : ''} sur ${t.nb_membres}.`}</p></section>
       ${t.deja_membre ? `<div class="avert">Vous faites déjà partie de cette tontine.</div><a class="btn btn-p btn-gros btn-plein" href="#/t/${t.id}">Ouvrir la tontine</a>`
         : t.statut !== 'preparation' ? '<div class="avert"><b>Cette tontine a déjà démarré ou n’existe plus.</b> On ne peut plus la rejoindre.</div><a class="btn btn-sec btn-plein" href="#/">Mes tontines</a>'
         : places <= 0 ? '<div class="avert"><b>Cette tontine est complète.</b></div><a class="btn btn-sec btn-plein" href="#/">Mes tontines</a>'
         : `<div class="avert"><b>Avant de vous engager.</b> Vous versez ${eur(t.montant)} à chaque échéance directement au membre qui reçoit, jusqu’au dernier tour, y compris après avoir reçu votre tour. Sousou ne touche pas à l’argent.</div>
           ${t.deja ? `<div class="avert"><b>Cette tontine a déjà commencé</b> entre les membres : ${t.deja > 1 ? 'les tours 1 à ' + t.deja + ' sont réglés' : 'le tour 1 est réglé'}. Sousou la suit à partir du tour ${t.deja + 1}.</div>` : ''}
-          <form class="f" id="fJoin">${t.deja ? `<label class="case-ok"><input type="checkbox" required> <span>Je confirme que ${t.deja > 1 ? 'les ' + t.deja + ' premiers tours ont' : 'le premier tour a'} déjà été réglé${t.deja > 1 ? 's' : ''} entre nous.</span></label>` : ''}<label class="case-ok"><input type="checkbox" required> <span>J’ai 18 ans ou plus, je connais les membres et je m’engage envers le groupe. <a href="cgu.html" target="_blank">Conditions et risques</a></span></label><button class="btn btn-p btn-gros btn-plein" ${ouvert ? '' : 'disabled'}>Rejoindre la tontine</button></form>`}</div></div>`);
+          <form class="f" id="fJoin">${t.deja ? `<label class="case-ok"><input type="checkbox" required> <span>Je confirme que ${t.deja > 1 ? 'les ' + t.deja + ' premiers tours ont' : 'le premier tour a'} déjà été réglé${t.deja > 1 ? 's' : ''} entre nous.</span></label>` : ''}${t.lot5 && t.places_libres >= 2 ? `<fieldset style="border:0;padding:0;margin:0"><legend style="font-weight:800;margin-bottom:6px">Combien de parts ?</legend><div class="choix-2"><label><input type="radio" name="parts" value="1" checked>1 part<small>${eur(t.montant)} par ${rythme(t.periodicite)}, une cagnotte</small></label><label><input type="radio" name="parts" value="2">2 parts (double main)<small>${eur(t.montant * 2)} par ${rythme(t.periodicite)}, deux cagnottes</small></label></div></fieldset>` : ''}<label class="case-ok"><input type="checkbox" required> <span>J’ai 18 ans ou plus, je connais les membres et je m’engage envers le groupe. <a href="cgu.html" target="_blank">Conditions et risques</a></span></label><button class="btn btn-p btn-gros btn-plein" ${ouvert ? '' : 'disabled'}>Rejoindre la tontine</button></form>`}</div></div>`);
     const f = $('#fJoin');
     if (f) f.addEventListener('submit', async ev => {
       ev.preventDefault(); const b = f.querySelector('button'); b.disabled = true;
-      try { const id = await q(sb.rpc('sou_rejoindre', { code_c: code })); oublier(''); toast('Bienvenue dans le groupe !'); aller('#/t/' + id); } catch (err) { toast(erreur(err), true); b.disabled = false; }
+      const nParts = Number(f.querySelector('[name=parts]:checked')?.value || 1);
+      try { const id = await q(nParts > 1 ? sb.rpc('sou_rejoindre2', { code_c: code, parts_c: nParts }) : sb.rpc('sou_rejoindre', { code_c: code })); oublier(''); toast('Bienvenue dans le groupe !'); aller('#/t/' + id); } catch (err) { toast(erreur(err), true); b.disabled = false; }
     });
   }
 
@@ -682,7 +714,34 @@ const APP = {
     $('#app').onclick = ev => { if (ev.target.closest('[data-act=imprimer]')) window.print(); };
   }
 
-  Object.assign(APP.pages, { '': accueil, t: tontine, recap, engagement, creer, rejoindre, avis, aide, compte });
+  // ---------------------------------------------------------------- D. reprendre la place d'un membre qui part (lien envoyé par le groupe)
+  async function place() {
+    if (!exigeCompte()) return;
+    const code = (param().code || '').trim().toUpperCase();
+    attente();
+    let x;
+    try { x = await q(sb.rpc('sou_apercu_place', { code_c: code })); } catch (err) {
+      return vue(`<div class="wrap sou"><div class="vide-etat"><h3>Lien inconnu</h3><p class="muted">${esc(erreur(err))}</p><a class="btn btn-p" href="#/">Mes tontines</a></div></div>`);
+    }
+    const parts = x.parts || 1, verse = eur(x.montant * parts);
+    vue(`<div class="wrap sou"><div class="entrer">${logoEntrer('Reprendre une place', 'dans « ' + esc(x.nom) + ' », organisée par <b>' + esc(x.organisateur) + '</b>')}
+      <section class="carte"><p style="margin:0">Vous remplacez <b>${esc(x.sortant)}</b>, qui doit partir.</p>
+        <ul class="recap-l"><li><span>Vous versez</span><b>${verse} par ${rythme(x.periodicite)}${parts > 1 ? ' (2 parts)' : ''}</b></li><li><span>Vous recevez</span><b>${eur(x.cagnotte)} ${x.tours.length > 1 ? 'aux tours' : 'au tour'} ${x.tours.map(r => r.numero + ' (' + esc(jourLong(r.echeance)) + ')').join(' et ')}</b></li>
+        <li><span>À rembourser à ${esc(x.sortant)}</span><b>${eur(x.du)}</b></li></ul>
+        <p class="petit muted" style="margin:0">${Number(x.du) ? `C’est ce que ${esc(x.sortant)} a déjà versé au groupe. Vous le lui remboursez directement : Sousou ne touche pas à l’argent.` : `${esc(x.sortant)} n’a encore rien versé : rien à rembourser.`}</p></section>
+      ${x.deja_membre ? `<div class="avert">Vous faites déjà partie de cette tontine.</div><a class="btn btn-p btn-plein" href="#/t/${esc(x.tontine_id)}">Ouvrir la tontine</a>`
+        : !x.ouvert ? '<div class="avert"><b>Cette place n’est plus à reprendre.</b></div><a class="btn btn-sec btn-plein" href="#/">Mes tontines</a>'
+        : `<form class="f" id="fPlace">${Number(x.du) ? `<label class="case-ok"><input type="checkbox" required> <span>Je rembourse ${eur(x.du)} à ${esc(x.sortant)}, directement.</span></label>` : ''}
+          <label class="case-ok"><input type="checkbox" required> <span>J’ai 18 ans ou plus, je connais les membres et je m’engage envers le groupe jusqu’au dernier tour. <a href="cgu.html" target="_blank">Conditions et risques</a></span></label>
+          <button class="btn btn-p btn-gros btn-plein">Reprendre la place</button></form>`}</div></div>`);
+    const f = $('#fPlace');
+    if (f) f.addEventListener('submit', async ev => {
+      ev.preventDefault(); const b = f.querySelector('button'); b.disabled = true;
+      try { const id = await q(sb.rpc('sou_reprendre_place', { code_c: code })); oublier(''); toast('Bienvenue dans le groupe !'); aller('#/t/' + id); } catch (err) { toast(erreur(err), true); b.disabled = false; }
+    });
+  }
+
+  Object.assign(APP.pages, { '': accueil, t: tontine, recap, engagement, place, creer, rejoindre, avis, aide, compte });
 /* service worker : enregistré par pwa.js (commun/pwa.js) */
   demarrer();
 })();
