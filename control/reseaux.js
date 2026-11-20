@@ -13,15 +13,45 @@ const rsJour = d => new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', d
 const rsType = c => c?.kind === 'images' ? 'Carrousel' : 'Vidéo';
 const rsCanaux = p => Object.keys(p.canaux || {}).map(k => (RS_RESEAUX[k.split(':')[0]] || 'autre') + (k.endsWith(':story') ? ' (story)' : ''));
 
+// Hub marketing (PC, Desktop\DigitaleEntertainment) : son état déposé toutes les 5 min dans mk_etat, et les comptes clients de
+// l'espace client (commun/marketing2.sql). Affichage seulement : la validation reste dans le hub ou chez le client. Caché sans la base.
+const rsHub = async () => {
+  let h, comptes;
+  try { [h, comptes] = await Promise.all([q(sb.rpc('mk_etat_hub')), q(sb.rpc('mk_admin_comptes'))]); } catch (e) { return ''; }
+  const age = h.age_minutes, allume = age != null && age < 15, r = h.resume || {}, wa = r.whatsapp || {};
+  const kpi = (a, b, c) => `<div class="ctl-kpi"><span>${a}</span><b>${b}</b><small>${c}</small></div>`;
+  const prochaines = (h.prochaines || []).map(p => `<div class="ctl-ligne"><span><b>${esc(p.titre || 'Sans titre')}</b><small>${esc(p.compte || '—')} · ${esc((p.reseaux || []).join(', ') || '—')} · ${p.quand ? esc(jourCourt(p.quand) + ' ' + rsHeure(p.quand)) : 'date à fixer'}${p.statut === 'chez_client' ? ' · chez le client' : ''}</small></span></div>`).join('');
+  const lignesC = comptes.map(c => `<div class="ctl-ligne"><span><b>${esc(c.nom || c.id)}</b><small>${esc(c.id)} · ${c.membres.length ? esc(c.membres.map(m => m.email).join(', ')) : 'aucun membre'} · ${nbFr(c.a_valider)} à valider${c.actif ? '' : ' · inactif'}</small></span></div>`).join('');
+  return `${carte('Hub marketing', `<p><span class="tag ${allume ? 'ok' : 'att'}">${age == null ? 'Hub jamais vu' : allume ? 'PC allumé · vu ' + esc(ilYa(new Date(h.vu_le))) : 'Hub éteint depuis ' + esc(ilYa(new Date(h.vu_le)))}</span></p>
+      <div class="ctl-kpis">${kpi('À valider par vous', nbFr(r.a_valider ?? h.a_valider), 'dans le hub')}${kpi('Chez les clients', nbFr(h.chez_clients), 'en attente de leur accord')}
+        ${kpi('Envoyées sur 7 jours', nbFr(r.envoyees_7j ?? h.envoyees_7j), nbFr(r.erreurs_7j || 0) + ' échec(s)')}${kpi('Robot WhatsApp', esc({ connecte: 'Connecté', authentifie: 'Connecté', arrete: 'Arrêté', qr: 'QR à scanner', demarrage: 'Démarrage', deconnecte: 'Déconnecté', echec: 'Échec' }[wa.statut] || wa.statut || '—'), wa.plafond ? `${nbFr(wa.envois_jour || 0)} message(s) sur ${nbFr(wa.plafond)} aujourd’hui` : '')}</div>
+      ${prochaines ? '<h3 class="petit">Prochaines publications</h3>' + prochaines : ''}
+      <p class="petit muted">La validation se fait dans le hub (sur le PC) ou par le client dans son espace (ilo-tech.com/digital/espace/).</p>`)}
+    ${carte('Comptes clients de l’espace en ligne', `${lignesC || '<p class="muted">Aucun compte client.</p>'}
+      <form class="f" id="rsCompte"><div class="ligne-f"><input name="id" placeholder="identifiant (ex. ti-pen), le même que dans le hub" pattern="[a-z0-9-]{2,40}" required aria-label="Identifiant du compte">
+        <input name="nom" placeholder="Nom de l’entreprise" required aria-label="Nom de l’entreprise"><button class="btn btn-s">Créer ou renommer</button></div></form>
+      <form class="f" id="rsMembre"><div class="ligne-f"><select name="compte" aria-label="Compte">${comptes.map(c => `<option value="${esc(c.id)}">${esc(c.nom || c.id)}</option>`).join('')}</select>
+        <input name="email" type="email" placeholder="e-mail du client (il doit avoir créé son compte)" required aria-label="E-mail du client"><button class="btn btn-s">Relier</button></div></form>`)}`;
+};
+
 APP.pages.reseaux = async () => {
   if (!garde('reseaux')) return;
   attente();
-  let cat, etat, cloud, journal;
+  let cat, etat, cloud, journal, hub;
   try {
-    [cat, etat, cloud, journal] = await Promise.all([rsLire('catalogue.json'), rsLire('etat.json'), rsLire('cloud.json').catch(() => ({})), rsLire('journal.txt', false).catch(() => '')]);
+    [cat, etat, cloud, journal, hub] = await Promise.all([rsLire('catalogue.json'), rsLire('etat.json'), rsLire('cloud.json').catch(() => ({})), rsLire('journal.txt', false).catch(() => ''), rsHub()]);
   } catch (e) {
-    return vue(page('Réseaux', '<div class="bandeau att"><span><b>Les fichiers du robot de publication sont injoignables.</b> Vérifiez la connexion, puis rechargez la page.</span></div>'));
+    return vue(page('Réseaux', (await rsHub()) + '<div class="bandeau att"><span><b>Les fichiers du robot de publication sont injoignables.</b> Vérifiez la connexion, puis rechargez la page.</span></div>'));
   }
+  $('#app').onsubmit = async ev => {
+    const f = ev.target; if (!['rsCompte', 'rsMembre'].includes(f.id)) return;
+    ev.preventDefault(); const b = f.querySelector('button'); b.disabled = true;
+    try {
+      if (f.id === 'rsCompte') await q(sb.rpc('mk_admin_compte', { id: f.elements.id.value.trim(), nom: f.elements.nom.value.trim(), actif: true }));
+      else await q(sb.rpc('mk_admin_membre', { compte: f.elements.compte.value, email: f.elements.email.value.trim(), ajouter: true }));
+      toast('Enregistré.'); APP.pages.reseaux();
+    } catch (e) { toast(erreur(e), true); b.disabled = false; }
+  };
   const parId = Object.fromEntries((cat.contenus || []).map(c => [c.id, c]));
   const posts = Object.entries(etat.posts || {}).map(([id, p]) => ({ id, ...p, c: parId[id] })).sort((a, b) => new Date(a.date) - new Date(b.date));
   const now = Date.now();
@@ -40,7 +70,7 @@ APP.pages.reseaux = async () => {
   const jours = {};
   avenir.slice(0, 40).forEach(p => (jours[rsJour(p.date)] = jours[rsJour(p.date)] || []).push(p));
   const lignesJ = (journal || '').trim().split('\n').filter(Boolean).slice(-12).reverse();
-  vue(page('Réseaux', `${alertes.map(a => `<div class="bandeau att"><span>${esc(a)}</span></div>`).join('')}
+  vue(page('Réseaux', `${hub}${alertes.map(a => `<div class="bandeau att"><span>${esc(a)}</span></div>`).join('')}
     <div class="ctl-kpis">${kpi('Programmés', nbFr(avenir.length), dernier && avenir.length ? 'jusqu’au ' + jourCourt(dernier) : 'rien à venir')}
       ${kpi('En réserve', nbFr(reserve.length), 'prêts, pas encore programmés')}
       ${kpi('Publiés', nbFr(passes.length), 'depuis le début')}

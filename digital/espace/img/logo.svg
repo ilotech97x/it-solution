@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="IloTech Studio">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a855f7"/><stop offset=".55" stop-color="#ec4899"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>
+  <rect width="64" height="64" rx="16" fill="#120c22"/>
+  <path d="M32 9l5.2 13.3L50.5 27.5l-13.3 5.2L32 46l-5.2-13.3L13.5 27.5l13.3-5.2z" fill="url(#g)"/>
+  <path d="M48 40l2.2 5.6L56 48l-5.8 2.4L48 56l-2.2-5.6L40 48l5.8-2.4z" fill="#22d3ee"/>
+  <circle cx="17" cy="47" r="3" fill="#ec4899"/>
+</svg>

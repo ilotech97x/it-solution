@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr" data-app="espace">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Espace client — IloTech Studio</title>
+  <meta name="theme-color" content="#7E22CE">
+  <link rel="icon" href="img/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://mocntvrlwdndyuiwrxen.supabase.co" crossorigin>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="img/icone-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Espace client">
+  <link rel="preload" href="fonts/nunito.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="espace.css?v=1">
+</head>
+<body>
+  <header class="haut"><div class="wrap">
+    <button class="retour-app" id="retourApp" type="button" aria-label="Retour" hidden>‹</button>
+    <a class="logo" href="#/" aria-label="Espace client, accueil"><span>Espace client</span></a>
+    <span class="titre-app" id="titreApp" aria-hidden="true"></span>
+    <nav class="nav" id="nav" aria-label="Menu principal"></nav>
+  </div></header>
+  <main id="app"><div class="demarrage" aria-hidden="true"><b>Espace client</b></div><noscript><div class="wrap" style="padding:40px 20px"><h1>Espace client IloTech Studio</h1><p>Activez JavaScript pour utiliser l’espace client. Contact : WhatsApp 0696 48 26 78.</p></div></noscript></main>
+  <nav class="bas" id="bas" aria-label="Navigation"></nav>
+  <script src="pwa.js?v=1" defer></script>
+  <script src="config.js?v=1" defer></script>
+  <script src="lib/supabase.js?v=2.45.4" defer></script>
+  <script src="territoires.js?v=1" defer></script>
+  <script src="base.js?v=12" defer></script>
+  <script src="espace.js?v=1" defer></script>
+</body>
+</html>

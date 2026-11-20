@@ -336,3 +336,7 @@ h1{font-size:26px}h2{font-size:16px}
 .ctl-t tfoot th, .ctl-t tfoot td { font-weight: 800; border-top: 2px solid var(--ligne); background: transparent; }
 /* Réseaux (16/11) : lignes d'erreur du journal du robot */
 .ctl-j.ko{color:#B42318}
+
+/* bloc Hub marketing du module Réseaux (19/11) */
+.ligne-f{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.ligne-f input,.ligne-f select{flex:1 1 200px;min-width:0}

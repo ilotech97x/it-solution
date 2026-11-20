@@ -1,0 +1,19 @@
+{
+  "name": "Espace client — IloTech Studio",
+  "short_name": "Espace client",
+  "description": "Validez vos publications, suivez votre calendrier et vos chiffres. IloTech Studio, agence marketing et IA.",
+  "lang": "fr",
+  "id": "./",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF8FD",
+  "theme_color": "#7E22CE",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "img/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icone-512-masque.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
