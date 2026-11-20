@@ -45,7 +45,12 @@ function erreur(e) {
   if (/Failed to fetch|NetworkError/i.test(m)) return 'Connexion impossible. Vérifiez votre internet.';
   return m || 'Une erreur est survenue.';
 }
-async function q(p) { const { data, error } = await p; if (error) throw error; return data; }
+async function qBrut(p) { const { data, error } = await p; if (error) throw error; return data; }
+// Lecture d'une page : si l'on a changé de page (ou rechargé la même) pendant la lecture, la réponse n'arrive jamais à l'ancienne page,
+// qui s'arrête là et ne peut plus écraser la nouvelle (course connue jusqu'au 19/11). Le socle (profil, connexion) utilise qBrut.
+let navJeton = 0;
+const qPerimee = () => new Promise(() => {});
+async function q(p) { const j = navJeton; let r; try { r = await qBrut(p); } catch (e) { if (j !== navJeton) return qPerimee(); throw e; } return j !== navJeton ? qPerimee() : r; }
 async function reduire(f) {
   if (!/^image\//.test(f.type)) throw new Error('Choisissez une image (JPEG, PNG ou WebP).');
   const img = await createImageBitmap(f), k = Math.min(1, 1600 / Math.max(img.width, img.height));
@@ -54,7 +59,7 @@ async function reduire(f) {
 }
 async function envoyerPhoto(f) {
   const chemin = `${moi.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-  await q(sb.storage.from('photos').upload(chemin, await reduire(f), { contentType: 'image/jpeg' })); return chemin;
+  await qBrut(sb.storage.from('photos').upload(chemin, await reduire(f), { contentType: 'image/jpeg' })); return chemin;
 }
 // adresse → coordonnées (OpenStreetMap), en restant dans le territoire choisi
 async function geocoder(texte, territoire) {
@@ -90,8 +95,8 @@ async function chargerMoi() {
   moi = null; profil = null; contact = null; nbNotifs = 0; memoire.clear(); if (!PRET) return;
   moi = (await sb.auth.getSession()).data.session?.user || null;
   if (!moi) return;
-  const [p, c, n] = await Promise.all([q(sb.from('profiles').select('*').eq('id', moi.id).maybeSingle()), q(sb.from('contacts').select('*').eq('id', moi.id).maybeSingle()).catch(() => null),
-    q(sb.from('notifs').select('id').eq('lu', false)).catch(() => [])]);
+  const [p, c, n] = await Promise.all([qBrut(sb.from('profiles').select('*').eq('id', moi.id).maybeSingle()), qBrut(sb.from('contacts').select('*').eq('id', moi.id).maybeSingle()).catch(() => null),
+    qBrut(sb.from('notifs').select('id').eq('lu', false)).catch(() => [])]);
   profil = p; contact = c; nbNotifs = n.length;
   if (APP.apresConnexion) await APP.apresConnexion();
 }
@@ -104,12 +109,12 @@ function pageConnexion() {
     <p><button class="lien" id="oubli">Mot de passe oublié ?</button></p>${APP.sansInscription ? '' : '<p class="muted">Pas de compte ? <a href="#/inscription">Créer un compte</a></p>'}</div></div>`);
   $('#fCo').addEventListener('submit', async e => {
     e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)), b = e.target.querySelector('button'); b.disabled = true;
-    try { await q(sb.auth.signInWithPassword({ email: d.email.trim(), password: d.mdp })); await chargerMoi(); toast('Bienvenue ' + (profil?.prenom || '') + ' !'); aller(decodeURIComponent(param().retour || '') || APP.accueilConnecte); }
+    try { await qBrut(sb.auth.signInWithPassword({ email: d.email.trim(), password: d.mdp })); await chargerMoi(); toast('Bienvenue ' + (profil?.prenom || '') + ' !'); aller(decodeURIComponent(param().retour || '') || APP.accueilConnecte); }
     catch (err) { toast(erreur(err), true); b.disabled = false; }
   });
   $('#oubli').addEventListener('click', async () => {
     const email = $('#fCo').email.value.trim(); if (!email) return toast('Écrivez d’abord votre email.', true);
-    try { await q(lienMdp(email)); toast('Si un compte existe, un email est envoyé.'); } catch (err) { toast(erreur(err), true); }
+    try { await qBrut(lienMdp(email)); toast('Si un compte existe, un email est envoyé.'); } catch (err) { toast(erreur(err), true); }
   });
 }
 function pageInscription() {
@@ -127,7 +132,7 @@ function pageInscription() {
     e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)), b = e.target.querySelector('button'); b.disabled = true;
     try {
       // comptes réservés aux 15 ans et plus (âge du consentement numérique) : la déclaration est gardée avec le compte
-      const r = await q(sb.auth.signUp({ email: d.email.trim(), password: d.mdp, options: { data: { prenom: d.prenom.trim(), nom: d.nom.trim(), telephone: d.telephone.trim(), quinze_ans: !!d.quinze_ans } } }));
+      const r = await qBrut(sb.auth.signUp({ email: d.email.trim(), password: d.mdp, options: { data: { prenom: d.prenom.trim(), nom: d.nom.trim(), telephone: d.telephone.trim(), quinze_ans: !!d.quinze_ans } } }));
       if (r.session) { await chargerMoi(); toast('Compte créé, bienvenue !'); aller(decodeURIComponent(param().retour || '') || APP.apresInscription || APP.accueilConnecte); }
       else vue('<div class="wrap"><div class="carte-f"><h1>Vérifiez vos emails 📩</h1><p>Cliquez sur le lien reçu pour activer votre compte, puis connectez-vous.</p></div></div>');
     } catch (err) { toast(erreur(err), true); b.disabled = false; }
@@ -199,6 +204,7 @@ const chargerScript = src => new Promise((ok, ko) => { if (document.querySelecto
 const rediriger = h => location.replace(h);
 function revenir() { if ((history.state?.rang || 1) > 1) history.back(); else aller(APP.parent ? APP.parent(location.hash) : '#/'); }
 async function rendre() {
+  navJeton++;   // les lectures en cours de la page précédente ne pourront plus l'afficher
   const brut = location.hash || '#/', h = brut.split('?')[0], parts = h.split('/').slice(1);
   const prec = pageEnCours === null ? null : (pageEnCours || '#/').split('?')[0];
   defilements[rang] = scrollY;
