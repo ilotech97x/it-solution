@@ -425,7 +425,11 @@ const APP = {
           <label class="case-ok"><input type="checkbox" id="engOk"> <span>J’ai lu ce texte et je m’engage envers les membres du groupe.</span></label>
           <button class="btn btn-p btn-plein" data-act="signer">Signer mon engagement</button></div></section>`;
     }
-    return `<div class="wrap sou">${entete}${agirHaut}${t.statut === 'terminee' ? lot4 : ''}${objectif}${t.statut === 'en_cours' ? rempl + lot4 : ''}${corps}</div>`;
+    // objectif vide (seulement « Ajouter un objectif ») : en bas, il ne pousse plus le principal vers le bas (ergonomie 19/11) ;
+    // sur ordinateur, objectif, remplacement et engagement vont dans la colonne de droite (classe pg-t, voir theme.css)
+    const objBas = objectif && !t.objectif && !decompte;
+    const cote = `${t.statut === 'terminee' ? lot4 : ''}${objBas ? '' : objectif}${t.statut === 'en_cours' ? rempl + lot4 : ''}`;
+    return `<div class="wrap sou pg-t">${entete}${agirHaut}${cote.trim() ? `<div class="cote">${cote}</div>` : ''}${corps}${objBas ? `<div class="cote cote-bas">${objectif}</div>` : ''}</div>`;
   }
 
   async function tontine(id) {
