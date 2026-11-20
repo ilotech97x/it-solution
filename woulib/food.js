@@ -35,6 +35,25 @@ const carteArticle = (p, n, ok) => `<div class="article ${finArticle(p) ? 'fini'
   <div class="art-bas"><span class="prix">${eur(p.prix)}</span>${finArticle(p) ? '<span class="tag gris">Épuisé</span>' : ok ? `<div class="qte ${n ? '' : 'zero'}" data-plat="${p.id}"><button type="button" data-d="-1" aria-label="Retirer un ${esc(p.nom)}">−</button><output>${n}</output><button type="button" data-d="1" aria-label="Ajouter ${esc(p.nom)}">+</button></div>` : ''}</div>
   ${!finArticle(p) && p.stock != null && p.stock <= 5 ? `<small class="art-stock">Plus que ${p.stock}</small>` : ''}</div>`;
 const maxArticle = p => Math.min(20, p.stock ?? 20);
+// vitrine de l'accueil (20/11) : boissons fraîches, crêpes et douceurs, à grignoter, en grandes photos ; uniquement de vrais plats publiés
+const VITRINE = [['boisson', '🥤 Boissons fraîches', p => p.categorie === 'boisson'],
+  ['douceur', '🥞 Crêpes et douceurs', p => p.categorie === 'dessert' || /cr[eê]pe|galette|gaufre/i.test(p.nom)],
+  ['grignoter', '🧆 À grignoter', p => ['entree', 'accompagnement'].includes(p.categorie) && !/cr[eê]pe|galette/i.test(p.nom)]];
+async function afficherVitrine(restos) {
+  const el = $('#vitrineAcc'); if (!el || !restos.length) return;
+  const ouverts = restos;   // déjà filtrés : ouverts maintenant
+  const l = await memo('acc-vitrine:' + ouverts.map(r => r.id).join(','), () => q(sb.from('plats').select('*').in('restaurant_id', ouverts.map(r => r.id))
+    .in('categorie', ['boisson', 'dessert', 'entree', 'accompagnement', 'plat']).eq('dispo', true).not('photo', 'is', null).order('ordre').limit(80)), 30000);
+  const rayons = VITRINE.map(([k, t, f]) => [k, t, l.filter(p => p.stock !== 0 && f(p)).slice(0, 10)]).filter(([, , x]) => x.length);
+  if (!rayons.length || !$('#vitrineAcc')) return;
+  const resto = id => restos.find(r => r.id === id);
+  el.innerHTML = `<div class="titre-s"><h2>La vitrine</h2><a class="petit" href="credits-photos.html">Crédits photos</a></div>
+    ${rayons.map(([k, t, x]) => `<h3 class="vit-t">${t}</h3><div class="defile vit-defile">${x.map(p => `<a class="vit-c" href="#/resto/${p.restaurant_id}?plat=${p.id}">
+      <span class="vit-img"><img src="${esc(photo(p.photo))}" alt="${esc(p.nom)}" loading="lazy" width="400" height="400"></span>
+      <span class="vit-txt"><b>${esc(p.nom)}</b>${p.description ? `<small>${esc(p.description)}</small>` : ''}<span class="art-bas"><span class="prix">${eur(p.prix)}</span><i class="plus-c" aria-hidden="true">+</i></span>
+      <small class="vit-resto">${esc(resto(p.restaurant_id)?.nom || '')} · ${resto(p.restaurant_id)?.delai_min || 30} min</small></span></a>`).join('')}</div>`).join('')}`;
+  el.hidden = false;
+}
 // accueil : des plats des restaurants ouverts ; un geste ouvre la carte du restaurant sur ce plat
 async function afficherPlatsAccueil(restos) {
   const el = $('#platsAcc'); if (!el || !restos.length) return;
@@ -133,7 +152,7 @@ const pageMarche = async marche => {
     ${com ? `<div class="puces puces-v" role="group" aria-label="Rayons">${RAYONS_FILTRE.map(([k, t]) => puce({ rayon: p.rayon === k ? '' : k }, `${RAYON_ICO[k] || ''} ${t}`, p.rayon === k)).join('')}</div>`
       : `<div class="puces" role="group" aria-label="Cuisines">${cuisinesVisibles().filter(([k]) => !TYPES_BOUTIQUE.includes(k)).map(([k, [i, t]]) => puce({ cuisine: p.cuisine === k ? '' : k }, `${i} ${esc(t)}`, p.cuisine === k)).join('')}</div>`}
     <div id="encore"></div><div id="favsM"></div>
-    ${com || p.q ? '' : '<section class="section" id="platsAcc" hidden></section>'}${com && !p.q && !p.rayon ? '<section class="section" id="boutiqueAcc" hidden></section>' : ''}
+    ${com || p.q ? '' : '<section class="section vitrine" id="vitrineAcc" hidden></section><section class="section" id="platsAcc" hidden></section>'}${com && !p.q && !p.rayon ? '<section class="section" id="boutiqueAcc" hidden></section>' : ''}
     <h2 id="titreListe">${p.q ? `Résultats pour « ${esc(p.q)} »` : com ? 'Commerces' : 'Restaurants'}</h2>
     <div id="liste" class="chargement">Chargement…</div>
     ${com ? `<p class="petit muted" style="margin-top:12px">Alcool : vente réservée aux 18 ans et plus, âge vérifié à la remise.</p>` : ''}
@@ -173,7 +192,7 @@ const pageMarche = async marche => {
   const filtre = p.q || p.cuisine || p.mode || p.rayon || p.ouvert || p.commune;
   $('#liste').innerHTML = l.length ? l.map(x => carteResto(x, notes[x.id])).join('') : `<div class="vide-etat"><span class="ico">${com ? ICO.commerce : ICO.manger}</span><h3>${filtre ? (com ? 'Aucun commerce pour ces filtres' : 'Aucun restaurant pour ces filtres') : com ? `Pas encore de commerce en ${esc(terr)}` : `Les premiers restaurants arrivent en ${esc(terr)}`}</h3>
     <p class="muted">${filtre ? 'Essayez sans filtre, ou un autre mot.' : 'Nous vérifions chaque professionnel avant sa mise en ligne.'}</p>${filtre ? `<a class="btn btn-p" href="${com ? '#/commerce' : '#/manger'}">Tout afficher</a>` : `<a class="btn btn-p" href="#/pros">Inscrire mon ${com ? 'commerce' : 'restaurant'}</a>`}</div>`;
-  if (!com && !p.q) afficherPlatsAccueil(l.filter(x => etatOuverture(x).ouvert)).catch(() => {});   // plats des restaurants ouverts, en vitrine
+  if (!com && !p.q) { const ouv = l.filter(x => etatOuverture(x).ouvert); afficherVitrine(ouv).catch(() => {}); afficherPlatsAccueil(ouv).catch(() => {}); }   // plats des restaurants ouverts, en vitrine
   if (com && !p.q && !p.rayon) afficherBoutiqueAccueil(terr).catch(() => {});   // la boutique ouverte la plus proche, en vitrine
   afficherEnCours('commandes').catch(() => {});
 };
