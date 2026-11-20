@@ -32,7 +32,7 @@
     <a class="prod-l" href="#/p/${p.id}"><span class="im-w"><span class="im ${p.photo ? '' : 'vide'}"${fond(p.photo)}>${p.photo ? '' : '👟'}</span>${badges(p)}${p.enchere ? `<span class="chrono" data-fin="${esc(p.enchere.fin)}" data-debut="${esc(p.enchere.debut)}"><span>⏱</span><b>…</b></span>` : ''}</span>
       ${p.marque ? `<span class="marque">${esc(p.marque)}</span>` : ''}<span class="titre">${esc(p.titre)}</span><span class="px-l">${prixCarte(p)}</span>
       <span class="vend">${esc(p.vendeur_nom)} · ${p.vendeur_type === 'professionnel' ? 'Pro' : 'Particulier'}${p.etat === 'occasion' ? ' · Occasion' : ''}${p.commune ? ' · ' + esc(p.commune) : ''}</span>
-      ${p.nb_avis ? `<span class="note-m"><b>★ ${dec(p.note)}</b> (${p.nb_avis})</span>` : ''}</a></article>`;
+      ${p.nb_avis ? `<span class="note-m"><b>★ ${dec(p.note)}</b> (${p.nb_avis})</span>` : ''}</a><button type="button" class="apercu-b" data-act="apercu" data-id="${p.id}" aria-label="Aperçu rapide : ${esc(p.titre)}">Aperçu</button></article>`;
   const grille = l => `<div class="prod-g">${l.map(carte).join('')}</div>`;
   const rail = l => `<div class="rail-h">${l.map(carte).join('')}</div>`;
   const squelette = () => '<div class="prod-g">' + '<i class="sq sq-t" style="aspect-ratio:4/5;height:auto"></i>'.repeat(4) + '</div>';

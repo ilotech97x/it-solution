@@ -551,3 +551,24 @@ h1,h2{letter-spacing:-.02em}.tk h1{font-size:clamp(26px,4vw,38px);font-weight:90
 .en-vue{opacity:0;transform:translateY(18px)}
 @media (prefers-reduced-motion:reduce){.en-vue{opacity:1;transform:none}.haut,.prod-c .im,.filtres,.rayon-c,.hs-pts button{transition:none}.hs{transition:none}}
 @media print{.haut,.bas,.sticky-ach{display:none!important}}
+/* reliquats (19/11) : aperçu rapide, rappel du panier, facture, langue */
+.prod-c{position:relative}
+.apercu-b{position:absolute;left:8px;top:8px;z-index:2;border:0;border-radius:999px;padding:5px 10px;font:700 12px/1 inherit;background:rgba(255,255,255,.92);color:#111;cursor:pointer;opacity:0;transition:opacity .15s}
+.prod-c:hover .apercu-b,.apercu-b:focus-visible{opacity:1}
+@media (hover:none){.apercu-b{opacity:1}}
+.apercu-d{border:0;border-radius:18px;padding:0;max-width:min(720px,calc(100vw - 32px));width:100%}
+.apercu-d::backdrop{background:rgba(0,0,0,.45)}
+.apercu-in{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;padding:18px;position:relative}
+.apercu-im{aspect-ratio:1;border-radius:14px;background:#f2f2f2 center/cover no-repeat;display:grid;place-items:center;font-size:48px}
+.apercu-t{display:grid;gap:10px;align-content:start;min-width:0}.apercu-t h2{margin:0}
+.apercu-px{font-weight:800;font-size:20px;margin:0}
+.apercu-tailles{display:flex;flex-wrap:wrap;gap:6px}.apercu-tailles [aria-pressed=true]{outline:2px solid currentColor}
+.apercu-x{position:absolute;right:10px;top:8px;border:0;background:none;font-size:26px;cursor:pointer;line-height:1}
+@media (max-width:600px){.apercu-in{grid-template-columns:1fr}}
+.rappel-panier{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:12px auto;max-width:1200px;padding:12px 16px;border-radius:14px;background:#fff6dd;color:#3a2a00}
+.rappel-panier .btn-x{border:0;background:none;font-size:20px;cursor:pointer}
+.doc-parties{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:16px 0}.doc-parties h2{font-size:14px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.06em}
+.tab-f{width:100%;border-collapse:collapse;min-width:520px}.tab-f th,.tab-f td{padding:8px;border-bottom:1px solid #e5e5e5;text-align:left}.tab-f .n{text-align:right;font-variant-numeric:tabular-nums}
+.doc-totaux{display:grid;gap:4px;justify-content:end;margin:12px 0}.doc-totaux div{display:flex;gap:24px;justify-content:space-between}.doc-totaux .gros{font-size:18px}
+.ligne-l{display:flex;flex-wrap:wrap;gap:8px}
+@media print{.tk-facture .doc-f{box-shadow:none;border:0}#bas,.no-print,.rappel-panier{display:none!important}}

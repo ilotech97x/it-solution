@@ -19,7 +19,7 @@ const APP = {
     if (/^#\/(compte|connexion|inscription|commandes|commande|favoris|vendeur|devenir-vendeur|moderation|notifs)/.test(p)) return moi ? '#/compte' : '#/connexion';
     return '#/';
   },
-  parent: h => /^#\/commande\//.test(h) ? '#/commandes' : /^#\/vendeur\/.+/.test(h) ? '#/vendeur' : '#/'
+  parent: h => /^#\/commande\//.test(h) ? '#/commandes' : /^#\/facture\//.test(h) ? h.replace('#/facture/', '#/commande/') : /^#\/import-produits/.test(h) ? '#/vendeur' : /^#\/mes-donnees/.test(h) ? '#/compte' : /^#\/vendeur\/.+/.test(h) ? '#/vendeur' : '#/'
 };
 
 (() => {
@@ -35,7 +35,7 @@ const APP = {
   const CLE_P = 'tropik-panier';
   let panierMem = [];
   const lirePanier = () => { try { const x = JSON.parse(localStorage.getItem(CLE_P) || '[]'); return Array.isArray(x) ? x.filter(l => l && typeof l.v === 'string') : []; } catch (e) { return panierMem; } };
-  const ecrirePanier = l => { panierMem = l; try { localStorage.setItem(CLE_P, JSON.stringify(l)); } catch (e) { /* navigation privée : valable jusqu'à la fermeture */ } if (typeof nav === 'function') nav(); };
+  const ecrirePanier = l => { panierMem = l; try { localStorage.setItem(CLE_P, JSON.stringify(l)); localStorage.setItem(CLE_P + '-t', String(Date.now())); } catch (e) { /* navigation privée : valable jusqu'à la fermeture */ } if (typeof nav === 'function') nav(); };
   APP.nbPanier = () => lirePanier().reduce((n, l) => n + (Number(l.q) || 0), 0);
   const lignesRpc = () => lirePanier().map(l => ({ variante: l.v, qte: l.q }));
 
@@ -170,7 +170,7 @@ const APP = {
         <p class="petit muted">${c.mode === 'livraison' ? 'Livraison à : ' + esc(c.adresse) + '. ' : ''}Contact : ${esc(c.contact_nom)}, ${esc(c.contact_tel)}.${c.vendeur_tel ? ' Vendeur : ' + esc(c.vendeur_tel) + '.' : ''}</p></section>
       <section class="carte"><h2>Vos droits</h2>${c.vendeur_type === 'professionnel' ? `<p style="margin:0">Vendeur professionnel : <b>14 jours pour vous rétracter</b> à compter de la remise${c.remise_at ? ' (jusqu’au ' + esc(jourLong(delai)) + ')' : ''}.</p>` : '<p style="margin:0">Vendeur particulier : pas de rétractation de 14 jours ni de garantie légale de conformité.</p>'}
         ${ret ? `<div class="avert"><b>Rétractation demandée</b> le ${esc(jourLong(ret.created_at))} : ${ret.statut === 'demandee' ? 'le vendeur va récupérer l’article puis vous rembourser.' : ret.statut === 'recue' ? 'article reçu par le vendeur, remboursement à venir.' : 'remboursée.'}</div>` : ''}
-        <div class="actions-r">${['nouvelle', 'acceptee'].includes(c.statut) ? `<details class="plus-options"><summary>Annuler la commande</summary><form class="f" data-form="statut" data-id="${c.id}" data-statut="annulee"><label>Motif (obligatoire)<textarea name="motif" required minlength="5" maxlength="500"></textarea></label><button class="btn btn-sec">Confirmer l’annulation</button></form></details>` : ''}
+        <div class="actions-r">${!fini ? `<a class="btn btn-sec" href="#/facture/${c.id}">${c.vendeur_type === 'professionnel' && ['remise', 'expediee', 'terminee'].includes(c.statut) ? 'Facture' : c.vendeur_type === 'professionnel' ? 'Bon de commande' : 'Reçu'} imprimable</a>` : ''}${['nouvelle', 'acceptee'].includes(c.statut) ? `<details class="plus-options"><summary>Annuler la commande</summary><form class="f" data-form="statut" data-id="${c.id}" data-statut="annulee"><label>Motif (obligatoire)<textarea name="motif" required minlength="5" maxlength="500"></textarea></label><button class="btn btn-sec">Confirmer l’annulation</button></form></details>` : ''}
           ${['remise', 'expediee'].includes(c.statut) ? `<button class="btn btn-p" data-act="statut" data-id="${c.id}" data-statut="terminee">J’ai bien reçu ma commande</button>` : ''}
           ${retractOk ? `<details class="plus-options"><summary>Me rétracter (14 jours)</summary><form class="f" data-form="retractation" data-id="${c.id}"><label>Motif <span class="aide">(facultatif)</span><input name="motif" maxlength="300"></label><button class="btn btn-sec">Demander la rétractation</button></form></details>` : ''}</div></section></div>`);
   });
@@ -230,7 +230,7 @@ const APP = {
       <section class="carte"><h2>Commission</h2><p style="margin:0">Taux publié : <b>${String(s.taux_commission).replace('.', ',')} %</b> sur le prix des articles, à la fin de chaque vente. À régler à IloTech : <b>${eur(s.commission_due)}</b>${s.commission_payee ? ' · déjà réglé : ' + eur(s.commission_payee) : ''}.</p></section>
       <section class="carte"><h2>Chiffres</h2><p style="margin:0">${s.commandes} commandes en 30 jours, ${s.refusees} refusées ou annulées. ${s.stock_bas ? `<b>${pluriel(s.stock_bas, 'variante presque épuisée', 'variantes presque épuisées')}</b>. ` : ''}${s.nb_avis ? `Note : ★ ${String(s.note).replace('.', ',')} (${s.nb_avis} avis).` : 'Pas encore d’avis.'}</p>
         ${s.top.length ? `<p class="petit muted" style="margin:0">Les plus vendus : ${s.top.map(t => esc(t.titre) + ' (' + t.qte + ')').join(', ')}.</p>` : ''}</section>
-      <div class="menu-v"><a href="#/vendeur/produit/nouveau">➕ Nouveau produit</a><a href="#/vendeur/produits">👟 Mes produits</a><a href="#/vendeur/commandes">📦 Commandes</a><a href="#/boutique/${v.id}">🏪 Ma boutique en ligne</a></div></div>`);
+      <div class="menu-v"><a href="#/vendeur/produit/nouveau">➕ Nouveau produit</a><a href="#/import-produits">📥 Importer un tableau</a><a href="#/vendeur/produits">👟 Mes produits</a><a href="#/vendeur/commandes">📦 Commandes</a><a href="#/boutique/${v.id}">🏪 Ma boutique en ligne</a></div></div>`);
   });
   const vendeurProduits = async v => {
     const l = await q(sb.from('tk_produits').select('id, titre, prix, statut, photos, motif_retrait, tk_variantes(stock)').eq('vendeur_id', v.id).order('created_at', { ascending: false }));
