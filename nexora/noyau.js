@@ -62,6 +62,8 @@ let PORTAIL = false;   // espace_client.sql installé (espace client : signature
 let COMM = false;  // communication.sql installé (emails de l'entreprise, comparatif des devis)
 let EQ = false;    // equipe_devis.sql installé (catégories de lignes, compte employé, planning, notifications, vue « Mon entreprise »)
 let REC = false;   // recrutement.sql installé (page entreprise, offres d'emploi et candidatures publiées sur Travay)
+let ABO = false;       // abonnement.sql installé (plan payant qui conditionne l'accès) ; l'exigence se lit dans nx_abonnement_etat
+let ABO_ETAT = null;   // état d'abonnement de l'entreprise courante (plan, dates, actif, exigé)
 let FICHES = new Set();   // entreprises où mon compte est relié à une fiche employé (menu « Mon espace »)
 const ROLES = { proprietaire: 'Propriétaire', admin: 'Administrateur', commercial: 'Commercial', comptable: 'Comptable', lecteur: 'Lecteur', employe: 'Employé' };
 const DROITS = { crm: ['proprietaire', 'admin', 'commercial'], ventes: ['proprietaire', 'admin', 'commercial'], facturation: ['proprietaire', 'admin', 'comptable'],
@@ -76,6 +78,7 @@ async function chargerSession() {
   if (!moi) return;
   [profil, ORGS] = await Promise.all([q(sb.from('profiles').select('id, prenom, nom').eq('id', moi.id).maybeSingle()), chargerOrgs()]);
   choisirOrg(lire('nxOrg'));
+  await chargerAbo();
 }
 async function chargerOrgs() {
   const [l, f] = await Promise.all([q(sb.from('nx_membres').select('role, org_id, nx_organisations(*)').eq('user_id', moi.id)), EQ ? q(sb.rpc('nx_mes_fiches')).catch(() => []) : []]);
@@ -85,7 +88,13 @@ async function chargerOrgs() {
 function choisirOrg(id) {
   ORG = ORGS.find(o => o.id === id) || ORGS[0] || null; ROLE = ORG?.role || null; ecrire('nxOrg', ORG?.id || null);
 }
-async function rechargerOrgs(id) { ORGS = await chargerOrgs(); choisirOrg(id || ORG?.id); }
+async function rechargerOrgs(id) { ORGS = await chargerOrgs(); choisirOrg(id || ORG?.id); await chargerAbo(); }
+async function chargerAbo() {
+  ABO_ETAT = null;
+  if (!ABO || !ORG) return;
+  ABO_ETAT = await q(sb.rpc('nx_abonnement_etat', { org: ORG.id })).catch(() => null);
+}
+const aboExpire = () => !!(ABO_ETAT && ABO_ETAT.exige && !ABO_ETAT.actif && !ABO_ETAT.demo);
 
 // ---------------------------------------------------------------- fenêtres et palette
 function modale(titre, corps, { valider = 'Enregistrer', large = false } = {}) {
@@ -163,15 +172,15 @@ function coquille() {
   document.body.innerHTML = `<div class="app"><aside class="side" id="side" aria-label="Navigation">
       <a class="marque" href="#/"><img src="img/logo.svg" alt="">NEXORA</a>
       ${MENU().map(([, g, , l]) => `${g !== 'Accueil' ? `<div class="grp">${g}</div>` : ''}${l.map(([href, t, i]) => `<a class="it ${on(href)}" href="${href}">${icone(i)}${t}</a>`).join('')}`).join('')}
-      <div class="bas-side">${esc(profil?.prenom || '')} ${esc(profil?.nom || '')}<br>${esc(ROLES[ROLE] || '')} · <button class="lien" id="deco" style="color:#C9D4E5">Se déconnecter</button></div></aside>
-    <div class="main">${ORG?.demo ? `<div class="bandeau-demo">Entreprise de démonstration : les données sont fictives. <a class="btn btn-s" href="#/bienvenue">Créer ma vraie entreprise</a></div>` : ''}
+      <div class="bas-side">${esc(profil?.prenom || '')} ${esc(profil?.nom || '')}<br>${esc(ROLES[ROLE] || '')} · <button class="lien" id="deco" style="color:#C9D4E5">Se déconnecter</button>${ABO && ABO_ETAT?.exige ? `<div style="font-size:12px;color:${aboExpire() ? 'var(--ko)' : 'var(--ok)'};margin-top:6px">${aboExpire() ? 'Abonnement expiré' : `Plan ${esc(ABO_ETAT.plan_nom || '')}${ABO_ETAT.fin ? ` · jusqu'au ${date(ABO_ETAT.fin)}` : ''}`}</div>` : ''}</div></aside>
+    <div class="main">${ORG?.demo ? `<div class="bandeau-demo">Entreprise de démonstration : les données sont fictives. <a class="btn btn-s" href="#/bienvenue">Créer ma vraie entreprise</a></div>` : ''}${aboExpire() ? `<div class="bandeau-demo" style="background:var(--ko-d);color:var(--ko)">Abonnement expiré : les fonctions sont suspendues jusqu'au renouvellement. Vos données restent conservées.</div>` : ''}
       <header class="top"><button class="btn btn-i burger" id="burger" aria-label="Menu">☰</button>
         <select id="orgSel" aria-label="Entreprise">${ORGS.map(o => `<option value="${o.id}" ${o.id === ORG.id ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}<option value="+">+ Ajouter une entreprise</option></select>
         ${ROLE === 'employe' ? '' : '<button class="cherche" id="cherche">🔎 <span>Rechercher…</span><kbd>Ctrl K</kbd></button>'}<span class="espace"></span>
         ${EQ ? `<button class="btn btn-i cloche" id="cloche" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false">${icone('cloche')}<span class="pastille-n" hidden></span></button>` : ''}
         <button class="btn btn-i" id="themeBtn" aria-label="Changer de thème" title="Thème clair ou sombre">${sombre() ? '☀️' : '🌙'}</button></header>
       <main class="page" id="page"><div class="chargement">Chargement…</div></main></div></div>`;
-  $('#orgSel').onchange = e => { if (e.target.value === '+') return aller('#/bienvenue'); choisirOrg(e.target.value); aller('#/'); rendre(); };
+  $('#orgSel').onchange = e => { if (e.target.value === '+') return aller('#/bienvenue'); choisirOrg(e.target.value); chargerAbo().then(() => { aller('#/'); rendre(); }); };
   if ($('#cherche')) $('#cherche').onclick = palette;
   notifsCloche();
   $('#burger').onclick = () => $('#side').classList.toggle('ouvert');
@@ -225,6 +234,7 @@ async function rendre() {
     if (!ORG || nom === 'bienvenue') return await NX.publiques.bienvenue();
     if (ROLE === 'employe' && nom !== 'moi') { history.replaceState(null, '', '#/moi'); return await rendre(); }   // un employé n'a que « Mon espace »
     coquille();
+    if (aboExpire() && ROLE !== 'employe' && nom !== 'reglages') return vue(`<div class="carte" style="max-width:640px;margin:24px auto"><h2>Abonnement expiré</h2><p class="muted">L'abonnement de « ${esc(ORG?.nom || '')} » a expiré : les fonctions sont suspendues. Vos données restent conservées et l'accès reprend dès le renouvellement.</p><a class="btn" href="#/reglages">Aller aux réglages</a></div>`);
     const page = NX.pages[nom];
     if (!page) return vue(vide('Page introuvable', '', '<a class="btn" href="#/">Tableau de bord</a>'));
     await page(...parts.slice(1));
@@ -239,7 +249,7 @@ function demarrer() {
   (async () => {
     if (PRET) {
       const existe = t => sb.from(t).select('id').limit(1).then(r => !r.error, () => false);   // modules installés dans la base
-      [ERP, COMM, PORTAIL, EQ, REC] = await Promise.all(['nx_fournisseurs', 'nx_modeles_email', 'nx_echeances', 'nx_creneaux', 'nx_offres'].map(existe));
+      [ERP, COMM, PORTAIL, EQ, REC, ABO] = await Promise.all(['nx_fournisseurs', 'nx_modeles_email', 'nx_echeances', 'nx_creneaux', 'nx_offres', 'nx_plans'].map(existe));
       sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { moi = null; ORG = null; } }); await chargerSession().catch(e => console.error(e));
     }
     rendre();
