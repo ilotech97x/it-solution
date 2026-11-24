@@ -130,7 +130,7 @@ async function calculerRoute() {
     const route = r.routes[0], steps = route.legs[0].steps;
     g.route = { ligne: route.geometry.coordinates.map(([x, y]) => [y, x]), steps, duree: route.duration, distance: route.distance };
     g.etape = 1; g.dits = {}; g.horsRoute = 0;
-    g.trace?.remove(); g.trace = g.L.polyline(g.route.ligne, { color: '#2563EB', weight: 8, opacity: .85 }).addTo(g.carte);
+    g.trace?.remove(); g.trace = g.L.polyline(g.route.ligne, { color: '#C9401F', weight: 8, opacity: .85 }).addTo(g.carte);
     g.arrivee?.remove(); g.arrivee = g.L.marker([g.dest.lat, g.dest.lng], { icon: g.L.divIcon({ html: '<span class="gps-pin">🏁</span>', className: '', iconSize: [36, 36], iconAnchor: [18, 18] }) }).addTo(g.carte);
     if (!g.premiere) { g.premiere = true; parler(`C’est parti. ${enDistanceParlee(route.distance)}, environ ${Math.max(1, Math.round(route.duration / 60))} minutes. ${steps[1] ? consigne(steps[1]) : ''}`); }
     else parler('Nouvel itinéraire');

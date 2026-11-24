@@ -45,8 +45,8 @@ APP.pages.express = async () => {
   };
   const dessinerCarte = () => {
     if (!L) return; calques.clearLayers();
-    const m = ['retrait', 'depot'].filter(k => pts[k]).map(k => L.circleMarker([pts[k].lat, pts[k].lng], { radius: 11, color: '#fff', weight: 3, fillColor: k === 'retrait' ? '#FFB020' : '#0B2545', fillOpacity: 1 }).bindTooltip(k === 'retrait' ? 'Retrait' : 'Livraison').addTo(calques));
-    if (pts.retrait && pts.depot) { L.polyline([[pts.retrait.lat, pts.retrait.lng], [pts.depot.lat, pts.depot.lng]], { color: '#2563EB', weight: 4, dashArray: '8 8' }).addTo(calques); carte.fitBounds(L.featureGroup(m).getBounds().pad(0.3)); }
+    const m = ['retrait', 'depot'].filter(k => pts[k]).map(k => L.circleMarker([pts[k].lat, pts[k].lng], { radius: 11, color: '#fff', weight: 3, fillColor: k === 'retrait' ? '#FFB020' : '#3A1408', fillOpacity: 1 }).bindTooltip(k === 'retrait' ? 'Retrait' : 'Livraison').addTo(calques));
+    if (pts.retrait && pts.depot) { L.polyline([[pts.retrait.lat, pts.retrait.lng], [pts.depot.lat, pts.depot.lng]], { color: '#C9401F', weight: 4, dashArray: '8 8' }).addTo(calques); carte.fitBounds(L.featureGroup(m).getBounds().pad(0.3)); }
     else if (m.length) carte.setView(m[0].getLatLng(), 14);
   };
   const choisir = (k, p) => { pts[k] = p; $('#' + k).value = p.nom.split(',').slice(0, 3).join(','); $('#res-' + k).innerHTML = ''; dessinerCarte(); estimer(); };

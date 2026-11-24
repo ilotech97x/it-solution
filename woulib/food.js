@@ -1,6 +1,34 @@
 /* Woulib Food : restaurants, livraison, à emporter, précommande. APP et registre des univers : app.js ; base commune : commun/base.js.
    Prix, totaux et étapes de commande contrôlés par la base (food.sql). */
 'use strict';
+// Maquette validée (23/11) : icônes au trait à la place des emoji des catégories et des vignettes ; une photo qui ne charge pas retombe sur le fond et
+// l'icône de la cuisine (écouteur « error » en capture sur le document : la CSP interdit onerror en ligne) ; largeur et hauteur toujours écrites.
+// IIFE : tous les fichiers JS partagent la même portée globale, seul UIF en sort.
+const UIF = (() => {
+  const D = {
+    bol: 'M3 11h18a9 9 0 0 1-18 0zM8 7c0-1.5 1-2 1-3M13 7c0-1.5 1-2 1-3', crepe: 'M4 8c0-2 3.6-3 8-3s8 1 8 3-3.6 3-8 3-8-1-8-3zM4 8v3c0 2 3.6 3 8 3s8-1 8-3V8M4 14v2c0 2 3.6 3 8 3s8-1 8-3v-2',
+    pizza: 'M12 21 4 6c5-3 11-3 16 0zM9 9h.01M14 11h.01M12 15h.01', burger: 'M4 11a8 6 0 0 1 16 0zM3 15h18M4 18c0 1.5 1 2 2 2h12c1 0 2-.5 2-2v-1H4z',
+    poulet: 'M14 4a6 6 0 0 1 6 6c0 3-2 5-5 5l-3-1-6 6-2-2 6-6-1-3c0-3 2-5 5-5z', poisson: 'M3 12c3-5 9-6 14-3l4-2v10l-4-2c-5 3-11 2-14-3zM16 11h.01',
+    cup: 'M6 7h12l-1.5 13h-9zM5 7h14M12 7l2-4h3', cake: 'M4 14h16v6H4zM6 14v-3h12v3M12 11V7M12 5v.5', glace: 'M8 11a4 4 0 1 1 8 0zM8 11l4 10 4-10',
+    salade: 'M5 19c0-8 5-14 15-14 0 10-6 15-14 15M5 19l8-8', sushi: 'M4 10h16v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3zM4 10c0-2 3.6-3 8-3s8 1 8 3M9 13h6',
+    accras: 'M10 13a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM15 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0z', bokit: 'M3 12c0-3 4-5 9-5s9 2 9 5zM3 15h18M5 15l1 4h12l1-4',
+    frites: 'M6 9h12l-1 12H7zM8 9V4M12 9V3M16 9V4', sac: 'M5 8h14l-1 13H6zM9 8V6a3 3 0 0 1 6 0v2', filtre: 'M4 6h16M7 12h10M10 18h4', etoile: 'M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z',
+    moto: 'M8 17a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM22 17a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM8 17h8M10 6h4l4 11M5 14l2-8', pin: 'M12 21s-7-6-7-11a7 7 0 1 1 14 0c0 5-7 11-7 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', bas: 'M6 9l6 6 6-6'
+  };
+  const ic = (k, t = 24) => `<svg viewBox="0 0 24 24" width="${t}" height="${t}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${D[k] || D.bol}"/></svg>`;
+  // une icône par cuisine et par rayon de la carte
+  const CUISINE = { creole: 'bol', snack: 'bokit', burger: 'burger', pizza: 'pizza', asiatique: 'bol', sushi: 'sushi', grillades: 'poulet', poisson: 'poisson', vegetarien: 'salade',
+    boulangerie: 'bokit', dessert: 'cake', traiteur: 'bol', boissons: 'cup', epicerie: 'sac', autre: 'bol' };
+  const RAYON = { menu: 'bol', entree: 'salade', plat: 'bol', accompagnement: 'frites', dessert: 'cake', boisson: 'cup', frais: 'cup', alcool: 'cup', apero: 'frites', glace: 'glace', epicerie: 'sac', maison: 'sac', autre: 'sac' };
+  const ph = k => `<span class="ph" aria-hidden="true">${ic(k, 32)}</span>`;
+  // la photo (avec ses dimensions) ou, sans photo, l'icône ; prio : image principale de la page (chargée tout de suite, en priorité)
+  const img = (src, k, w, h, prio) => src ? `<img src="${esc(photo(src))}" alt="" width="${w}" height="${h}" ${prio ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"'}>` : ph(k);
+  document.addEventListener('error', e => {
+    const i = e.target, w = i?.tagName === 'IMG' && i.closest('[data-ic]'); if (!w) return;
+    i.hidden = true; if (!w.querySelector('.ph')) w.insertAdjacentHTML('beforeend', ph(w.dataset.ic));
+  }, true);
+  return { ic, ph, img, cuisine: c => CUISINE[c] || 'bol', rayon: c => RAYON[c] || 'sac' };
+})();
 const CUISINES = { creole: ['🍛', 'Créole'], snack: ['🌯', 'Snack'], burger: ['🍔', 'Burgers'], pizza: ['🍕', 'Pizzas'], asiatique: ['🥡', 'Asiatique'], sushi: ['🍣', 'Sushis'],
   grillades: ['🍖', 'Grillades'], poisson: ['🐟', 'Poissons'], vegetarien: ['🥗', 'Végétarien'], boulangerie: ['🥖', 'Boulangerie'], dessert: ['🍨', 'Desserts'], traiteur: ['🍱', 'Traiteur'], boissons: ['🥤', 'Boissons'], epicerie: ['🧺', 'Épicerie'], autre: ['🍽️', 'Autre'] };
 const CATS_PLAT = { menu: '🍱 Menus', entree: '🥗 Entrées', plat: '🍛 Plats', accompagnement: '🍚 Accompagnements', dessert: '🍰 Desserts', boisson: '🥤 Boissons' };
@@ -30,15 +58,15 @@ const sansLicence = r => alcoolV2() && 'licence_alcool' in r && !r.licence_alcoo
 // une vignette d'article : on l'ajoute d'un geste (+), le compteur apparaît ensuite ; le stock limite la quantité
 const finArticle = p => !p.dispo || p.stock === 0;
 const carteArticle = (p, n, ok) => `<div class="article ${finArticle(p) ? 'fini' : ''}" id="p-${p.id}">
-  <div class="art-img t-com">${p.photo ? `<img src="${esc(photo(p.photo))}" alt="" loading="lazy">` : `<span aria-hidden="true">${(LIB_CAT[p.categorie] || '🛒').split(' ')[0]}</span>`}${p.majeur ? '<em class="art-18" title="Réservé aux majeurs">18+</em>' : ''}</div>
+  <div class="art-img t-com" data-ic="${UIF.rayon(p.categorie)}">${UIF.img(p.photo, UIF.rayon(p.categorie), 300, 225)}${p.majeur ? '<em class="art-18" title="Réservé aux majeurs">18+</em>' : ''}</div>
   <b>${esc(p.nom)}</b>${p.description ? `<small>${esc(p.description)}</small>` : ''}${p.allergenes?.length ? `<small class="allerg">${esc(texteAllergenes(p))}</small>` : ''}
   <div class="art-bas"><span class="prix">${eur(p.prix)}</span>${finArticle(p) ? '<span class="tag gris">Épuisé</span>' : ok ? `<div class="qte ${n ? '' : 'zero'}" data-plat="${p.id}"><button type="button" data-d="-1" aria-label="Retirer un ${esc(p.nom)}">−</button><output>${n}</output><button type="button" data-d="1" aria-label="Ajouter ${esc(p.nom)}">+</button></div>` : ''}</div>
   ${!finArticle(p) && p.stock != null && p.stock <= 5 ? `<small class="art-stock">Plus que ${p.stock}</small>` : ''}</div>`;
 const maxArticle = p => Math.min(20, p.stock ?? 20);
 // vitrine de l'accueil (20/11) : boissons fraîches, crêpes et douceurs, à grignoter, en grandes photos ; uniquement de vrais plats publiés
-const VITRINE = [['boisson', '🥤 Boissons fraîches', p => p.categorie === 'boisson'],
-  ['douceur', '🥞 Crêpes et douceurs', p => p.categorie === 'dessert' || /cr[eê]pe|galette|gaufre/i.test(p.nom)],
-  ['grignoter', '🧆 À grignoter', p => ['entree', 'accompagnement'].includes(p.categorie) && !/cr[eê]pe|galette/i.test(p.nom)]];
+const VITRINE = [['boisson', 'Boissons fraîches', p => p.categorie === 'boisson'],
+  ['douceur', 'Crêpes et douceurs', p => p.categorie === 'dessert' || /cr[eê]pe|galette|gaufre/i.test(p.nom)],
+  ['grignoter', 'À grignoter', p => ['entree', 'accompagnement'].includes(p.categorie) && !/cr[eê]pe|galette/i.test(p.nom)]];
 async function afficherVitrine(restos) {
   const el = $('#vitrineAcc'); if (!el || !restos.length) return;
   const ouverts = restos;   // déjà filtrés : ouverts maintenant
@@ -48,8 +76,8 @@ async function afficherVitrine(restos) {
   if (!rayons.length || !$('#vitrineAcc')) return;
   const resto = id => restos.find(r => r.id === id);
   el.innerHTML = `<div class="titre-s"><h2>La vitrine</h2><a class="petit" href="credits-photos.html">Crédits photos</a></div>
-    ${rayons.map(([k, t, x]) => `<h3 class="vit-t">${t}</h3><div class="defile vit-defile">${x.map(p => `<a class="vit-c" href="#/resto/${p.restaurant_id}?plat=${p.id}">
-      <span class="vit-img"><img src="${esc(photo(p.photo))}" alt="${esc(p.nom)}" loading="lazy" width="400" height="400"></span>
+    ${rayons.map(([k, t, x]) => `<h3 class="vit-t">${UIF.ic({ boisson: 'cup', douceur: 'crepe', grignoter: 'accras' }[k], 20)}${t}</h3><div class="defile vit-defile">${x.map(p => `<a class="vit-c" href="#/resto/${p.restaurant_id}?plat=${p.id}">
+      <span class="vit-img ph-w" data-ic="${UIF.rayon(p.categorie)}"><img src="${esc(photo(p.photo))}" alt="${esc(p.nom)}" loading="lazy" decoding="async" width="400" height="400"></span>
       <span class="vit-txt"><b>${esc(p.nom)}</b>${p.description ? `<small>${esc(p.description)}</small>` : ''}<span class="art-bas"><span class="prix">${eur(p.prix)}</span><i class="plus-c" aria-hidden="true">+</i></span>
       <small class="vit-resto">${esc(resto(p.restaurant_id)?.nom || '')} · ${resto(p.restaurant_id)?.delai_min || 30} min</small></span></a>`).join('')}</div>`).join('')}`;
   el.hidden = false;
@@ -63,7 +91,7 @@ async function afficherPlatsAccueil(restos) {
   if (!choix.length || !$('#platsAcc')) return;
   const resto = id => restos.find(r => r.id === id);
   el.innerHTML = `<div class="titre-s"><h2>Plats du moment</h2><a href="#/manger">Tout voir</a></div>
-    <div class="defile plats-defile">${choix.map(p => `<a class="plat-c" href="#/resto/${p.restaurant_id}?plat=${p.id}"><div class="art-img t-food">${p.photo ? `<img src="${esc(photo(p.photo))}" alt="" loading="lazy">` : `<span aria-hidden="true">${CUISINES[resto(p.restaurant_id)?.cuisine]?.[0] || '🍛'}</span>`}</div>
+    <div class="defile plats-defile">${choix.map(p => `<a class="plat-c" href="#/resto/${p.restaurant_id}?plat=${p.id}"><div class="art-img t-food" data-ic="${UIF.cuisine(resto(p.restaurant_id)?.cuisine)}">${UIF.img(p.photo, UIF.cuisine(resto(p.restaurant_id)?.cuisine), 340, 255)}</div>
       <b>${esc(p.nom)}</b><small>${esc(resto(p.restaurant_id)?.nom || '')} · ${resto(p.restaurant_id)?.delai_min || 30} min</small><span class="art-bas"><span class="prix">${eur(p.prix)}</span><i class="plus-c" aria-hidden="true">+</i></span></a>`).join('')}</div>`;
   el.hidden = false;
 }
@@ -138,31 +166,43 @@ const ENVIES = [['🥞', 'Crêpes', 'crêpe'], ['🥪', 'Bokits', 'bokit'], ['�
   ['🍗', 'Poulet', 'poulet'], ['🐟', 'Poisson', 'poisson'], ['🧆', 'Accras', 'accras'], ['🍛', 'Colombo', 'colombo'], ['🍣', 'Sushis', 'sushi'], ['🥗', 'Salades', 'salade'],
   ['🍦', 'Glaces', 'glace'], ['🍰', 'Desserts', 'dessert'], ['🥤', 'Jus locaux', 'jus']];
 const sansAccent = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-// Food (restaurants) et Commerce (boutiques) : deux rubriques de la barre du bas, la même page qui sait laquelle elle montre
+const ENVIE_IC = { 'crêpe': 'crepe', bokit: 'bokit', pizza: 'pizza', burger: 'burger', frite: 'frites', poulet: 'poulet', poisson: 'poisson', accras: 'accras', colombo: 'bol', sushi: 'sushi', salade: 'salade', glace: 'glace', dessert: 'cake', jus: 'cup' };
+// Food (restaurants) et Commerce (boutiques) : deux rubriques de la barre du bas, la même page qui sait laquelle elle montre.
+// Maquette validée (23/11) : adresse en haut, une recherche, des catégories en icônes, la mise en avant, puis « Ouverts près de vous » en cartes pleine largeur ;
+// les filtres restent, repliés dans un bouton. Les requêtes partent ensemble (pas de chaîne au démarrage) ; le tri par genre et par filtre se fait ici.
 const pageMarche = async marche => {
-  await chargerRegistre(); if (!universOuvert('food')) return universFerme('food');
-  const p = param(), terr = territoireActif(), com = BOUTIQUES && marche === 'commerce';
+  const p = param(), terr = territoireActif();
+  const pR = Promise.resolve().then(() => q(sb.from('restaurants').select('*').in('statut', ['publie', 'pause']).eq('territoire', terr).order('ouvert', { ascending: false }).order('created_at', { ascending: false }).limit(80)));
+  const pN = Promise.resolve().then(() => q(sb.from('notes_resto').select('*').limit(300))).catch(() => []); pR.catch(() => {});
+  if (marche === 'commerce') { await chargerRegistre(); if (!universOuvert('food')) return universFerme('food'); }   // Food s'affiche tout de suite (squelettes) : le registre arrive en parallèle, l'écran n'attend pas
+  const com = BOUTIQUES && marche === 'commerce';
   const lienF = ch => (com ? '#/commerce' : '#/manger') + ((u => u.toString() ? '?' + u : '')(new URLSearchParams(Object.entries({ ...p, ...ch }).filter(([k, v]) => v && k !== 'vue'))));
   const puce = (ch, t, on) => `<a href="${lienF(ch)}" class="${on ? 'on' : ''}" ${on ? 'aria-current="true"' : ''}>${t}</a>`;
-  vue(`<div class="wrap page-manger ${com ? 'page-commerce' : ''}"><h1>${com ? 'Commerce' : 'Food'}</h1><p class="sous-joie">${com ? 'Les courses, sans bouger 🛒' : 'On mange quoi aujourd’hui ? 😋'}</p><div id="enCours"></div>
+  const nbFiltres = [p.ouvert, p.mode, p.commune, p.cuisine, p.rayon].filter(Boolean).length;
+  vue(`<div class="wrap page-manger ${com ? 'page-commerce' : ''}"><h1 class="sr-seul">${com ? 'Commerce' : 'Food'}</h1>
+    <button type="button" class="adr-haut" id="adrHaut" aria-label="Changer de territoire, actuellement ${esc(terr)}">${UIF.ic('pin', 20)}<b>${esc(terr)}</b>${UIF.ic('bas', 18)}<span>· ${p.mode === 'emporter' ? 'À emporter' : 'Livraison'}</span></button>
+    ${com ? '' : blocInstallation()}<div id="enCours"></div>
     <a class="rch-lien" href="#/recherche${p.q ? '?q=' + encodeURIComponent(p.q) : ''}">${ICO.recherche}<span>${p.q ? esc(p.q) : com ? 'Un produit, une boutique, un rayon…' : 'Un plat, un restaurant, une cuisine…'}</span></a>
-    ${com ? '' : `<nav class="envies defile" aria-label="Envie de…">${ENVIES.map(([e, t, m]) => `<a href="#/manger?q=${encodeURIComponent(m)}" ${sansAccent(p.q) === sansAccent(m) ? 'aria-current="true"' : ''}><span aria-hidden="true">${e}</span>${t}</a>`).join('')}</nav>`}
-    <div class="puces" role="group" aria-label="Filtres">${puce({ ouvert: p.ouvert ? '' : '1' }, 'Ouvert maintenant', !!p.ouvert)}${puce({ mode: p.mode === 'livraison' ? '' : 'livraison' }, 'Livraison', p.mode === 'livraison')}${puce({ mode: p.mode === 'emporter' ? '' : 'emporter' }, 'À emporter', p.mode === 'emporter')}
-      ${p.commune ? puce({ commune: '' }, `${esc(p.commune)} ✕`, true) : ''}</div>
-    ${com ? `<div class="puces puces-v" role="group" aria-label="Rayons">${RAYONS_FILTRE.map(([k, t]) => puce({ rayon: p.rayon === k ? '' : k }, `${RAYON_ICO[k] || ''} ${t}`, p.rayon === k)).join('')}</div>`
-      : `<div class="puces" role="group" aria-label="Cuisines">${cuisinesVisibles().filter(([k]) => !TYPES_BOUTIQUE.includes(k)).map(([k, [i, t]]) => puce({ cuisine: p.cuisine === k ? '' : k }, `${i} ${esc(t)}`, p.cuisine === k)).join('')}</div>`}
-    <div id="encore"></div><div id="favsM"></div>
-    ${com || p.q ? '' : '<section class="section vitrine" id="vitrineAcc" hidden></section><section class="section" id="platsAcc" hidden></section>'}${com && !p.q && !p.rayon ? '<section class="section" id="boutiqueAcc" hidden></section>' : ''}
+    ${com ? '' : `<nav class="envies defile" aria-label="Envie de…">${ENVIES.map(([, t, m]) => `<a href="#/manger?q=${encodeURIComponent(m)}" ${sansAccent(p.q) === sansAccent(m) ? 'aria-current="true"' : ''}><span class="ev-i" aria-hidden="true">${UIF.ic(ENVIE_IC[m])}</span><span>${t}</span></a>`).join('')}</nav>`}
+    <details class="filtres-d" ${nbFiltres ? 'open' : ''}><summary class="btn btn-sec btn-s">${UIF.ic('filtre', 18)}Filtres${nbFiltres ? ` · ${nbFiltres}` : ''}</summary>
+      <div class="puces" role="group" aria-label="Filtres">${puce({ ouvert: p.ouvert ? '' : '1' }, 'Ouvert maintenant', !!p.ouvert)}${puce({ mode: p.mode === 'livraison' ? '' : 'livraison' }, 'Livraison', p.mode === 'livraison')}${puce({ mode: p.mode === 'emporter' ? '' : 'emporter' }, 'À emporter', p.mode === 'emporter')}
+        ${p.commune ? puce({ commune: '' }, `${esc(p.commune)} ✕`, true) : ''}</div>
+      ${com ? `<div class="puces puces-v" role="group" aria-label="Rayons">${RAYONS_FILTRE.map(([k, t]) => puce({ rayon: p.rayon === k ? '' : k }, `${esc(t)}`, p.rayon === k)).join('')}</div>`
+        : `<div class="puces" role="group" aria-label="Cuisines">${cuisinesVisibles().filter(([k]) => !TYPES_BOUTIQUE.includes(k)).map(([k, [, t]]) => puce({ cuisine: p.cuisine === k ? '' : k }, esc(t), p.cuisine === k)).join('')}</div>`}</details>
+    <div id="encore"></div><div id="favsM"></div><div id="vedette"></div>
     <h2 id="titreListe">${p.q ? `Résultats pour « ${esc(p.q)} »` : com ? 'Commerces' : 'Restaurants'}</h2>
-    <div id="liste" class="chargement">Chargement…</div>
+    <div id="liste" class="liste-restos" aria-busy="true">${'<span class="sq-carte" aria-hidden="true"><span class="sq-img"></span><span class="sq-l"></span><span class="sq-l c"></span></span>'.repeat(3)}</div>
     ${com ? `<p class="petit muted" style="margin-top:12px">Alcool : vente réservée aux 18 ans et plus, âge vérifié à la remise.</p>` : ''}
+    ${com || p.q ? '' : '<section class="section vitrine" id="vitrineAcc" hidden></section><section class="section" id="platsAcc" hidden></section>'}${com && !p.q && !p.rayon ? '<section class="section" id="boutiqueAcc" hidden></section>' : ''}
     <section class="section"><a class="banniere-pro" href="${com ? '#/pro/boutique/nouveau' : '#/pro/resto/nouveau'}"><span class="ico-l">${com ? ICO.commerce : ICO.manger}</span><span><b>${com ? 'Vous avez un commerce ?' : 'Vous avez un restaurant ?'}</b>
       <small>Inscription gratuite : votre ${com ? 'boutique' : 'carte'} en ligne, les commandes en direct, vos clients vous paient directement.</small></span>${ICO.droite}</a></section></div>`);
-  let r = sb.from('restaurants').select('*').in('statut', ['publie', 'pause']).eq('territoire', terr).order('ouvert', { ascending: false }).order('created_at', { ascending: false }).limit(80);
-  if (BOUTIQUES) r = r.eq('genre', com ? 'boutique' : 'restaurant');
-  if (p.cuisine && !com) r = r.eq('cuisine', p.cuisine);
-  if (p.mode) r = r.eq(p.mode, true);
-  let l = await q(r);
+  const yRest = aRestaurer;   // retour en arrière : la position est reprise une fois la liste affichée (le squelette est plus court)
+  $('#adrHaut').addEventListener('click', choisirTerritoire);
+  if (marche !== 'commerce') { await chargerRegistre(); if (!universOuvert('food')) return universFerme('food'); }
+  let l = await pR;
+  if (BOUTIQUES) l = l.filter(x => estBoutique(x) === com);
+  if (p.cuisine && !com) l = l.filter(x => x.cuisine === p.cuisine);
+  if (['livraison', 'emporter'].includes(p.mode)) l = l.filter(x => x[p.mode] === true);
   if (p.commune) { const c = sansAccent(p.commune); l = l.filter(x => sansAccent(x.commune) === c || (x.communes_livrees || []).some(v => sansAccent(v) === c)); }
   if (p.rayon && com && l.length) {   // commerces qui ont au moins un article disponible dans ce rayon
     const ids = new Set((await q(sb.from('plats').select('restaurant_id').in('restaurant_id', l.map(x => x.id)).eq('categorie', p.rayon).eq('dispo', true).limit(500)).catch(() => [])).map(x => x.restaurant_id));
@@ -175,7 +215,7 @@ const pageMarche = async marche => {
   }
   if (p.ouvert) l = l.filter(x => etatOuverture(x).ouvert);
   l.sort((a, b) => etatOuverture(b).ouvert - etatOuverture(a).ouvert);
-  const notes = l.length ? Object.fromEntries((await q(sb.from('notes_resto').select('*').in('restaurant_id', l.map(x => x.id))).catch(() => [])).map(x => [x.restaurant_id, x])) : {};
+  const notes = Object.fromEntries((await pN).filter(x => l.some(y => y.id === x.restaurant_id)).map(x => [x.restaurant_id, x]));
   if (!$('#liste')) return;
   // commander à nouveau (dernière commande reçue) et favoris : seulement sans filtre, avec un compte
   if (moi && !p.q && !p.cuisine && !p.rayon && !p.commune) {
@@ -188,11 +228,23 @@ const pageMarche = async marche => {
     if (mesFavs.length && $('#favsM')) $('#favsM').innerHTML = `<section class="section"><h2>Mes favoris</h2><div class="defile rangee">${mesFavs.map(x => carteRangee(x, notes[x.id])).join('')}</div></section>`;
     $('#app').onclick = e => { const b = e.target.closest('[data-encore]'); if (b) recommander(b.dataset.encore, b.dataset.resto); };
   }
-  $('#liste').className = l.length ? 'liste-restos' : '';
+  const ouv = l.filter(x => etatOuverture(x).ouvert), fer = l.filter(x => !etatOuverture(x).ouvert);
+  // mise en avant : un vrai restaurant ouvert, avec sa photo (jamais une offre inventée)
+  const vedette = !com && !p.q && !p.cuisine && !p.commune && (ouv.find(x => x.photo) || ouv[0]);
+  if (vedette && $('#vedette')) {
+    const k = UIF.cuisine(vedette.cuisine);
+    $('#vedette').innerHTML = `<a class="banniere-v" href="#/resto/${vedette.id}"><span class="bv-img ph-w t-food" data-ic="${k}">${UIF.img(vedette.photo, k, 640, 360, true)}</span>
+      <span class="bv-txt"><em>À la une</em><b>${esc(vedette.nom)}</b><small>${esc(CUISINES[vedette.cuisine]?.[1] || '')} · ${vedette.delai_min} min${vedette.livraison ? ` · livraison ${Number(vedette.frais_livraison) ? eur(vedette.frais_livraison) : 'offerte'}` : ' · à emporter'}</small></span></a>`;
+  }
   const filtre = p.q || p.cuisine || p.mode || p.rayon || p.ouvert || p.commune;
-  $('#liste').innerHTML = l.length ? l.map(x => carteResto(x, notes[x.id])).join('') : `<div class="vide-etat"><span class="ico">${com ? ICO.commerce : ICO.manger}</span><h3>${filtre ? (com ? 'Aucun commerce pour ces filtres' : 'Aucun restaurant pour ces filtres') : com ? `Pas encore de commerce en ${esc(terr)}` : `Les premiers restaurants arrivent en ${esc(terr)}`}</h3>
+  if (!p.q && ouv.length) $('#titreListe').textContent = 'Ouverts près de vous';
+  $('#liste').removeAttribute('aria-busy');
+  $('#liste').className = l.length ? 'liste-restos' : '';
+  $('#liste').innerHTML = l.length ? ouv.map((x, i) => carteResto(x, notes[x.id], i === 0 && !vedette)).join('') + (fer.length && ouv.length ? '<h2 class="sep-l">Pas ouverts maintenant</h2>' : '') + fer.map((x, i) => carteResto(x, notes[x.id], !ouv.length && !vedette && i === 0)).join('')
+    : `<div class="vide-etat"><span class="ico">${com ? ICO.commerce : ICO.manger}</span><h3>${filtre ? (com ? 'Aucun commerce pour ces filtres' : 'Aucun restaurant pour ces filtres') : com ? `Pas encore de commerce en ${esc(terr)}` : `Les premiers restaurants arrivent en ${esc(terr)}`}</h3>
     <p class="muted">${filtre ? 'Essayez sans filtre, ou un autre mot.' : 'Nous vérifions chaque professionnel avant sa mise en ligne.'}</p>${filtre ? `<a class="btn btn-p" href="${com ? '#/commerce' : '#/manger'}">Tout afficher</a>` : `<a class="btn btn-p" href="#/pros">Inscrire mon ${com ? 'commerce' : 'restaurant'}</a>`}</div>`;
-  if (!com && !p.q) { const ouv = l.filter(x => etatOuverture(x).ouvert); afficherVitrine(ouv).catch(() => {}); afficherPlatsAccueil(ouv).catch(() => {}); }   // plats des restaurants ouverts, en vitrine
+  if (yRest) scrollTo(0, yRest);
+  if (!com && !p.q) { Promise.allSettled([afficherVitrine(ouv), afficherPlatsAccueil(ouv)]).then(() => { if (yRest && scrollY < yRest - 5 && location.hash.startsWith('#/manger')) scrollTo(0, yRest); }); }   // retour en arrière : la page s'allonge quand la vitrine arrive   // plats des restaurants ouverts, en vitrine
   if (com && !p.q && !p.rayon) afficherBoutiqueAccueil(terr).catch(() => {});   // la boutique ouverte la plus proche, en vitrine
   afficherEnCours('commandes').catch(() => {});
 };
@@ -203,12 +255,12 @@ APP.pages.manger = () => {   // anciennes adresses « #/manger?vue=commerces… 
 APP.pages.commerce = () => pageMarche('commerce');
 // heure écrite à la française : « 22 h », « 11 h 30 », « minuit »
 const hFr = t => t === '24:00' || t === '00:00' ? 'minuit' : t.replace(/^0?(\d{1,2}):(\d{2})$/, (_, h, m) => `${h} h${m === '00' ? '' : ' ' + m}`);
-// carte d'un restaurant ou d'un commerce dans une liste : photo, nom, ouvert ou fermé (avec l'heure), délai et frais, note des avis vérifiés
+// carte d'un restaurant ou d'un commerce dans une liste (maquette 23/11) : photo 16:9 avec le badge « délai · frais » dessus, nom et note, puis « Ouvert · cuisine · ville »
 const etatTexte = (x, e = etatOuverture(x)) => e.ouvert ? `Ouvert${e.texte ? ' · ' + e.texte : ''}` : e.auto && e.texte ? `${e.texte[0].toUpperCase() + e.texte.slice(1)} · précommande possible` : 'Fermé pour le moment';
-const carteResto = (x, n) => { const e = etatOuverture(x), bq = estBoutique(x); return `<a class="carte-resto" href="#/resto/${x.id}"><span class="cr-img ${bq ? 't-com' : 't-food'}">${x.photo ? `<img src="${esc(photo(x.photo))}" alt="" loading="lazy">` : `<span aria-hidden="true">${CUISINES[x.cuisine]?.[0] || '🍽️'}</span>`}</span>
-  <span class="cr-corps"><b>${esc(x.nom)}</b><span class="cr-etat ${e.ouvert ? 'ok' : e.auto && e.texte ? 'att' : 'gris'}">${esc(etatTexte(x, e))}</span>
-    <span class="cr-infos">${esc(CUISINES[x.cuisine]?.[1] || '')} · ${esc(x.commune)} · ${x.delai_min} min${x.livraison ? ` · livraison ${Number(x.frais_livraison) ? eur(x.frais_livraison) : 'offerte'}` : ' · à emporter seulement'}</span>
-    ${n ? `<span class="cr-note">★ ${String(n.moyenne).replace('.', ',')} <span>(${n.nombre} avis vérifié${n.nombre > 1 ? 's' : ''})</span></span>` : Date.now() - new Date(x.created_at) < 30 * 864e5 ? '<span class="etiquette">Nouveau</span>' : ''}</span></a>`; };
+const badgeLivraison = x => `${x.delai_min} min · ${x.livraison ? (Number(x.frais_livraison) ? eur(x.frais_livraison) : 'Livraison offerte') : 'À emporter'}`;
+const carteResto = (x, n, prio) => { const e = etatOuverture(x), bq = estBoutique(x), k = bq ? 'sac' : UIF.cuisine(x.cuisine); return `<a class="carte-resto" href="#/resto/${x.id}"><span class="cr-img ph-w ${bq ? 't-com' : 't-food'}" data-ic="${k}">${UIF.img(x.photo, k, 640, 360, prio)}<span class="cr-badge">${esc(badgeLivraison(x))}</span></span>
+  <span class="cr-corps"><span class="cr-l1"><b>${esc(x.nom)}</b>${n ? `<span class="cr-note">★ ${String(n.moyenne).replace('.', ',')} <span>(${n.nombre})</span></span>` : Date.now() - new Date(x.created_at) < 30 * 864e5 ? '<span class="etiquette">Nouveau</span>' : ''}</span>
+    <span class="cr-l2"><span class="cr-etat ${e.ouvert ? 'ok' : e.auto && e.texte ? 'att' : 'gris'}">${esc(etatTexte(x, e))}</span><span class="cr-infos"> · ${esc(CUISINES[x.cuisine]?.[1] || '')} · ${esc(x.commune)}</span></span></span></a>`; };
 
 // ---------------------------------------------------------------- restaurant : carte et panier
 APP.pages.resto = async id => {
@@ -230,23 +282,27 @@ APP.pages.resto = async id => {
   document.title = `${r.nom} — Woulib`;
   const nomCat = c => (CATS[c] || LIB_CAT[c] || '').replace(/^\S+\s/, '');   // l'emoji du rayon reste dans l'administration
   const note = n[0];
-  const infos = [etat.ouvert ? ['ok', `Ouvert${etat.ferme ? ' jusqu’à ' + hFr(etat.ferme) : ''}`] : ['gris', programmable && etat.texte ? `Fermé · ${etat.texte}` : 'Fermé pour le moment'],
-    r.livraison && ['', `Livraison ${Number(r.frais_livraison) ? eur(r.frais_livraison) : 'offerte'}`], Number(r.minimum) > 0 && ['', `Minimum ${eur(r.minimum)}`],
-    r.emporter && ['', r.livraison ? 'Retrait possible' : 'À emporter seulement'], ['', `${r.delai_min} min`],
-    note && ['', `★ ${String(note.moyenne).replace('.', ',')} · ${note.nombre} avis vérifié${note.nombre > 1 ? 's' : ''}`]].filter(Boolean);
+  const icR = bq ? 'sac' : UIF.cuisine(r.cuisine);
+  // « ★ note · délai · frais · Ouvert » (maquette 23/11), puis le minimum et le retrait
+  const infos = [note && ['', `★ ${String(note.moyenne).replace('.', ',')} · ${note.nombre} avis vérifié${note.nombre > 1 ? 's' : ''}`], ['', `${r.delai_min} min`],
+    r.livraison && ['', `Livraison ${Number(r.frais_livraison) ? eur(r.frais_livraison) : 'offerte'}`],
+    etat.ouvert ? ['ok', `Ouvert${etat.ferme ? ' jusqu’à ' + hFr(etat.ferme) : ''}`] : ['gris', programmable && etat.texte ? `Fermé · ${etat.texte}` : 'Fermé pour le moment'],
+    Number(r.minimum) > 0 && ['', `Minimum ${eur(r.minimum)}`], r.emporter && ['', r.livraison ? 'Retrait possible' : 'À emporter seulement']].filter(Boolean);
+  const iEtat = infos.findIndex(x => x[0] === 'ok' || /^Fermé/.test(x[1]));   // première rangée : jusqu'à l'état d'ouverture ; seconde : minimum et retrait
   // un plat : nom, description, allergènes, prix, stock ; la photo à droite avec le bouton +, le compteur apparaît ensuite
-  const ligneP = p => { const nb = nbPlat(p.id), al = texteAllergenes(p).replace(/^⚠️ /, ''); return `<div class="plat-l ${p.dispo ? '' : 'fini'}" id="p-${p.id}">
+  const ligneP = p => { const nb = nbPlat(p.id), al = texteAllergenes(p).replace(/^⚠️ /, ''), kp = UIF.rayon(p.categorie); return `<div class="plat-l ${p.dispo ? '' : 'fini'}" id="p-${p.id}">
     <div class="pl-t"><b>${esc(p.nom)}</b>${p.description ? `<span class="pl-d">${esc(p.description)}</span>` : ''}${al ? `<span class="pl-a">${al.startsWith('Allergènes') ? `<b>Allergènes :</b>${esc(al.slice(12))}` : esc(al)}</span>` : ''}
-      <span class="pl-p"><b>${eur(p.prix)}</b>${aOptions(p) ? '<span class="muted petit">au choix</span>' : ''}${!p.dispo ? '<span class="tag gris">Épuisé</span>' : p.stock != null && p.stock > 0 && p.stock <= 5 ? `<span class="tag att">Plus que ${p.stock}</span>` : ''}</span></div>
-    <div class="pl-img ${p.photo ? '' : 'sans'}">${p.photo ? `<img src="${esc(photo(p.photo))}" alt="" loading="lazy">` : ''}
+      <span class="pl-p"><b>${eur(p.prix)}</b>${aOptions(p) ? '<span class="muted petit">au choix</span>' : ''}${!p.dispo ? '<span class="tag gris">Épuisé</span>' : p.stock != null && p.stock > 0 && p.stock <= 5 ? `<span class="tag att">Plus que ${p.stock}</span>` : ''}</span>
+      <small class="art-err" id="e-${p.id}" role="alert" hidden></small></div>
+    <div class="pl-img ${p.photo ? '' : 'sans'}" data-ic="${kp}">${UIF.img(p.photo, kp, 152, 152)}
       ${!p.dispo || !commandable ? '' : aOptions(p) ? `<div class="qte ${nb ? '' : 'zero'}" data-opt="${p.id}"><output>${nb || ''}</output><button type="button" data-choisir="${p.id}" aria-label="Choisir ${esc(p.nom)}">+</button></div>`
         : `<div class="qte ${nb ? '' : 'zero'}" data-plat="${p.id}"><button type="button" data-d="-1" aria-label="Retirer un ${esc(p.nom)}">−</button><output>${nb}</output><button type="button" data-d="1" aria-label="Ajouter ${esc(p.nom)}">+</button></div>`}</div></div>`; };
   vue(`<div class="wrap page-resto"><div class="fiche fiche-d">
-    <div class="resto-c"><div class="resto-hero ${bq ? 't-com' : 't-food'}">${r.photo ? `<img src="${esc(photo(r.photo))}" alt="">` : `<span class="sans-photo" aria-hidden="true">${CUISINES[r.cuisine]?.[0] || '🍽️'}</span>`}
+    <div class="resto-c"><div class="resto-hero ph-w ${bq ? 't-com' : 't-food'}" data-ic="${icR}">${UIF.img(r.photo, icR, 800, 450, true)}
         <button type="button" class="rond retour-flottant" id="retourResto" aria-label="Retour">${ICO.retour}</button>
         <button type="button" class="rond" id="fav" aria-pressed="false" aria-label="Ajouter aux favoris">${ICO.coeur}</button></div>
       <div class="resto-tete"><h1>${esc(r.nom)}</h1><p class="muted">${esc(CUISINES[r.cuisine]?.[1] || '')} · ${esc(r.commune)}${r.adresse ? ', ' + esc(r.adresse) : ''}</p></div>
-      <div class="puces-info">${infos.map(([c, t]) => `<span class="pi ${c}">${c === 'ok' ? ICO.coche : ''}${esc(t)}</span>`).join('')}</div>
+      <div class="puces-info">${infos.slice(0, iEtat + 1).map(([c, t]) => `<span class="pi ${c}">${c === 'ok' ? ICO.coche : ''}${esc(t)}</span>`).join('')}</div>${infos.length > iEtat + 1 ? `<div class="puces-info pi-2">${infos.slice(iEtat + 1).map(([c, t]) => `<span class="pi ${c}">${esc(t)}</span>`).join('')}</div>` : ''}
       ${!horairesSem && r.horaires ? `<p class="muted petit">Horaires : ${esc(r.horaires)}</p>` : ''}
       ${r.description ? `<p class="resto-desc">${esc(r.description)}</p>` : ''}
       ${horairesSem ? `<details class="horaires-d"><summary>Horaires de la semaine</summary><div>${SEMAINE.map(j => `<span>${JOURS[j]}</span><b>${r.horaires_sem[j]?.length ? esc(r.horaires_sem[j].map(([a, b]) => `${hFr(a)} – ${hFr(b)}`).join(', ')) : 'Fermé'}</b>`).join('')}</div></details>` : ''}
@@ -260,36 +316,39 @@ APP.pages.resto = async id => {
     <aside id="panneauCmd" aria-label="Mon panier"><div class="panier colle" id="panier"><div class="panier-t"><h2>Mon panier</h2>
       <button type="button" class="btn btn-s fermer-panier" data-fermer-panier>Retour à la carte</button></div><div id="lignes"></div>
       ${r.livraison && r.emporter ? `<div class="seg" role="group" aria-label="Livraison ou retrait"><button type="button" data-mode="livraison">Livraison</button><button type="button" data-mode="emporter">À emporter</button></div>` : `<p class="petit muted">${r.livraison ? 'Livraison uniquement' : 'À emporter uniquement'}</p>`}
-      <form class="f" id="fCmd"><div id="adresse"></div>
+      <form class="f" id="fCmd"><div id="adresse" class="carte-adr"></div>
         <label>Téléphone<input name="telephone" type="tel" required pattern="[0-9 +]{6,20}" value="${esc(contact?.telephone || '')}" autocomplete="tel"></label>
         ${programmable ? `<p class="petit" style="margin:0"><b>⏰ Fermé en ce moment${etat.texte ? ' (' + esc(etat.texte) + ')' : ''}</b> : programmez votre commande.</p>` : ''}
-        <details class="plus-options" ${programmable ? 'open' : ''}><summary>Programmer, code promo, message</summary>
+        <details class="plus-options ligne-depl" ${programmable ? 'open' : ''}><summary>Pourboire, code promo, message, programmer</summary><div id="pourboire"></div>
           <label>Quand ?<select name="quand">${programmable ? '' : '<option value="">Dès que possible</option>'}<option value="plus">Programmer pour plus tard</option></select></label><div id="heureCmd"></div>
           <div style="display:flex;gap:6px;align-items:flex-end"><label style="flex:1">Code promo<input name="code" maxlength="20" autocomplete="off" style="text-transform:uppercase"></label><button type="button" class="btn btn-s" id="appliquer">Appliquer</button></div>
           <label>Un mot pour le restaurant<input name="note" maxlength="500" placeholder="Sans piment, code du portail…"></label></details>
-        <div id="majeur"></div><div id="alcoolHeure" role="status"></div><div id="pourboire"></div><div id="totaux"></div><button class="btn btn-p" id="commander" ${commandable ? '' : 'disabled'}>${commandable ? (programmable ? 'Programmer ma commande' : 'Commander') : 'Restaurant fermé'}</button>
+        <div id="alcoolHeure" role="status"></div><div id="totaux"></div>
         <p class="muted petit" style="margin:0">Allergènes : voir chaque ${bq ? 'article' : 'plat'} ; une question ? Contactez ${bq ? 'la boutique' : 'le restaurant'} avant de commander.</p><p class="muted petit" style="margin:0">${bq ? 'Paiement à la livraison ou au retrait (espèces ou carte, selon la boutique).' : 'Paiement au restaurant ou au livreur (espèces ou carte, selon le restaurant).'}</p>
-        <p class="muted petit" style="margin:0">${bq ? 'Repas, glaces, produits frais et autres denrées périssables : pas de droit de rétractation (art. L221-28 du Code de la consommation). Autres articles : 14 jours, auprès de la boutique.' : 'Repas : pas de droit de rétractation (art. L221-28 du Code de la consommation).'} <a href="cgu.html" target="_blank" rel="noopener">Conditions</a></p></form></div></aside></div>
+        <p class="muted petit" style="margin:0">${bq ? 'Repas, glaces, produits frais et autres denrées périssables : pas de droit de rétractation (art. L221-28 du Code de la consommation). Autres articles : 14 jours, auprès de la boutique.' : 'Repas : pas de droit de rétractation (art. L221-28 du Code de la consommation).'} <a href="cgu.html" target="_blank" rel="noopener">Conditions</a></p>
+        <div class="pied-cmd"><p class="recap" id="recap"></p><p class="art-err" id="erreurCmd" role="alert" hidden></p><button class="btn btn-p" id="commander" ${commandable ? '' : 'disabled'}>${commandable ? (programmable ? 'Programmer ma commande' : 'Commander') : 'Restaurant fermé'}</button></div></form></div></aside></div>
     <button type="button" class="barre-panier" id="barrePanier" hidden></button><div class="voile-panier" id="voilePanier"></div></div>`);
   const majAdresse = () => {
-    $('#adresse').innerHTML = mode === 'livraison' ? `<label>Adresse de livraison<input name="adresse" required maxlength="300" autocomplete="street-address"></label>
+    $('#adresse').innerHTML = mode === 'livraison' ? `<span class="carte-adr-t">${ICO.pin}<b>Livraison à</b></span><label>Adresse de livraison<input name="adresse" required maxlength="300" autocomplete="street-address"></label>
       <label>Ville<input name="commune" required maxlength="60" list="villesK" value="${esc(r.communes_livrees.length === 1 ? r.communes_livrees[0] : r.commune)}"></label>
       <datalist id="villesK">${(r.communes_livrees.length ? r.communes_livrees : TERRITOIRES[r.territoire]?.villes || []).map(v => `<option value="${esc(v)}">`).join('')}</datalist>
-      ${r.communes_livrees.length ? `<p class="petit muted" style="margin:0">Livre à : ${esc(r.communes_livrees.join(', '))}</p>` : ''}` : `<p class="petit">À récupérer : <b>${esc(r.adresse || r.commune)}</b></p>`;
+      ${r.communes_livrees.length ? `<p class="petit muted" style="margin:0">Livre à : ${esc(r.communes_livrees.join(', '))}</p>` : ''}` : `<span class="carte-adr-t">${ICO.pin}<b>À récupérer</b></span><p class="petit" style="margin:0"><b>${esc(r.adresse || r.commune)}</b></p>`;
     document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === mode));
   };
   let remise = 0, codeOk = null;
   const lignesPanier = () => Object.entries(cart).map(([k, v]) => { const p = platDe(v.p); return p && v.n > 0 ? { k, p, n: v.n, pu: Number(p.prix) + supplement(p, v.o), lib: libelleOptions(p, v.o) } : null; }).filter(Boolean);
   const sousTotal = () => lignesPanier().reduce((t, x) => t + x.pu * x.n, 0);
+  // message d'erreur sous l'article concerné (et non en pilule en haut de l'écran)
+  const erreurSous = (idEl, msg) => { const e = document.getElementById(idEl) || $('#erreurCmd'); if (!e) return toast(msg, true); e.textContent = msg; e.hidden = false; clearTimeout(e._t); e._t = setTimeout(() => { e.hidden = true; }, 6000); e.scrollIntoView({ block: 'nearest' }); };
   const majCompteurs = () => document.querySelectorAll('.qte[data-plat],.qte[data-opt]').forEach(qt => { const k = qt.dataset.plat || qt.dataset.opt; qt.querySelector('output').textContent = nbPlat(k) || (qt.dataset.plat ? 0 : ''); qt.classList.toggle('zero', !nbPlat(k)); });
   const majPanier = () => {
     const l = lignesPanier(), st = sousTotal(), frais = mode === 'livraison' ? Number(r.frais_livraison) : 0, pb = mode === 'livraison' ? tip : 0;
     if (codeOk && remise > st) remise = st;
-    $('#lignes').innerHTML = l.length ? l.map(x => `<div class="ligne-panier"><span>${x.n} × ${esc(x.p.nom)}${x.lib ? `<small>${esc(x.lib)}</small>` : ''}</span>
-      <span class="ln-d"><b>${eur(x.pu * x.n)}</b><button type="button" data-l="${esc(x.k)}" data-d="-1" aria-label="Retirer un ${esc(x.p.nom)}">−</button><button type="button" data-l="${esc(x.k)}" data-d="1" aria-label="Ajouter un ${esc(x.p.nom)}">+</button></span></div>`).join('') : `<p class="muted">Ajoutez des ${bq ? 'articles' : 'plats'} avec le bouton +.</p>`;
-    // alcool dans le panier : le client confirme sa majorité ; le vendeur contrôle une pièce d'identité à la remise
-    const majeur = l.some(x => x.p.majeur);
-    if (majeur !== !!$('#majeur').childElementCount) $('#majeur').innerHTML = majeur ? `<label class="majeur-ok"><input type="checkbox" name="majeur" required> <span><b>J’ai 18 ans ou plus</b><small>Une pièce d’identité vous sera demandée à la remise.</small></span></label>` : '';
+    // alcool dans le panier : le client confirme sa majorité (case sur la ligne du premier article 18+, gardée cochée d'un rafraîchissement à l'autre) ; le vendeur contrôle une pièce d'identité à la remise
+    const coche = !!$('#majeur input')?.checked, premier18 = l.findIndex(x => x.p.majeur), majeur = premier18 >= 0;
+    $('#lignes').innerHTML = l.length ? l.map((x, i) => `<div class="ligne-panier"><span class="lp-t"><b>${esc(x.p.nom)}</b>${x.lib ? `<small>${esc(x.lib)}</small>` : ''}<span class="lp-p">${eur(x.pu * x.n)}</span></span>
+      <span class="ln-d"><button type="button" data-l="${esc(x.k)}" data-d="-1" aria-label="Retirer un ${esc(x.p.nom)}">−</button><output>${x.n}</output><button type="button" data-l="${esc(x.k)}" data-d="1" aria-label="Ajouter un ${esc(x.p.nom)}">+</button></span>
+      <small class="art-err" id="el-${esc(x.k)}" role="alert" hidden></small>${i === premier18 ? `<span id="majeur" class="majeur-l"><label class="majeur-ok"><input type="checkbox" name="majeur" form="fCmd" required ${coche ? 'checked' : ''}> <span><b>J’ai 18 ans ou plus</b><small>Une pièce d’identité vous sera demandée à la remise.</small></span></label></span>` : ''}</div>`).join('') : `<p class="muted">Ajoutez des ${bq ? 'articles' : 'plats'} avec le bouton +.</p>`;
     // alcool hors de la plage horaire du territoire, sans permis de vente de nuit : la base refusera la commande, on le dit avant
     const hCmd = $('#fCmd')?.heure?.value || '', maintenantOk = alcoolPermisA(r.territoire);
     const horsPlage = majeur && alcoolV2() && !r.permis_nuit && (!maintenantOk || (hCmd && !alcoolPermisA(r.territoire, hCmd.split('T')[1])));
@@ -303,6 +362,9 @@ APP.pages.resto = async id => {
     const nb = l.reduce((t, x) => t + x.n, 0);   // barre du bas (téléphone) : le panier en un coup d'œil
     $('#barrePanier').hidden = !nb || $('#panneauCmd').classList.contains('ouvert');
     $('#barrePanier').innerHTML = `<span>Voir le panier · ${nb} article${nb > 1 ? 's' : ''}</span><b>${eur(st - remise + frais + pb)}</b>`;
+    // pied fixe de la feuille : le récapitulatif, puis « Commander · total » (même calcul que la ligne ci-dessus ; la base recalcule tout à l'envoi)
+    $('#recap').textContent = l.length ? `${nb} article${nb > 1 ? 's' : ''} · ${mode === 'livraison' ? `livraison ${frais ? eur(frais) : 'offerte'}` : 'à emporter'}` : '';
+    if (commandable) $('#commander').textContent = `${programmable ? 'Programmer ma commande' : 'Commander'}${l.length ? ' · ' + eur(st - remise + frais + pb) : ''}`;
   };
   const panneau = ouvrir => { $('#panneauCmd').classList.toggle('ouvert', ouvrir); document.body.classList.toggle('sans-defil', ouvrir); majPanier(); if (ouvrir) $('#panneauCmd').scrollTop = 0; };
   $('#barrePanier').addEventListener('click', () => panneau(true));
@@ -313,6 +375,16 @@ APP.pages.resto = async id => {
     document.querySelectorAll('[data-saut]').forEach(x => x.classList.toggle('on', x === b));
     const h = $('#cat-' + b.dataset.saut); window.scrollTo({ top: h.getBoundingClientRect().top + scrollY - 120, behavior: 'smooth' });
   }));
+  // la rubrique éclairée dans la barre collée suit le défilement (l'écouteur se retire quand on quitte la fiche)
+  if (parCat.length > 1) {
+    const suit = () => {
+      const hs = parCat.map(([c]) => $('#cat-' + c)); if (!hs[0]) return removeEventListener('scroll', suit);
+      let i = 0; hs.forEach((h, k) => { if (h.getBoundingClientRect().top <= 140) i = k; });
+      const bs = [...document.querySelectorAll('[data-saut]')];
+      if (!bs[i].classList.contains('on')) { bs.forEach((x, k) => x.classList.toggle('on', k === i)); bs[i].scrollIntoView({ block: 'nearest', inline: 'center' }); }
+    };
+    addEventListener('scroll', suit, { passive: true });
+  }
   // plat avec choix (accompagnement, sauce, suppléments) : petite fenêtre
   const choisir = p => {
     const d = document.createElement('dialog'); d.className = 'dlg-options';
@@ -344,7 +416,7 @@ APP.pages.resto = async id => {
   document.querySelectorAll('.qte[data-plat]').forEach(qt => qt.addEventListener('click', ev => {
     const b = ev.target.closest('[data-d]'); if (!b) return;
     const k = qt.dataset.plat, c = cart[k] || { p: k, n: 0, o: [] }, p = platDe(k);
-    if (c.n + Number(b.dataset.d) > maxArticle(p)) return toast(p.stock != null ? `Plus que ${p.stock} en stock` : '20 au maximum', true);
+    if (c.n + Number(b.dataset.d) > maxArticle(p)) return erreurSous('e-' + k, p.stock != null ? `Plus que ${p.stock} en stock` : '20 au maximum');
     c.n = Math.max(0, c.n + Number(b.dataset.d));
     if (c.n) cart[k] = c; else delete cart[k];
     majCompteurs(); majPanier();
@@ -352,7 +424,7 @@ APP.pages.resto = async id => {
   document.querySelectorAll('[data-choisir]').forEach(b => b.addEventListener('click', () => choisir(platDe(b.dataset.choisir))));
   $('#panier').addEventListener('click', ev => {
     const l = ev.target.closest('[data-l]'), t = ev.target.closest('[data-tip]');
-    if (l && cart[l.dataset.l]) { const c = cart[l.dataset.l], p = platDe(c.p); if (c.n + Number(l.dataset.d) > maxArticle(p)) return toast(p.stock != null ? `Plus que ${p.stock} en stock` : '20 au maximum', true); c.n = Math.max(0, c.n + Number(l.dataset.d)); if (!c.n) delete cart[l.dataset.l]; majCompteurs(); majPanier(); }
+    if (l && cart[l.dataset.l]) { const c = cart[l.dataset.l], p = platDe(c.p); if (c.n + Number(l.dataset.d) > maxArticle(p)) return erreurSous('el-' + l.dataset.l, p.stock != null ? `Plus que ${p.stock} en stock` : '20 au maximum'); c.n = Math.max(0, c.n + Number(l.dataset.d)); if (!c.n) delete cart[l.dataset.l]; majCompteurs(); majPanier(); }
     if (t) { tip = Number(t.dataset.tip); majPanier(); }
   });
   document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { mode = b.dataset.mode; majAdresse(); majPanier(); }));
@@ -391,7 +463,9 @@ APP.pages.resto = async id => {
       const c = await q(sb.rpc('passer_commande', { resto: id, mode_cmd: mode, lignes, adresse_cmd: d.adresse || null, commune_cmd: d.commune || null, telephone_cmd: d.telephone.trim(), note_cmd: d.note || null,
         lat_cmd: pos?.lat ?? null, lng_cmd: pos?.lng ?? null, heure_cmd: d.heure ? localVersUTC(d.heure, fuseauR) : null, code_cmd: codeOk, ...(BASE_V2 ? { pourboire_cmd: mode === 'livraison' && tip ? tip : null } : {}), ...(alcoolV2() ? { majeur_cmd: !!d.majeur } : {}) }));
       cart = {}; panier.ecrire(id, cart); oublier('resto'); oublier('acc-'); toast(`Commande envoyée à ${r.nom}. ${bq ? 'La boutique' : 'Le restaurant'} doit l’accepter : vous serez prévenu ici.`); aller('#/suivi/' + c.id);
-    } catch (err) { toast(erreur(err).replace(/^[A-Z_]{4,}\s+/, ''), true); b.disabled = false; if (/stock|épuisé|PAUSE/i.test(err.message || '')) oublier('resto'); }
+    } catch (err) {
+      const msg = erreur(err).replace(/^[A-Z_]{4,}\s+/, ''), x = lignesPanier().find(y => msg.includes(y.p.nom));   // l'erreur va sous l'article cité, sinon juste au-dessus du bouton
+      erreurSous(x ? 'el-' + x.k : 'erreurCmd', msg); b.disabled = false; if (/stock|épuisé|PAUSE/i.test(err.message || '')) oublier('resto'); }
   });
 };
 
@@ -408,35 +482,45 @@ APP.pages.suivi = async id => {
     const etapes = ETAPES.filter(e => c.mode === 'livraison' || !['en_livraison'].includes(e[0])).map(e => e[0] === 'livree' && c.mode === 'emporter' ? ['retiree', '🎉', 'Retirée'] : e[0] === 'en_preparation' && estBoutique(c.restaurants) ? ['en_preparation', '📦', 'Préparation'] : e);
     const pos = etapes.findIndex(e => e[0] === c.statut), fini = ['refusee', 'annulee'].includes(c.statut);
     const avis = ['livree', 'retiree'].includes(c.statut) ? await q(sb.from('avis_resto').select('id').eq('commande_id', id)) : [];
-    vue(`<div class="wrap" style="padding-top:22px;max-width:760px"><a href="#/activite?f=repas" class="petit">← Mon activité</a>
-      <div class="panneau" style="margin-top:10px"><span class="px">Commande ${esc(c.id.slice(0, 6).toUpperCase())} · ${esc(jourHeure(c.created_at))}</span><h1 style="margin:6px 0">${esc(c.restaurants?.nom || '')}</h1>
+    // maquette 23/11 : carte en haut pleine largeur, l'information principale en grand (arrivée si la base la donne, sinon l'étape en cours), frise de 4 étapes, livreur, code
+    const liv = c.mode === 'livraison', prete = ['prete', 'en_livraison'].includes(c.statut);
+    const FRISE = [['envoyee', 'Envoyée'], ['en_cuisine', 'En cuisine'], [liv ? 'en_route' : 'prete', liv ? 'En route' : 'Prête'], ['fin', liv ? 'Livrée' : 'Retirée']];
+    const iF = { envoyee: 0, acceptee: 1, en_preparation: 1, prete: 2, en_livraison: 2, livree: 3, retiree: 3 }[c.statut] ?? 0;
+    const GRAND = { envoyee: 'Commande envoyée', acceptee: 'Commande acceptée', en_preparation: 'En cuisine', prete: liv ? 'Prête, un livreur arrive' : 'Prête à retirer', en_livraison: 'En route vers vous', livree: 'Livrée', retiree: 'Retirée' };
+    // « Arrive dans N min » seulement si une heure existe : heure programmée, ou délai annoncé par le restaurant moins le temps écoulé (rien d'inventé, sinon l'étape)
+    const minPrevues = c.pour_heure ? null : ['acceptee', 'en_preparation', 'prete', 'en_livraison'].includes(c.statut) && c.restaurants?.delai_min ? Math.ceil(Number(c.restaurants.delai_min) - (Date.now() - new Date(c.created_at)) / 6e4) : null;
+    const grand = fini ? '' : c.pour_heure && !['livree', 'retiree'].includes(c.statut) ? `Prévue ${esc(jourHeure(c.pour_heure))}` : minPrevues > 0 ? `${liv ? 'Arrive' : 'Prête'} dans ${minPrevues} min` : GRAND[c.statut] || '';
+    const tel = lv?.livreur?.telephone;
+    vue(`<div class="suivi-p">
+      ${lv && !fini && lv.statut !== 'livree' ? '<div id="carteLv" class="suivi-carte" role="img" aria-label="Carte de la livraison"></div>' : ''}
+      <div class="wrap suivi-corps"><a href="#/activite?f=repas" class="petit">← Mon activité</a>
+        <span class="px">Commande ${esc(c.id.slice(0, 6).toUpperCase())} · ${esc(jourHeure(c.created_at))}</span><h1>${esc(c.restaurants?.nom || '')}</h1>
         ${fini ? `<div class="verdict ko"><big>${c.statut === 'refusee' ? '😕' : '❌'}</big>Commande ${c.statut === 'refusee' ? 'refusée par le restaurant' : 'annulée'}</div>`
-          : `<div class="quetes" style="margin:14px 0">${etapes.map((e, i) => `<div class="quete ${i < pos || c.statut === e[0] && ['livree', 'retiree'].includes(e[0]) ? 'faite' : i === pos ? 'actuelle' : ''}"><span class="q-coche">${i <= pos ? '✓' : ''}</span><span class="q-ico">${e[1]}</span><span class="q-titre">${e[2]}</span></div>`).join('')}</div>`}
-        <div>${c.commande_lignes.map(l => `<div class="ligne-panier"><span>${l.quantite} × ${esc(l.nom)}${l.options ? `<small>${esc(l.options)}</small>` : ''}</span><b>${eur(l.prix * l.quantite)}</b></div>`).join('')}
+          : `<p class="suivi-grand" aria-live="polite">${grand}</p>${minPrevues > 0 ? `<p class="muted petit" style="margin:-6px 0 10px">Délai annoncé par ${esc(c.restaurants?.nom || 'le restaurant')} : ${c.restaurants.delai_min} min.</p>` : ''}
+            <ol class="frise" aria-label="Étapes de la commande">${FRISE.map(([, t], i) => `<li class="${i < iF || (i === iF && iF === 3) ? 'faite' : i === iF ? 'actuelle' : ''}" ${i === iF ? 'aria-current="step"' : ''}><span class="f-pt">${i < iF || (i === iF && iF === 3) ? '✓' : ''}</span><span class="f-t">${t}</span></li>`).join('')}</ol>`}
+        ${lv && !fini && lv.statut !== 'livree' ? `<div class="livreur-c">
+          ${lv.livreur ? `<span class="liv-av" aria-hidden="true">${esc((lv.livreur.prenom || 'L')[0].toUpperCase())}</span><div class="liv-t"><b>${esc(lv.livreur.prenom || 'Votre livreur')}</b><small>${esc(lv.livreur.vehicule)}${lv.livreur.couleur ? ' ' + esc(lv.livreur.couleur) : ''} · ${{ acceptee: 'part chercher votre commande', au_restaurant: 'est au restaurant', recuperee: 'est en route vers vous' }[lv.statut] || ''}${lvActive && lv.livreur.lat == null ? ' · position pas encore partagée' : ''}</small></div>
+            ${tel ? `<div class="liv-b"><a class="btn btn-sec btn-s" href="tel:${esc(tel)}">Appeler</a><a class="btn btn-sec btn-s" href="${wa(tel, 'Bonjour, je suis le client de la commande ' + c.id.slice(0, 6).toUpperCase() + ' sur Woulib.')}" target="_blank" rel="noopener">Message</a></div>` : ''}`
+            : '<div class="liv-t"><b>Nous cherchons un livreur près du restaurant…</b></div>'}</div>
+          ${lv.code ? `<div class="code-c"><span>Code à donner au livreur à la remise</span><b class="code-remise">${esc(lv.code)}</b></div>` : ''}` : ''}
+        <div class="panneau suivi-recap"><h2 class="px" style="margin:0 0 4px">Votre commande</h2>${c.commande_lignes.map(l => `<div class="ligne-panier"><span class="lp-t"><b>${l.quantite} × ${esc(l.nom)}</b>${l.options ? `<small>${esc(l.options)}</small>` : ''}<span class="lp-p">${eur(l.prix * l.quantite)}</span></span></div>`).join('')}
           ${Number(c.remise) ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Code ${esc(c.code_promo)}</span><span>−${eur(c.remise)}</span></div>` : ''}
           ${c.frais > 0 ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Livraison</span><span>${eur(c.frais)}</span></div>` : ''}
-          ${Number(c.pourboire) ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Pourboire du livreur 💛</span><span>${eur(c.pourboire)}</span></div>` : ''}
-          ${c.pour_heure ? `<p class="petit"><b>⏰ Programmée pour ${esc(jourHeure(c.pour_heure))}</b></p>` : ''}${c.majeur ? '<p class="petit"><b>🔞 Pièce d’identité demandée à la remise.</b></p>' : ''}<div style="font:700 22px var(--titres);margin-top:6px">Total ${eur(c.total)}</div>
-          <p class="muted petit">${c.mode === 'livraison' ? `🛵 Livraison : ${esc(c.adresse)}, ${esc(c.commune)}` : `🛍️ À retirer : ${esc(c.restaurants?.adresse || c.restaurants?.commune || '')}`} · ${lv ? `paiement au livreur à la livraison (${eur(c.total)})` : 'paiement sur place'}</p></div>
-        ${lv && !fini && lv.statut !== 'livree' ? `<div class="panneau" style="margin:12px 0;padding:14px;border-color:var(--ciel)">
-          ${lv.livreur ? `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b>🛵 ${esc(lv.livreur.prenom || 'Votre livreur')}</b> · ${esc(lv.livreur.vehicule)}${lv.livreur.couleur ? ' ' + esc(lv.livreur.couleur) : ''}
-              <div class="muted petit">${{ acceptee: 'part chercher votre commande', au_restaurant: 'est au restaurant', recuperee: 'est en route vers vous' }[lv.statut] || ''}${lvActive && lv.livreur.lat == null ? ' · position pas encore partagée' : ''}</div></div>
-              ${lv.livreur.telephone ? `<a class="btn btn-s" href="tel:${esc(lv.livreur.telephone)}">📞 Appeler</a>` : ''}</div>`
-            : '<b>🔎 Nous cherchons un livreur près du restaurant…</b>'}
-          ${lv.code ? `<div style="margin-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="petit">Code à donner au livreur à la remise :</span><b class="code-remise">${esc(lv.code)}</b></div>` : ''}
-          <div id="carteLv" style="height:260px;border-radius:18px;margin-top:12px;background:var(--rose-doux)"></div></div>` : ''}
-        <div class="actions">${c.restaurants?.telephone ? `<a class="btn btn-s btn-wa" href="${wa(c.restaurants.telephone, 'Bonjour, à propos de ma commande ' + c.id.slice(0, 6).toUpperCase() + ' sur Woulib.')}" target="_blank" rel="noopener">WhatsApp au restaurant</a>` : ''}
+          ${Number(c.pourboire) ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Pourboire du livreur</span><span>${eur(c.pourboire)}</span></div>` : ''}
+          ${c.pour_heure ? `<p class="petit"><b>Programmée pour ${esc(jourHeure(c.pour_heure))}</b></p>` : ''}${c.majeur ? '<p class="petit"><b>Pièce d’identité demandée à la remise.</b></p>' : ''}<div class="total-p">Total ${eur(c.total)}</div>
+          <p class="muted petit">${liv ? `Livraison : ${esc(c.adresse)}, ${esc(c.commune)}` : `À retirer : ${esc(c.restaurants?.adresse || c.restaurants?.commune || '')}`} · ${lv ? `paiement au livreur à la livraison (${eur(c.total)})` : 'paiement sur place'}</p></div>
+        <div class="actions">${c.restaurants?.telephone ? `<a class="btn btn-sec btn-wa" href="${wa(c.restaurants.telephone, 'Bonjour, à propos de ma commande ' + c.id.slice(0, 6).toUpperCase() + ' sur Woulib.')}" target="_blank" rel="noopener">WhatsApp au restaurant</a>` : ''}
           ${c.statut === 'envoyee' ? '<button class="btn btn-s btn-ko" id="annuler">Annuler</button>' : ''}
-          <a class="btn btn-s" href="#/assistance?sujet=commande&id=${c.id}">Un problème ?</a><button type="button" class="btn btn-s" data-signaler="commande" data-id="${c.id}" data-univers="food" data-nom="cette commande">🚩 Signaler</button></div></div>
-      ${['livree', 'retiree'].includes(c.statut) && !avis.length ? `<form class="f panneau" id="fAvis" style="margin-top:18px"><h2 style="margin:0">C’était bon ? 😋</h2><label>Note<select name="note">${[5, 4, 3, 2, 1].map(n => `<option value="${n}">${'⭐'.repeat(n)}</option>`).join('')}</select></label>
-        <label>Votre avis<textarea name="texte" maxlength="1000" style="min-height:80px"></textarea></label><button class="btn btn-p">Publier mon avis</button></form>` : ''}</div>`);
+          <a class="btn btn-s" href="#/assistance?sujet=commande&id=${c.id}">Un problème ?</a><button type="button" class="btn btn-s" data-signaler="commande" data-id="${c.id}" data-univers="food" data-nom="cette commande">Signaler</button></div>
+      ${['livree', 'retiree'].includes(c.statut) && !avis.length ? `<form class="f panneau" id="fAvis" style="margin-top:18px"><h2 style="margin:0">C’était bon ?</h2><label>Note<select name="note">${[5, 4, 3, 2, 1].map(n => `<option value="${n}">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</option>`).join('')}</select></label>
+        <label>Votre avis<textarea name="texte" maxlength="1000" style="min-height:80px"></textarea></label><button class="btn btn-p">Publier mon avis</button></form>` : ''}</div></div>`);
     $('#annuler')?.addEventListener('click', async () => { if (!confirm('Annuler la commande ?')) return; try { await q(sb.rpc('changer_commande', { cmd: id, nouveau: 'annulee' })); dessiner(); } catch (err) { toast(erreur(err), true); } });
     $('#fAvis')?.addEventListener('submit', async e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); try { await q(sb.from('avis_resto').insert({ commande_id: id, note: +d.note, texte: d.texte.trim() })); toast('Merci pour votre avis !'); dessiner(); } catch (err) { toast(erreur(err), true); } });
     if ($('#carteLv')) {   // carte : restaurant, domicile, livreur
       try {
         L = L || await chargerCarte();
-        const pts = [[lv.retrait, '🍽️', 'Restaurant'], [lv.depot, '🏠', 'Chez vous'], [lvActive && lv.livreur?.lat != null ? [lv.livreur.lat, lv.livreur.lng] : null, '🛵', 'Livreur']]
-          .filter(([p]) => p && p[0] != null).map(([p, e, t]) => L.marker(p, { icon: L.divIcon({ html: `<span style="font-size:28px">${e}</span>`, className: '', iconSize: [32, 32], iconAnchor: [16, 16] }) }).bindTooltip(t));
+        const pts = [[lv.retrait, 'bol', 'Restaurant'], [lv.depot, 'pin', 'Chez vous'], [lvActive && lv.livreur?.lat != null ? [lv.livreur.lat, lv.livreur.lng] : null, 'moto', 'Livreur']]
+          .filter(([p]) => p && p[0] != null).map(([p, e, t]) => L.marker(p, { icon: L.divIcon({ html: `<span class="mk-s">${UIF.ic(e, 20)}</span>`, className: '', iconSize: [36, 36], iconAnchor: [18, 18] }) }).bindTooltip(t));
         if (pts.length) { const carte = fondCarte(L, $('#carteLv'), pts[0].getLatLng(), 13); pts.forEach(m => m.addTo(carte)); if (pts.length > 1) carte.fitBounds(L.featureGroup(pts).getBounds().pad(0.3)); }
         else $('#carteLv').remove();
       } catch (e) { $('#carteLv')?.remove(); }

@@ -53,7 +53,7 @@ APP.pages.bouger = async () => {
   vue(`<div class="wrap page-bouger"><h1>Mobility</h1>
     <div class="bouger-g"><div class="bouger-col">
     ${blocInstallation()}<div id="enCours"></div>
-    <p class="sous-joie">Où on va aujourd’hui ? 🚕</p>
+    <h2 class="sheet-t">Où allez-vous ?</h2>
     ${roles(0, [['#/bouger', 'Je cherche un trajet'], ['#/chauffeur', 'Je conduis (chauffeur)']])}
     <form class="f trajet-f" id="fRes">
       <div class="trajet-c">${champ('depart')}${champ('arrivee')}
@@ -63,7 +63,7 @@ APP.pages.bouger = async () => {
       <div class="seg seg-lagon modes" role="group" aria-label="Mode de déplacement">${MODES.map(([k, t]) => `<button type="button" data-mode="${k}" aria-pressed="${k === mode}">${t}</button>`).join('')}</div>
       <div class="mode-p" id="mode-taxi" ${mode === 'taxi' ? '' : 'hidden'}>
         <p class="muted petit" id="resume" aria-live="polite">Choisissez le départ et la destination : le prix s’affiche pour chaque catégorie.</p>
-        <div class="cats-l" role="radiogroup" aria-label="Catégorie de véhicule">${Object.entries(CATS).map(([k, [, t, d]]) => `<label class="cat-l"><input type="radio" name="cat" value="${k}" ${k === cat ? 'checked' : ''}>
+        <div class="cats-l" role="radiogroup" aria-label="Catégorie de véhicule">${Object.entries(CATS).map(([k, [, t, d]]) => `<label class="cat-l"><input type="radio" name="cat" value="${k}" ${k === cat ? 'checked' : ''}><span class="cat-ic">${k === 'van' ? ICO.gens : ICO.taxi}</span>
           <span><b>${t}</b><small>${d}<span id="dispo-${k}"></span></small></span><b class="cat-px" id="px-${k}">—</b></label>`).join('')}</div>
         ${telConnu ? '' : `<label>Téléphone <span class="aide">(le chauffeur vous appelle à ce numéro)</span><input name="telephone" type="tel" required pattern="[0-9 +]{6,20}" autocomplete="tel"></label>`}
         <details class="plus-options"><summary>Bagages, message${telConnu ? ', téléphone' : ''}, territoire</summary>
@@ -105,8 +105,8 @@ APP.pages.bouger = async () => {
   const dessinerCarte = () => {
     if (!L) return;
     calques.clearLayers();
-    const m = ['depart', 'arrivee'].filter(k => pts[k]).map(k => L.circleMarker([pts[k].lat, pts[k].lng], { radius: 10, color: k === 'depart' ? '#2563EB' : '#3A1408', weight: 4, fillColor: '#fff', fillOpacity: 1 }).bindTooltip(k === 'depart' ? 'Départ' : 'Destination').addTo(calques));
-    if (pts.depart && pts.arrivee) { L.polyline([[pts.depart.lat, pts.depart.lng], [pts.arrivee.lat, pts.arrivee.lng]], { color: '#2563EB', weight: 5, dashArray: '8 8' }).addTo(calques); carte.fitBounds(L.featureGroup(m).getBounds().pad(0.3)); }
+    const m = ['depart', 'arrivee'].filter(k => pts[k]).map(k => L.circleMarker([pts[k].lat, pts[k].lng], { radius: 10, color: k === 'depart' ? '#C9401F' : '#3A1408', weight: 4, fillColor: '#fff', fillOpacity: 1 }).bindTooltip(k === 'depart' ? 'Départ' : 'Destination').addTo(calques));
+    if (pts.depart && pts.arrivee) { L.polyline([[pts.depart.lat, pts.depart.lng], [pts.arrivee.lat, pts.arrivee.lng]], { color: '#C9401F', weight: 5, dashArray: '8 8' }).addTo(calques); carte.fitBounds(L.featureGroup(m).getBounds().pad(0.3)); }
     else if (m.length) carte.setView(m[0].getLatLng(), 14);
     else { const c = CENTRES[terr] || CENTRES.Martinique; carte.setView([c[0], c[1]], c[2]); }
   };
@@ -194,10 +194,11 @@ APP.pages.bouger = async () => {
   // destination tapée dans la recherche (#/bouger?vers=…) ou sur l'ancien accueil
   let dest = p.vers || null; try { dest = dest || sessionStorage.getItem('wlDest'); sessionStorage.removeItem('wlDest'); } catch (e) { /* facultatif */ }
   if (dest) { $('#arrivee').value = dest; chercher('arrivee'); }
+  const pCarte = chargerCarte(); pCarte.catch(() => {});   // la bibliothèque de carte se télécharge pendant les requêtes
   const [lc] = await Promise.all([lieuxDuCompte(), chargerDispo()]);
   auCompte = !!lc; lieux = lc || lieuxLocaux(); if ($('#fRes')) majFav();
   try {
-    L = await chargerCarte(); if (!$('#carte')) return;
+    L = await pCarte; if (!$('#carte')) return;
     const c = CENTRES[terr] || CENTRES.Martinique; carte = fondCarte(L, $('#carte'), [c[0], c[1]], c[2]); calques = L.layerGroup().addTo(carte); dessinerCarte();
     // carte vivante : chauffeurs qui se sont dits disponibles (position arrondie, sans nom) et alertes route, rafraîchies toutes les 30 s
     const vivant = L.layerGroup().addTo(carte), mk = (h, cls, titre) => L.divIcon({ className: 'mk ' + cls, html: `<span title="${esc(titre)}">${h}</span>`, iconSize: [30, 30], iconAnchor: [15, 15] });
@@ -253,7 +254,7 @@ APP.pages.course = async id => {
     if (L && carte) {
       calques.clearLayers();
       const m = [L.circleMarker([c.depart_lat, c.depart_lng], { radius: 10, color: '#fff', weight: 3, fillColor: '#2BB673', fillOpacity: 1 }).bindTooltip('Départ'),
-        L.circleMarker([c.arrivee_lat, c.arrivee_lng], { radius: 10, color: '#fff', weight: 3, fillColor: '#0B2545', fillOpacity: 1 }).bindTooltip('Arrivée')];
+        L.circleMarker([c.arrivee_lat, c.arrivee_lng], { radius: 10, color: '#fff', weight: 3, fillColor: '#3A1408', fillOpacity: 1 }).bindTooltip('Arrivée')];
       if (ch?.lat != null) m.push(L.marker([ch.lat, ch.lng], { icon: L.divIcon({ html: '<span style="font-size:30px">🚗</span>', className: '', iconSize: [34, 34], iconAnchor: [17, 17] }) }).bindTooltip('Chauffeur'));
       m.forEach(x => x.addTo(calques));
       if (!cadre) { carte.fitBounds(L.featureGroup(m).getBounds().pad(0.25)); cadre = true; }

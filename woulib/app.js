@@ -18,10 +18,12 @@ const REPLI = [['food', '🍛', 'Woulib Food', 'actif'], ['move', '🚗', 'Wouli
 async function chargerRegistre() {
   if (REGISTRE) return REGISTRE;
   try {
-    const [u, t] = await Promise.all([q(sb.from('univers').select('*').order('ordre')), q(sb.from('univers_territoires').select('univers, territoire, actif, parametres'))]);
+    // les trois requêtes partent ensemble (pas de chaîne au démarrage) ; la dernière dit si boutique.sql est installé
+    const [u, t, bq] = await Promise.all([q(sb.from('univers').select('*').order('ordre')), q(sb.from('univers_territoires').select('univers, territoire, actif, parametres')),
+      q(sb.from('restaurants').select('genre').limit(1)).then(() => true, () => false)]);
     REGISTRE = u.filter(x => x.statut !== 'masque').map(x => ({ ...x, fermes: t.filter(y => y.univers === x.code && !y.actif).map(y => y.territoire),
       reglages: Object.fromEntries(t.filter(y => y.univers === x.code && y.parametres).map(y => [y.territoire, y.parametres])) })); BASE_V2 = true;
-    BOUTIQUES = await q(sb.from('restaurants').select('genre').limit(1)).then(() => true, () => false);
+    BOUTIQUES = bq;
   } catch (e) { REGISTRE = REPLI; }
   return REGISTRE;
 }
@@ -69,15 +71,15 @@ function rubriqueDe(h) {
     || si(/^#\/(express|colis|livraison)\b/, '#/express') || (/^#\/chauffeur\b/.test(p) && /livreur/.test(h) ? '#/express' : null)
     || si(/^#\/(bouger|move|woulib|course|courses|chauffeur|partage|gps)\b/, '#/bouger')
     || si(/^#\/(compte|connexion|inscription|activite|assistance|notifs|espace-pro|pros|pro|projets|projet|bienvenue|admin)\b/, moi ? '#/compte' : '#/connexion')
-    || si(/^#\/(manger|commandes)\b/, '#/manger') || (p === '#/' || p === '' ? '#/bouger' : null);
+    || si(/^#\/(manger|commandes)\b/, '#/manger') || (p === '#/' || p === '' ? '#/manger' : null);
   if (o === '#/manger' || o === '#/commerce') derniereRubrique = o;
   return o || (/^#\/(resto|suivi|recherche)\b/.test(p) ? derniereRubrique : null);
 }
 const APP = {
   nom: 'Woulib', titre: 'Woulib — repas livrés, VTC, taxis et GPS', accueilConnecte: '#/', apresInscription: '#/bienvenue', pourTel: 'que le restaurant, le chauffeur ou le livreur puisse vous joindre',
   menu: () => [],
-  // cinq rubriques, toujours les mêmes (vision Woulib du 09/11), Mobility en premier (demande du soir) : pas d'onglet « Accueil », l'écran d'entrée fait partie de Mobility
-  menuBas: () => [['#/bouger', ICO.bouger, 'Mobility'], ['#/manger', ICO.manger, 'Food'], ['#/commerce', ICO.commerce, 'Commerce'], ['#/express', ICO.colis, 'Delivery'], [moi ? '#/compte' : '#/connexion', ICO.compte, 'Profil']],
+  // cinq rubriques, toujours les mêmes (vision Woulib du 09/11), Food en premier et par défaut (maquette validée 23/11) : pas d'onglet « Accueil »
+  menuBas: () => [['#/manger', ICO.manger, 'Food'], ['#/commerce', ICO.commerce, 'Commerce'], ['#/express', ICO.colis, 'Delivery'], ['#/bouger', ICO.bouger, 'Mobility'], [moi ? '#/compte' : '#/connexion', ICO.compte, 'Profil']],
   ongletDe: h => rubriqueDe(h), racines: ['#/'],
   // ordinateur : le rail latéral porte aussi le logo et l'espace pro (ce ne sont pas des onglets du téléphone)
   enteteRail: () => '<a class="rail-logo" href="#/" aria-label="Woulib, accueil">Woulib</a>',
@@ -87,7 +89,7 @@ const APP = {
     const t = territoireActif(); b.innerHTML = `${ICO.pin}<span>${esc(t)}</span>${ICO.bas}`; b.setAttribute('aria-label', `Choisir le territoire, actuellement ${t}`);
   },
   icones: () => ICO,
-  differes: { gps: 'gps.js?v=5', projets: 'projets.js?v=3', projet: 'projets.js?v=3', assistance: 'compte.js?v=3', recherche: 'recherche.js?v=2', pro: 'pro.js?v=2' },   // chargés à la première ouverture
+  differes: { gps: 'gps.js?v=6', projets: 'projets.js?v=3', projet: 'projets.js?v=3', assistance: 'compte.js?v=3', recherche: 'recherche.js?v=2', pro: 'pro.js?v=2' },   // chargés à la première ouverture
   // bouton retour d'une page ouverte directement (lien partagé) : l'accueil de son univers
   parent: h => Object.values(MODULES).find(m => m.routes.test(h.split('?')[0]))?.accueil || '#/',
   // à chaque changement de page : arrêter les rafraîchissements, couper le GPS hors des pages qui guident, couleurs de l'univers visité
@@ -136,12 +138,12 @@ function choisirTerritoire() {
 document.addEventListener('click', e => { if (e.target.closest('#terrApp')) choisirTerritoire(); });
 
 // une petite carte de restaurant ou de commerce pour les rangées qui défilent (accueil)
-const carteRangee = (x, n) => { const e = etatOuverture(x); return `<a class="carte-r" href="#/resto/${x.id}"><span class="cr-img ${estBoutique(x) ? 't-com' : 't-food'}">${x.photo ? `<img src="${esc(photo(x.photo))}" alt="" loading="lazy">` : `<span aria-hidden="true">${CUISINES[x.cuisine]?.[0] || '🍽️'}</span>`}</span>
+const carteRangee = (x, n) => { const e = etatOuverture(x); return `<a class="carte-r" href="#/resto/${x.id}"><span class="cr-img ph-w ${estBoutique(x) ? 't-com' : 't-food'}" data-ic="${estBoutique(x) ? 'sac' : UIF.cuisine(x.cuisine)}">${UIF.img(x.photo, estBoutique(x) ? 'sac' : UIF.cuisine(x.cuisine), 400, 192)}</span>
   <span class="cr-corps"><b>${esc(x.nom)}</b><small>${esc(CUISINES[x.cuisine]?.[1] || '')} · ${x.delai_min} min${n ? ` · ★ ${String(n.moyenne).replace('.', ',')}` : ''}</small>${e.ouvert ? '' : `<small class="att">${esc(e.texte ? e.texte[0].toUpperCase() + e.texte.slice(1) : 'Fermé')}</small>`}</span></a>`; };
 
 // accueil : bonjour, une recherche, quatre raccourcis, ce qui est en cours, puis des rangées faites de vraies données
-// pas de page d'accueil (demande du 11/11) : l'appli s'ouvre sur la première rubrique, Mobility ; les blocs utiles sont dans les rubriques
-APP.pages[''] = () => rediriger('#/bouger');
+// pas de page d'accueil (demande du 11/11) : l'appli s'ouvre sur la première rubrique, Food (23/11) ; les blocs utiles sont dans les rubriques
+APP.pages[''] = () => rediriger('#/manger');
 // ce qui est en cours (commande, achat ou course), avec une barre d'avancement : en tête de Mobility (courses), Food et Commerce (commandes)
 async function afficherEnCours(quoi) {
   if (!moi || !$('#enCours')) return;
@@ -199,22 +201,23 @@ APP.pages.compte = async sous => {
   const ligne = ([h, i, t, d, c]) => `<a class="menu-l ${c || ''}" href="${esc(h)}"><span class="ico-l">${i}</span><div><b>${t}</b>${d ? `<small>${d}</small>` : ''}</div>${ICO.droite}</a>`;
   const groupe = (t, l) => `<section class="groupe-c" aria-label="${t}"><h2>${t}</h2><div class="menu-g">${l.map(ligne).join('')}</div></section>`;
   const bq = resto[0]?.genre === 'boutique';
+  const depuis = moi.created_at ? new Date(moi.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '';
+  const rac = ([h, i, t]) => `<a class="rac-c" href="${h}"><span class="ico-l">${i}</span><b>${t}</b></a>`;
   vue(`<div class="wrap compte-app">
-    <div class="moi-c"><span class="avatar" aria-hidden="true">${esc((profil?.prenom || moi.email || '?')[0].toUpperCase())}</span><div><h1>${esc(profil?.prenom || '')} ${esc(profil?.nom || '')}</h1><span class="muted petit">${esc(emailMasque(moi.email))} · ${esc(territoireActif())}</span></div>
+    <div class="moi-c"><span class="avatar" aria-hidden="true">${esc((profil?.prenom || moi.email || '?')[0].toUpperCase())}</span><div><h1>${esc(profil?.prenom || '')} ${esc(profil?.nom || '')}</h1><span class="muted petit">${depuis ? 'Membre depuis ' + esc(depuis) + ' · ' : ''}${esc(territoireActif())}</span><span class="muted petit">${esc(emailMasque(moi.email))}</span></div>
       <a class="btn btn-s" href="#/compte/profil" aria-label="Modifier mon profil : nom, téléphone, territoire">Modifier</a></div>
     ${blocInstallation()}
-    ${groupe('Mon compte', [['#/compte/adresses', ICO.pin, 'Adresses', 'Maison, travail : pour vos courses et vos livraisons'], ['#/compte/favoris', ICO.coeur, 'Favoris', 'Restaurants et commerces'],
-      ['#/compte/paiement', ICO.carte, 'Moyens de paiement', 'Pour l’instant : payé au livreur, au chauffeur ou au commerçant'], ['#/activite', ICO.activite, 'Mon activité', 'Commandes, achats, trajets, colis'], ['#/projets', ICO.calendrier, 'Mes projets', 'Anniversaire, mariage, séjour…']])}
-    ${groupe('Autres services IloTech', [['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents et routes coupées'],
-      ['#/projets', ICO.calendrier, 'Organiser un événement', 'Anniversaire, mariage, séjour : la liste et le budget'],
-      ['../pass/', ICO.billet, 'Événements et billets', 'Sur EventPass, même compte'], ['https://immo.ilo-tech.com/', ICO.maison, 'Logements et séjours', 'Sur Kaz An Nou, même compte']])}
-    ${groupe('Réglages', [['#/notifs', ICO.cloche, 'Notifications', 'Commandes, trajets, réponses de l’équipe'], ['#/compte/securite', ICO.bouclier, 'Sécurité', 'Mot de passe, appareils connectés'],
-      ['#/compte/confidentialite', ICO.donnees, 'Confidentialité', 'Télécharger mes données, supprimer mon compte']])}
+    <nav class="raccourcis-c" aria-label="Raccourcis">${[['#/activite', ICO.activite, 'Mes commandes'], ['#/compte/adresses', ICO.pin, 'Adresses'], ['#/compte/paiement', ICO.carte, 'Paiement']].map(rac).join('')}</nav>
+    ${groupe('Réglages', [['#/notifs', ICO.cloche, 'Notifications', 'Commandes, trajets, réponses de l’équipe'], ['#/compte/confidentialite', ICO.donnees, 'Confidentialité et mes données', 'Télécharger mes données, supprimer mon compte'],
+      ['#/compte/securite', ICO.bouclier, 'Sécurité', 'Mot de passe, appareils connectés']])}
     ${groupe('Espace pro', [...resto.length ? [['#/pro', bq ? ICO.commerce : ICO.manger, bq ? 'Ma boutique' : 'Mon restaurant', 'Carte, articles, stock, commandes en direct']] : [],
       ...ch.length ? [['#/chauffeur', ch[0].type === 'livreur' ? ICO.colis : ICO.taxi, 'Espace chauffeur et livreur', 'Courses, livraisons, colis, gains']] : [], ['#/pros', ICO.pro, 'Devenir partenaire', 'Restaurant, commerce, chauffeur, livreur']])}
-    ${groupe('Aide', [['#/assistance', ICO.aide, 'Assistance', 'Une question, un problème, mes signalements'], [wa(WA, 'Bonjour, j’ai une question sur Woulib.'), ICO.telephone, 'Aide sur WhatsApp', '0696 48 26 78'],
-      ['cgu.html', ICO.document, 'Conditions d’utilisation', ''], ['confidentialite.html', ICO.document, 'Politique de confidentialité', ''],
-      ...profil?.role === 'admin' || mesModerations.length ? [['../control/', ICO.bouclier, 'Administration (Control Panel)', 'Validations, modération, assistance, chiffres']] : [], ['#/deconnexion', ICO.sortie, 'Se déconnecter', '', 'ko']])}</div>`);
+    ${groupe('Aide et sécurité', [['#/assistance', ICO.aide, 'Assistance', 'Une question, un problème, mes signalements'], [wa(WA, 'Bonjour, j’ai une question sur Woulib.'), ICO.telephone, 'Aide sur WhatsApp', '0696 48 26 78'],
+      ['cgu.html', ICO.document, 'Conditions d’utilisation', ''], ['confidentialite.html', ICO.document, 'Politique de confidentialité', '']])}
+    ${groupe('Plus', [['#/compte/favoris', ICO.coeur, 'Favoris', 'Restaurants et commerces'], ['#/projets', ICO.calendrier, 'Mes projets', 'Anniversaire, mariage, séjour…'], ['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents et routes coupées'],
+      ['../pass/', ICO.billet, 'Événements et billets', 'Sur EventPass, même compte'], ['https://immo.ilo-tech.com/', ICO.maison, 'Logements et séjours', 'Sur Kaz An Nou, même compte'],
+      ...profil?.role === 'admin' || mesModerations.length ? [['../control/', ICO.bouclier, 'Administration (Control Panel)', 'Validations, modération, assistance, chiffres']] : []])}
+    <div class="menu-g" style="margin-top:14px">${ligne(['#/deconnexion', ICO.sortie, 'Se déconnecter', '', 'ko'])}</div></div>`);
 };
 // bouton « Signaler » d'un restaurant, d'une commande, d'une course… (data-signaler = type, data-id, data-univers, data-nom)
 document.addEventListener('click', async e => {
