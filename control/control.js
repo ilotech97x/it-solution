@@ -8,7 +8,7 @@
 const svg = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
 const ICO = { retour: svg('M15 6l-6 6 6 6'), cloche: svg('M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 21h4') };
 // code de la page, titre, ouvert aux modérateurs
-const MODULES = [['', 'Vue générale', true], ['applications', 'Applications'], ['audience', 'Audience'], ['reseaux', 'Réseaux'], ['utilisateurs', 'Utilisateurs'], ['partenaires', 'Partenaires', true], ['moderation', 'Modération', true],
+const MODULES = [['', 'Vue générale', true], ['applications', 'Applications'], ['audience', 'Audience'], ['reseaux', 'Réseaux'], ['assistant', 'Assistant'], ['utilisateurs', 'Utilisateurs'], ['partenaires', 'Partenaires', true], ['moderation', 'Modération', true],
   ['finances', 'Finances'], ['commissions', 'Commissions'], ['territoires', 'Territoires'], ['securite', 'Sécurité'], ['assistance', 'Assistance', true], ['configuration', 'Configuration']];
 let mesModerations = [], compteurs = {}, auth2 = null;   // auth2 : niveau de connexion (aal1, aal2) et suivant
 const estAdmin = () => profil?.role === 'admin';

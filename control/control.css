@@ -340,3 +340,15 @@ h1{font-size:26px}h2{font-size:16px}
 /* bloc Hub marketing du module Réseaux (19/11) */
 .ligne-f{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
 .ligne-f input,.ligne-f select{flex:1 1 200px;min-width:0}
+
+/* Assistant clients (24/11) : suivi en colonnes, cartes, réglages */
+.as-barre{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.as-barre .seg{grid-auto-flow:column;min-width:min(100%,240px)}
+.as-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px;align-items:start}
+.as-col{display:grid;gap:10px;min-width:0;align-content:start}.as-col>h2{margin:0;font-size:15px;display:flex;gap:8px;align-items:center}
+.as-carte{display:grid;gap:6px;padding:12px;border-radius:12px;background:var(--surface);border:1px solid var(--ligne);min-width:0;overflow-wrap:anywhere}
+.as-carte p{margin:0}.as-recl{border-color:var(--attention)}
+.as-action{display:grid;gap:6px;padding:10px;border-radius:10px;background:var(--doux-fond)}.as-action ul{margin:0;padding-left:18px;font-size:13px}.as-action li span{float:right;margin-left:8px}
+.as-total{font-size:14px}.as-action .actions{display:flex;flex-wrap:wrap;gap:8px}
+#asReglages{max-width:640px}#asReglages label{display:grid;gap:4px;font-weight:600}#asReglages fieldset{display:grid;gap:8px;border:1px solid var(--ligne);border-radius:10px;padding:12px}
+#asReglages .as-jour{grid-template-columns:110px 1fr;align-items:center}#asReglages .as-case{display:flex;gap:8px;align-items:center;font-weight:500}
