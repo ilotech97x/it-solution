@@ -271,7 +271,7 @@ async function synchroniser() {
 function renderSync() {
   const el = $('syncEtat'); if (!el) return;
   el.innerHTML = !CONFIG.endpoint ? '<span class="dot"></span>Sur cet appareil'
-    : !cle ? '<button type="button" class="link" onclick="setVue(\'reglages\')">Se connecter pour partager</button>'
+    : !cle ? '<button type="button" class="link" data-clic="setVue" data-a="reglages">Se connecter pour partager</button>'
     : sync.etat === 'en cours' ? '<span class="dot on"></span>Synchronisation…'
     : sync.etat === 'ok' ? `<span class="dot on"></span>Partagé · ${sync.quand}`
     : sync.etat === 'cle' ? 'Code incorrect' : sync.etat === 'erreur' ? '<span class="dot bad"></span>Hors ligne (sauvé ici)' : '<span class="dot on"></span>Partagé';
@@ -634,14 +634,14 @@ const MODES_AUTO = {
 function autoHTML() {
   if (!scriptPret()) return '<p class="muted">Disponible quand le moteur Google est connecté (code de l’espace pro dans Réglages).</p>';
   if (!auto) { chargerAuto(); return '<p class="muted">Chargement…</p>'; }
-  if (auto.erreur) return '<p class="notice">Moteur Google injoignable pour le moment (connexion, ou moteur pas à jour). <button type="button" class="link" onclick="auto=null;render()">Réessayer</button></p>';
+  if (auto.erreur) return '<p class="notice">Moteur Google injoignable pour le moment (connexion, ou moteur pas à jour). <button type="button" class="link" data-clic="autoNul">Réessayer</button></p>';
   const b = auto.bilan, mode = auto.mode || (auto.actif ? 'auto' : 'arret');
   return `<div class="p-pilote">
       <div class="p-modes" role="radiogroup" aria-label="Mode de prospection">${Object.entries(MODES_AUTO).map(([k, [l]]) =>
-        `<button type="button" role="radio" aria-checked="${mode === k}" class="${mode === k ? 'on m-' + k : ''}" onclick="reglerAuto('${k}')">${l}</button>`).join('')}</div>
-      <label class="p-parjour">Emails par jour <input type="number" min="1" max="60" value="${auto.parJour}" onchange="reglerAuto(null, this.value)"></label>
-      <label class="p-check"><input type="checkbox" ${auto.blancheSeule ? 'checked' : ''} onchange="reglerAuto(null, null, this.checked)"> Seulement la liste blanche</label>
-      <button type="button" class="btn btn-sm" onclick="lancerAuto()" ${chargement ? 'disabled' : ''}>${ico('zap')} Lancer maintenant</button>
+        `<button type="button" role="radio" aria-checked="${mode === k}" class="${mode === k ? 'on m-' + k : ''}" data-clic="reglerAuto" data-a="${k}">${l}</button>`).join('')}</div>
+      <label class="p-parjour">Emails par jour <input type="number" min="1" max="60" value="${auto.parJour}" data-change="reglerAutoVal"></label>
+      <label class="p-check"><input type="checkbox" ${auto.blancheSeule ? 'checked' : ''} data-change="reglerAutoChk"> Seulement la liste blanche</label>
+      <button type="button" class="btn btn-sm" data-clic="lancerAuto" ${chargement ? 'disabled' : ''}>${ico('zap')} Lancer maintenant</button>
     </div>
     <p class="muted small">${MODES_AUTO[mode][1]} Les réponses, refus et « STOP » sont détectés tout seuls (refus → liste noire) ; la liste blanche passe en premier ; jamais d’envoi le week-end ; aucun prix dans les emails.</p>
     ${b ? `<p class="muted small">Dernier passage : ${new Date(b.date).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} —
@@ -744,7 +744,7 @@ const signaux = p => [p.tel && `<span title="Téléphone">${ico('phone')}</span>
 const relanceTxt = p => !p.relance ? '' : p.relance < todayISO() ? `<span class="p-late">Relance en retard (${frDay(p.relance)})</span>` : p.relance === todayISO() ? '<span class="p-due">À relancer aujourd’hui</span>' : `<span class="muted">Relance ${frDay(p.relance)}</span>`;
 
 function ligne(p) {
-  return `<button type="button" class="p-row" onclick="ouvrir('${esc(p.id)}')">
+  return `<button type="button" class="p-row" data-clic="ouvrir" data-a="${esc(p.id)}">
     ${badgeScore(p.score)}
     <span class="p-main"><b>${esc(p.nom)}${estNoir(p) ? ' <span class="p-lnoire">Liste noire</span>' : estBlanc(p) ? ' <span class="p-lblanche">Prioritaire</span>' : ''}${!estNoir(p) && aVerifier(p).length ? ' <span class="p-averif">À vérifier</span>' : ''}</b><small>${chipSeg(p.segment)} ${esc(p.commune || '')} · Agence ${AGENCES[agenceDe(p)].nom}</small></span>
     <span class="p-sig">${signaux(p)}</span>
@@ -804,10 +804,10 @@ function listesHTML() {
       <h3>${titre} <span class="muted">(${db.listes[liste].length})</span></h3>
       <p class="muted small">${aide}</p>
       <textarea id="ajout-${liste}" rows="3" placeholder="Une par ligne : contact@exemple.fr, @exemple.fr ou Nom de l’entreprise"></textarea>
-      <div class="actions left"><button type="button" class="btn btn-sm" onclick="ajouterListe('${liste}', $('ajout-${liste}').value.split(/[\\n,;]+/), $('raison-${liste}').value)">Ajouter</button>
+      <div class="actions left"><button type="button" class="btn btn-sm" data-clic="ajouterListe" data-a="${liste}">Ajouter</button>
         <input id="raison-${liste}" class="p-raison" placeholder="Raison (facultatif)" value="${liste === 'noire' ? 'A refusé' : 'Prioritaire'}"></div>
       <ul class="p-entrees">${db.listes[liste].map((e, i) => `<li><b>${esc(e.valeur)}</b> <span class="muted small">${esc(e.raison || '')}${e.date ? ' · ' + esc(String(e.date).slice(0, 10)) : ''}</span>
-        <button type="button" class="link" onclick="retirerListe('${liste}', db.listes.${liste}[${i}].valeur)">Retirer</button></li>`).join('') || '<li class="muted small">Vide.</li>'}</ul></div>`;
+        <button type="button" class="link" data-clic="retirerListe" data-a="${liste}" data-b="${i}">Retirer</button></li>`).join('') || '<li class="muted small">Vide.</li>'}</ul></div>`;
   return `<div class="p-listes">${bloc('noire', 'Liste noire : ne jamais contacter', 'Les entreprises qui ont refusé ou demandé STOP. Ni la page ni le moteur automatique ne leur écriront plus. <b>Ajoutez ici les adresses des refus déjà reçus.</b> Les nouveaux refus reçus par email y sont ajoutés tout seuls.')}
     ${bloc('blanche', 'Liste blanche : à contacter en priorité', 'Les entreprises que vous voulez démarcher : le moteur automatique leur écrit avant les nouvelles entreprises trouvées (si elles sont dans vos prospects avec un email).')}</div>`;
 }
@@ -819,16 +819,16 @@ const etapeNom = p => ['1er message', 'relance', 'dernière relance'][Math.min(p
 function toggleSel(id) { selection.has(id) ? selection.delete(id) : selection.add(id); render(); }
 function selTout(ids, on) { ids.forEach(id => on ? selection.add(id) : selection.delete(id)); render(); }
 const caseSel = p => { const ok = envoyable(p), on = selection.has(p.id);
-  return `<label class="p-coche" title="${ok ? 'Sélectionner' : 'Pas d’email, liste noire, STOP ou 3 messages déjà envoyés'}"><input type="checkbox" ${on ? 'checked' : ''} ${ok ? '' : 'disabled'} onchange="toggleSel('${esc(p.id)}')" aria-label="Sélectionner ${esc(p.nom)}"></label>`; };
+  return `<label class="p-coche" title="${ok ? 'Sélectionner' : 'Pas d’email, liste noire, STOP ou 3 messages déjà envoyés'}"><input type="checkbox" ${on ? 'checked' : ''} ${ok ? '' : 'disabled'} data-change="toggleSel" data-a="${esc(p.id)}" aria-label="Sélectionner ${esc(p.nom)}"></label>`; };
 // « Emails envoyés » : relancer tout de suite, programmer la relance, liste noire
 function actionsEnvoi(p) {
   const id = esc(p.id);
-  if (estNoir(p)) return `<button type="button" class="link" onclick="listeFiche('${id}','noire')">Retirer de la liste noire</button>`;
+  if (estNoir(p)) return `<button type="button" class="link" data-clic="listeFiche" data-a="${id}" data-b="noire">Retirer de la liste noire</button>`;
   const ok = envoyable(p);
-  return `${ok ? `<button type="button" class="btn btn-sm btn-primary${scriptPret() ? '' : ' btn-off'}" onclick="envoyerEmail('${id}')" title="Envoie la relance maintenant">${ico('mail')} Relancer</button>
-      <label class="p-quand" title="Date de la relance automatique">Relance le <input type="date" min="${todayISO()}" value="${esc(p.relance || '')}" onchange="relanceLe('${id}', this.value)"></label>
-      <button type="button" class="link" onclick="relanceLe('${id}', addDays(todayISO(), 3))">dans 3 j</button>` : ''}
-    <button type="button" class="btn btn-sm g-danger" onclick="listeFiche('${id}','noire')">Liste noire</button>`;
+  return `${ok ? `<button type="button" class="btn btn-sm btn-primary${scriptPret() ? '' : ' btn-off'}" data-clic="envoyerEmail" data-a="${id}" title="Envoie la relance maintenant">${ico('mail')} Relancer</button>
+      <label class="p-quand" title="Date de la relance automatique">Relance le <input type="date" min="${todayISO()}" value="${esc(p.relance || '')}" data-change="relanceVal" data-a="${id}"></label>
+      <button type="button" class="link" data-clic="relanceJ3" data-a="${id}">dans 3 j</button>` : ''}
+    <button type="button" class="btn btn-sm g-danger" data-clic="listeFiche" data-a="${id}" data-b="noire">Liste noire</button>`;
 }
 function relanceLe(id, date) {
   const p = parId(id); if (!p || !envoyable(p)) return;
@@ -842,7 +842,7 @@ function relanceLe(id, date) {
 function ligneSel(p, contenu) {
   const ok = envoyable(p), on = selection.has(p.id);
   return `<div class="p-selrow ${on ? 'coche' : ''}">
-    <label class="p-coche" title="${ok ? 'Sélectionner pour l’envoi' : 'Pas d’email, liste noire, STOP ou 3 messages déjà envoyés'}"><input type="checkbox" ${on ? 'checked' : ''} ${ok ? '' : 'disabled'} onchange="toggleSel('${esc(p.id)}')" aria-label="Sélectionner ${esc(p.nom)}"></label>
+    <label class="p-coche" title="${ok ? 'Sélectionner pour l’envoi' : 'Pas d’email, liste noire, STOP ou 3 messages déjà envoyés'}"><input type="checkbox" ${on ? 'checked' : ''} ${ok ? '' : 'disabled'} data-change="toggleSel" data-a="${esc(p.id)}" aria-label="Sélectionner ${esc(p.nom)}"></label>
     ${contenu || ligne(p)}</div>`;
 }
 function barreSel(visibles, relance) {
@@ -850,13 +850,13 @@ function barreSel(visibles, relance) {
   const n = [...selection].filter(id => envoyable(parId(id))).length;
   const tous = ok.length && ok.every(p => selection.has(p.id));
   return `<div class="p-selbar">
-    <label class="p-check"><input type="checkbox" ${tous ? 'checked' : ''} ${ok.length ? '' : 'disabled'} onchange="selTout([${ok.map(p => `'${esc(p.id)}'`).join(',')}], this.checked)"> Tout sélectionner <span class="muted">(${ok.length} avec email)</span></label>
+    <label class="p-check"><input type="checkbox" ${tous ? 'checked' : ''} ${ok.length ? '' : 'disabled'} data-change="selTout" data-a="${ok.map(p => esc(p.id)).join(',')}"> Tout sélectionner <span class="muted">(${ok.length} avec email)</span></label>
     <span class="p-selnb">${n} sélectionnée${n > 1 ? 's' : ''}</span>
-    ${n ? `<button type="button" class="link" onclick="selection.clear();render()">Vider</button>
-      <button type="button" class="link" onclick="listeSelection('blanche')">Liste blanche</button>
-      <button type="button" class="link g-danger-link" onclick="listeSelection('noire')">Liste noire</button>
-      ${relance ? `<button type="button" class="link" onclick="[...selection].forEach(id => relanceLe(id, addDays(todayISO(), 3)))">Relance dans 3 j</button>` : ''}
-      <button type="button" class="btn btn-primary${scriptPret() ? '' : ' btn-off'}" onclick="envoyerSelection()">${ico('mail')} ${relance ? 'Relancer' : 'Envoyer l’email à'} ${n} entreprise${n > 1 ? 's' : ''}</button>` : '<span class="muted small">Cochez une ou plusieurs entreprises.</span>'}</div>`;
+    ${n ? `<button type="button" class="link" data-clic="selVider">Vider</button>
+      <button type="button" class="link" data-clic="listeSelection" data-a="blanche">Liste blanche</button>
+      <button type="button" class="link g-danger-link" data-clic="listeSelection" data-a="noire">Liste noire</button>
+      ${relance ? `<button type="button" class="link" data-clic="relanceSel">Relance dans 3 j</button>` : ''}
+      <button type="button" class="btn btn-primary${scriptPret() ? '' : ' btn-off'}" data-clic="envoyerSelection">${ico('mail')} ${relance ? 'Relancer' : 'Envoyer l’email à'} ${n} entreprise${n > 1 ? 's' : ''}</button>` : '<span class="muted small">Cochez une ou plusieurs entreprises.</span>'}</div>`;
 }
 async function envoyerSelection() {
   if (!scriptPret()) return aActiver();
@@ -877,7 +877,7 @@ async function envoyerSelection() {
 /* ---------- Connexion de cet ordinateur au moteur (prospects, listes et envois partagés) ---------- */
 function bandeauConnexion() {
   if (!CONFIG.endpoint || cle) return '';
-  return `<form class="p-connexion" onsubmit="event.preventDefault();connecter($('pCleBandeau').value)">
+  return `<form class="p-connexion" data-submit="connecterBandeau">
     <div><b>🔒 Cet ordinateur n’est pas connecté</b>
       <span>Entrez le code de l’espace pro pour retrouver les prospects et la liste noire communs à tous vos ordinateurs, et pour pouvoir envoyer les emails.</span></div>
     <input id="pCleBandeau" type="password" autocomplete="current-password" placeholder="Code de l’espace pro" required>
@@ -919,14 +919,14 @@ const VUES = {
       <div class="p-envoi-rapide">
         <div><b>${jour.length ? `${jour.length} email${jour.length > 1 ? 's' : ''} prêt${jour.length > 1 ? 's' : ''} pour aujourd’hui` : 'Rien de prévu aujourd’hui'}</b>
           <span class="muted">Les relances dues, puis les meilleurs nouveaux prospects (Ducos et Le Robert à parts égales).</span></div>
-        <button type="button" class="btn btn-primary${scriptPret() ? '' : ' btn-off'}" onclick="envoyerEmailsDuJour()" ${jour.length && !chargement ? '' : 'disabled'}>${ico('mail')} Envoyer les emails du jour</button>
+        <button type="button" class="btn btn-primary${scriptPret() ? '' : ' btn-off'}" data-clic="envoyerEmailsDuJour" ${jour.length && !chargement ? '' : 'disabled'}>${ico('mail')} Envoyer les emails du jour</button>
       </div>
       <h3>Ou choisissez vous-même</h3>
       ${barreSel([...rel, ...neufs], false)}
       <h3>Relances à faire <span class="muted">(${rel.length})</span></h3>
       ${rel.length ? rel.map(p => ligneSel(p)).join('') : '<p class="muted">Aucune relance due.</p>'}
       <h3>Jamais contactés, avec email <span class="muted">(${neufs.length})</span></h3>
-      ${neufs.length ? neufs.slice(0, 60).map(p => ligneSel(p)).join('') : `<p class="muted">Aucun. <button type="button" class="link" onclick="setVue('trouver')">Trouver des prospects</button></p>`}
+      ${neufs.length ? neufs.slice(0, 60).map(p => ligneSel(p)).join('') : `<p class="muted">Aucun. <button type="button" class="link" data-clic="setVue" data-a="trouver">Trouver des prospects</button></p>`}
       ${neufs.length > 60 ? `<p class="muted">Et ${neufs.length - 60} autres dans « Mes prospects ».</p>` : ''}`;
   },
   jour() {
@@ -938,19 +938,19 @@ const VUES = {
     const { relances, choix, aChercher } = plan();
     if (!P.length) return `<div class="p-vide"><h2>Bienvenue dans la prospection</h2>
       <p>L’outil cherche pour vous les entreprises de Martinique qui ont le plus de chances d’avoir besoin de IloTech : nouvelles entreprises, commerces, cabinets, hôtels… Il les classe par score, propose le bon message et vous rappelle quand relancer.</p>
-      <button type="button" class="btn btn-primary big" onclick="remplirAuto()" ${chargement ? 'disabled' : ''}>${ico('search')} Trouver automatiquement mes 30 meilleurs prospects</button>
-      <p class="muted">Ou <button type="button" class="link" onclick="setVue('trouver')">choisir moi-même la source</button>.</p></div>`;
+      <button type="button" class="btn btn-primary big" data-clic="remplirAuto" ${chargement ? 'disabled' : ''}>${ico('search')} Trouver automatiquement mes 30 meilleurs prospects</button>
+      <p class="muted">Ou <button type="button" class="link" data-clic="setVue" data-a="trouver">choisir moi-même la source</button>.</p></div>`;
     const attente = aValider();
     return `<section class="p-pilotage"><h2>${ico('zap')} Pilotage de la prospection</h2><div class="auto-etat">${autoHTML()}</div></section>
       ${attente.length ? `<h2>${ico('mail')} À valider : ${attente.length} email${attente.length > 1 ? 's' : ''} prêt${attente.length > 1 ? 's' : ''}
-          <button type="button" class="btn btn-primary btn-sm p-toutenvoyer${scriptPret() ? '' : ' btn-off'}" onclick="envoyerValides()">Tout envoyer</button></h2>
+          <button type="button" class="btn btn-primary btn-sm p-toutenvoyer${scriptPret() ? '' : ' btn-off'}" data-clic="envoyerValides">Tout envoyer</button></h2>
         ${barreSel(attente)}
         <div class="p-list">${attente.map(p => ligneSel(p, `<div class="p-row res">${badgeScore(p.score)}
           <span class="p-main"><b>${esc(p.nom)}${aVerifier(p).length ? ' <span class="p-averif">À vérifier</span>' : ''}</b><small>${chipSeg(p.segment)} ${esc(p.commune || '')} · ${esc(p.email)}${aVerifier(p).length ? ' · ' + esc(aVerifier(p)[0]) : ''}</small></span>
           <span class="p-sig"></span>
-          <span class="p-side p-valider"><button type="button" class="btn btn-sm" onclick="canalOuvrir('${esc(p.id)}','email')">${aVerifier(p).length ? 'Vérifier' : 'Voir l’email'}</button>
-            ${aVerifier(p).length ? '' : `<button type="button" class="btn btn-sm btn-primary${scriptPret() ? '' : ' btn-off'}" onclick="envoyerEmail('${esc(p.id)}')">Envoyer</button>`}
-            <button type="button" class="link" onclick="ecarter('${esc(p.id)}')">Écarter</button></span></div>`)).join('')}</div>` : ''}
+          <span class="p-side p-valider"><button type="button" class="btn btn-sm" data-clic="canalOuvrir" data-a="${esc(p.id)}" data-b="email">${aVerifier(p).length ? 'Vérifier' : 'Voir l’email'}</button>
+            ${aVerifier(p).length ? '' : `<button type="button" class="btn btn-sm btn-primary${scriptPret() ? '' : ' btn-off'}" data-clic="envoyerEmail" data-a="${esc(p.id)}">Envoyer</button>`}
+            <button type="button" class="link" data-clic="ecarter" data-a="${esc(p.id)}">Écarter</button></span></div>`)).join('')}</div>` : ''}
       <div class="g-stats p-kpi">
         <span><b>${P.filter(p => p.statut === 'nouveau').length}</b> à contacter</span>
         <span><b>${relances.length}</b> relance${relances.length > 1 ? 's' : ''} aujourd’hui</span>
@@ -962,14 +962,14 @@ const VUES = {
         if (!mails.length && !sites) return '';
         const off = scriptPret() ? '' : ' btn-off';
         return `<div class="p-auto"><b>${ico('zap')} En automatique</b>
-          ${mails.length ? `<button type="button" class="btn btn-primary${off}" onclick="envoyerEmailsDuJour()" ${chargement ? 'disabled' : ''}>Envoyer les ${mails.length} emails du jour</button>` : ''}
-          ${sites ? `<button type="button" class="btn${off}" onclick="completerEmails()" ${chargement ? 'disabled' : ''}>Chercher les emails sur ${Math.min(sites, 40)} sites</button>` : ''}
+          ${mails.length ? `<button type="button" class="btn btn-primary${off}" data-clic="envoyerEmailsDuJour" ${chargement ? 'disabled' : ''}>Envoyer les ${mails.length} emails du jour</button>` : ''}
+          ${sites ? `<button type="button" class="btn${off}" data-clic="completerEmails" ${chargement ? 'disabled' : ''}>Chercher les emails sur ${Math.min(sites, 40)} sites</button>` : ''}
           ${scriptPret() ? '' : '<span class="muted small">🔒 À activer : installez une fois le script Google (cliquez sur un bouton pour voir comment).</span>'}</div>`;
       })()}
       ${relances.length ? `<h2>${ico('repeat')} À relancer aujourd’hui (${relances.length})</h2><div class="p-list">${relances.map(ligne).join('')}</div>` : ''}
       <h2>${ico('zap')} Votre plan du jour : ${choix.length} prospect${choix.length > 1 ? 's' : ''} à contacter</h2>
       <p class="muted">Les plus prometteurs d’abord, équilibrés entre Ducos et Le Robert. Ouvrez une fiche : le message est déjà écrit.</p>
-      <div class="p-list">${choix.map(ligne).join('') || '<p class="muted">Plus personne à contacter avec un téléphone ou un email. <button type="button" class="link" onclick="remplirAuto()">Trouver de nouveaux prospects</button></p>'}</div>
+      <div class="p-list">${choix.map(ligne).join('') || '<p class="muted">Plus personne à contacter avec un téléphone ou un email. <button type="button" class="link" data-clic="remplirAuto">Trouver de nouveaux prospects</button></p>'}</div>
       ${aChercher.length ? `<h2>${ico('search')} Coordonnées à trouver</h2><p class="muted">Bons prospects sans téléphone ni email : ouvrez la fiche, puis « Chercher sur Google ».</p><div class="p-list">${aChercher.map(ligne).join('')}</div>` : ''}`;
   },
   trouver() {
@@ -977,31 +977,31 @@ const VUES = {
     const opt = (o, v) => Object.entries(o).map(([k, l]) => `<option value="${k}" ${v === k ? 'selected' : ''}>${l}</option>`).join('');
     const segs = Object.fromEntries([['', 'Toutes les activités'], ...Object.entries(SEGMENTS).map(([k, s]) => [k, s.nom])]);
     const lieux = { '': 'Toute la Martinique', 'ag:ducos': 'Secteur Ducos (Sud, Centre)', 'ag:robert': 'Secteur Le Robert (Atlantique, Nord)', ...Object.fromEntries(COMMUNES.map(c => [c[0], c[0]])) };
-    const src = (k, titre, txt, icone) => `<button type="button" class="p-src ${r.source === k ? 'on' : ''}" onclick="recherche.source='${k}';resultats=[];render()">${ico(icone)}<b>${titre}</b><small>${txt}</small></button>`;
+    const src = (k, titre, txt, icone) => `<button type="button" class="p-src ${r.source === k ? 'on' : ''}" data-clic="rechSource" data-a="${k}">${ico(icone)}<b>${titre}</b><small>${txt}</small></button>`;
     const nouveaux = resultats.filter(p => !enListe(p.id));
     return `<div class="p-srcs">
         ${src('bodacc', 'Nouvelles entreprises', 'Créées ces dernières semaines (journal officiel) : elles s’équipent maintenant', 'zap')}
         ${src('osm', 'Commerces et pros', 'Restaurants, boutiques, cabinets, hôtels… avec téléphone ou site', 'pin')}
         ${src('annuaire', 'Annuaire officiel', 'Recherche par nom ou par activité, toutes les entreprises actives', 'search')}
       </div>
-      <form class="p-filtres" onsubmit="event.preventDefault();chercher()">
-        ${r.source === 'bodacc' ? `<label>Créées depuis<select onchange="recherche.jours=+this.value">${opt({ 30: '30 jours', 60: '2 mois', 90: '3 mois', 180: '6 mois', 365: '1 an' }, String(r.jours))}</select></label>` : ''}
-        <label>Activité<select onchange="recherche.segment=this.value">${opt(segs, r.segment)}</select></label>
-        <label>Secteur<select onchange="recherche.commune=this.value">${opt(lieux, r.commune)}</select></label>
-        <label>${r.source === 'annuaire' ? 'Nom ou activité' : 'Mot-clé'}<input value="${esc(r.q)}" placeholder="${r.source === 'annuaire' ? 'ex : pharmacie, garage…' : 'facultatif'}" oninput="recherche.q=this.value"></label>
-        ${r.source === 'osm' ? `<label class="p-check"><input type="checkbox" ${r.avecTel ? 'checked' : ''} onchange="recherche.avecTel=this.checked"> Avec téléphone</label>` : ''}
+      <form class="p-filtres" data-submit="chercher">
+        ${r.source === 'bodacc' ? `<label>Créées depuis<select data-change="rechJours">${opt({ 30: '30 jours', 60: '2 mois', 90: '3 mois', 180: '6 mois', 365: '1 an' }, String(r.jours))}</select></label>` : ''}
+        <label>Activité<select data-change="rechSegment">${opt(segs, r.segment)}</select></label>
+        <label>Secteur<select data-change="rechCommune">${opt(lieux, r.commune)}</select></label>
+        <label>${r.source === 'annuaire' ? 'Nom ou activité' : 'Mot-clé'}<input value="${esc(r.q)}" placeholder="${r.source === 'annuaire' ? 'ex : pharmacie, garage…' : 'facultatif'}" data-input="rechQ"></label>
+        ${r.source === 'osm' ? `<label class="p-check"><input type="checkbox" ${r.avecTel ? 'checked' : ''} data-change="rechAvecTel"> Avec téléphone</label>` : ''}
         <button class="btn btn-primary" ${chargement ? 'disabled' : ''}>${ico('search')} Chercher</button>
       </form>
       <p id="chargement" class="p-load">${esc(chargement)}</p>
       ${resultats.length ? `<div class="p-res-head"><b>${resultats.length} résultats</b> classés par score · ${nouveaux.length} pas encore dans votre liste
-        <button type="button" class="btn btn-primary" onclick="ajouterMeilleurs(20)">Ajouter les 20 meilleurs</button></div>
+        <button type="button" class="btn btn-primary" data-clic="ajouterMeilleurs20">Ajouter les 20 meilleurs</button></div>
         <div class="p-list">${resultats.slice(0, 200).map(p => `<div class="p-row res">
           ${badgeScore(p.score)}
           <span class="p-main"><b>${esc(p.nom)}</b><small>${chipSeg(p.segment)} ${esc(p.commune || '')}${p.creation ? ' · créée le ' + frDate(p.creation) : ''}${p.activite ? ' · ' + esc(String(p.activite).slice(0, 90)) : ''}</small></span>
           <span class="p-sig">${signaux(p)}</span>
-          <span class="p-side">${enListe(p.id) ? '<span class="muted">Dans ma liste</span>' : `<button type="button" class="btn btn-sm" onclick="ajouter('${esc(p.id)}')">+ Ajouter</button>`}</span></div>`).join('')}</div>` : chargement ? '' : '<p class="muted">Choisissez une source puis « Chercher ». Les résultats sont classés du plus prometteur au moins prometteur.</p>'}
+          <span class="p-side">${enListe(p.id) ? '<span class="muted">Dans ma liste</span>' : `<button type="button" class="btn btn-sm" data-clic="ajouter" data-a="${esc(p.id)}">+ Ajouter</button>`}</span></div>`).join('')}</div>` : chargement ? '' : '<p class="muted">Choisissez une source puis « Chercher ». Les résultats sont classés du plus prometteur au moins prometteur.</p>'}
       <details class="p-manuel"><summary>${ico('users')} Ajouter un prospect rencontré (bouche-à-oreille, visite…)</summary>
-        <form class="p-filtres" onsubmit="ajouterManuel(event)">
+        <form class="p-filtres" data-submit="ajouterManuel">
           <label>Nom de l’entreprise *<input name="nom" required></label><label>Prénom du contact<input name="prenom"></label>
           <label>Activité<input name="activite" placeholder="ex : boulangerie"></label>
           <label>Commune<select name="commune"><option value="">—</option>${COMMUNES.map(c => `<option>${esc(c[0])}</option>`).join('')}</select></label>
@@ -1014,14 +1014,14 @@ const VUES = {
       && (!f.q || norm(`${p.nom} ${p.commune} ${p.tel} ${p.activite}`).includes(norm(f.q))));
     list.sort(f.tri === 'relance' ? (a, b) => (a.relance || '9999').localeCompare(b.relance || '9999') : f.tri === 'recent' ? (a, b) => (b.maj || '').localeCompare(a.maj || '') : (a, b) => b.score - a.score);
     const nb = k => db.prospects.filter(p => p.statut === k).length;
-    return `<div class="p-pipe">${Object.entries(STATUTS).map(([k, s]) => `<button type="button" class="${f.statut === k ? 'on' : ''}" style="--c:${s.c}" onclick="filtre.statut=filtre.statut==='${k}'?'':'${k}';render()"><b>${nb(k)}</b>${s.nom}</button>`).join('')}</div>
+    return `<div class="p-pipe">${Object.entries(STATUTS).map(([k, s]) => `<button type="button" class="${f.statut === k ? 'on' : ''}" style="--c:${s.c}" data-clic="filtreStatut" data-a="${k}"><b>${nb(k)}</b>${s.nom}</button>`).join('')}</div>
       <div class="p-filtres">
-        <label>Rechercher<input value="${esc(f.q)}" placeholder="nom, commune, téléphone" oninput="filtre.q=this.value;clearTimeout(window._fq);window._fq=setTimeout(render,300)"></label>
-        <label>Activité<select onchange="filtre.segment=this.value;render()"><option value="">Toutes</option>${Object.entries(SEGMENTS).map(([k, s]) => `<option value="${k}" ${f.segment === k ? 'selected' : ''}>${s.nom}</option>`).join('')}</select></label>
-        <label>Agence<select onchange="filtre.agence=this.value;render()"><option value="">Les deux</option>${Object.entries(AGENCES).map(([k, a]) => `<option value="${k}" ${f.agence === k ? 'selected' : ''}>${a.nom}</option>`).join('')}</select></label>
-        <label>Trier par<select onchange="filtre.tri=this.value;render()">${Object.entries({ score: 'Score', relance: 'Date de relance', recent: 'Derniers modifiés' }).map(([k, l]) => `<option value="${k}" ${f.tri === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-        <label class="p-check"><input type="checkbox" ${f.email ? 'checked' : ''} onchange="filtre.email=this.checked;render()"> Avec email seulement</label>
-        <button type="button" class="btn" onclick="exporterCSV()">Exporter (Excel)</button>
+        <label>Rechercher<input value="${esc(f.q)}" placeholder="nom, commune, téléphone" data-input="filtreQ"></label>
+        <label>Activité<select data-change="filtreSegment"><option value="">Toutes</option>${Object.entries(SEGMENTS).map(([k, s]) => `<option value="${k}" ${f.segment === k ? 'selected' : ''}>${s.nom}</option>`).join('')}</select></label>
+        <label>Agence<select data-change="filtreAgence"><option value="">Les deux</option>${Object.entries(AGENCES).map(([k, a]) => `<option value="${k}" ${f.agence === k ? 'selected' : ''}>${a.nom}</option>`).join('')}</select></label>
+        <label>Trier par<select data-change="filtreTri">${Object.entries({ score: 'Score', relance: 'Date de relance', recent: 'Derniers modifiés' }).map(([k, l]) => `<option value="${k}" ${f.tri === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label class="p-check"><input type="checkbox" ${f.email ? 'checked' : ''} data-change="filtreEmail"> Avec email seulement</label>
+        <button type="button" class="btn" data-clic="exporterCSV">Exporter (Excel)</button>
       </div>
       <p class="muted">${list.length} prospect${list.length > 1 ? 's' : ''}${list.some(p => p.relance && p.relance <= t) ? ' · les relances dues sont en orange' : ''}</p>
       ${barreSel(list)}
@@ -1044,11 +1044,11 @@ const VUES = {
       : p.statut === 'sansrep' ? '<span class="muted">Sans réponse (séquence terminée)</span>' : p.relance ? (p.relance <= t ? '<span class="p-due">Relance due</span>' : `<span class="muted">Relance le ${frDay(p.relance)}</span>`) : '';
     return `<div class="g-stats p-kpi"><span><b>${list.length}</b> entreprises contactées par email</span><span><b>${nb}</b> emails envoyés</span>
         <span><b>${list.filter(x => x.envois.some(h => h.d.slice(0, 10) >= semaine)).length}</b> cette semaine</span><span><b>${rep.length}</b> réponses</span><span><b>${aRelancer.length}</b> à relancer</span></div>
-      ${aRelancer.length ? `<div class="p-auto"><b>${ico('repeat')} Sans réponse</b><button type="button" class="btn btn-primary${scriptPret() ? '' : ' btn-off'}" onclick="relancerTous()">Relancer ${aRelancer.length > 1 ? `les ${aRelancer.length} entreprises` : "l’entreprise"} sans réponse</button><span class="muted small">Relance polie, sans prix ; 3 messages au maximum.</span></div>` : ''}
+      ${aRelancer.length ? `<div class="p-auto"><b>${ico('repeat')} Sans réponse</b><button type="button" class="btn btn-primary${scriptPret() ? '' : ' btn-off'}" data-clic="relancerTous">Relancer ${aRelancer.length > 1 ? `les ${aRelancer.length} entreprises` : "l’entreprise"} sans réponse</button><span class="muted small">Relance polie, sans prix ; 3 messages au maximum.</span></div>` : ''}
       <p class="muted">Tous les emails, envoyés depuis cette page ou par la prospection automatique. Le détail complet est aussi dans l’onglet « Emails envoyés » du tableau Google.</p>
       ${barreSel(list.map(x => x.p), true)}
       <div class="tablewrap"><table class="admin-table p-envoyes"><thead><tr><th></th><th>Entreprise</th><th>Email</th><th>Envois</th><th>Dernier envoi</th><th>Suivi</th><th></th></tr></thead><tbody>
-      ${list.map(({ p, envois }) => `<tr class="${selection.has(p.id) ? 'coche' : ''}"><td>${caseSel(p)}</td><td><button type="button" class="link" onclick="ouvrir('${esc(p.id)}')">${esc(p.nom)}</button><br><span class="muted small">${esc(p.commune || '')}${p.auto ? ' · automatique' : ''}</span></td>
+      ${list.map(({ p, envois }) => `<tr class="${selection.has(p.id) ? 'coche' : ''}"><td>${caseSel(p)}</td><td><button type="button" class="link" data-clic="ouvrir" data-a="${esc(p.id)}">${esc(p.nom)}</button><br><span class="muted small">${esc(p.commune || '')}${p.auto ? ' · automatique' : ''}</span></td>
         <td>${esc(p.email || p.emailInvalide || '')}</td><td>${envois.map(h => esc(h.t.replace(/^Email envoyé( \(automatique\))? — /, '').replace(/^Email — /, ''))).join(' → ')}</td>
         <td>${new Date(envois.slice(-1)[0].d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</td><td>${etat(p)}</td>
         <td class="p-act">${actionsEnvoi(p)}</td></tr>`).join('')
@@ -1057,9 +1057,9 @@ const VUES = {
   reglages() {
     const r = db.reglages;
     return `<h2>Réglages</h2><div class="p-filtres">
-        <label>Signature des messages<input value="${esc(r.signature)}" onchange="db.reglages.signature=this.value.trim()||'L’équipe IloTech';sauver()"></label>
-        <label>Prospects à contacter par jour<input type="number" min="1" max="50" value="${r.parJour}" onchange="db.reglages.parJour=Math.max(1,+this.value||10);sauver()"></label>
-        <label>Emails envoyés par jour au maximum<input type="number" min="1" max="60" value="${r.maxEmails || 25}" onchange="db.reglages.maxEmails=Math.min(60,Math.max(1,+this.value||25));sauver()"></label></div>
+        <label>Signature des messages<input value="${esc(r.signature)}" data-change="regSignature"></label>
+        <label>Prospects à contacter par jour<input type="number" min="1" max="50" value="${r.parJour}" data-change="regParJour"></label>
+        <label>Emails envoyés par jour au maximum<input type="number" min="1" max="60" value="${r.maxEmails || 25}" data-change="regMaxEmails"></label></div>
       <p class="muted small">Gmail autorise environ 100 emails par jour : restez autour de 25 pour que vos messages ne finissent pas en spam.</p>
       <h2>Prospection automatique</h2>
       <div class="p-auto-etat auto-etat">${autoHTML()}</div>
@@ -1067,13 +1067,13 @@ const VUES = {
       ${listesHTML()}
       <h2>Partage entre Ducos et Le Robert</h2>
       ${!CONFIG.endpoint ? '<p class="notice">Le script Google n’est pas encore branché : vos prospects restent sur cet appareil. Une fois le moteur Google installé (README.txt), ils seront partagés automatiquement dans l’onglet « Prospects » du tableau.</p>'
-        : cle ? `<p class="notice ok">Connecté : vos prospects sont partagés dans l’onglet « Prospects » du tableau Google. <button type="button" class="link" onclick="synchroniser()">Synchroniser maintenant</button></p>`
-        : `<form class="g-row" onsubmit="event.preventDefault();cle=$('pCle').value.trim();try{localStorage.setItem('itGestionCle',cle)}catch(e){};synchroniser();render()"><input id="pCle" type="password" placeholder="Code de l’espace pro" autocomplete="current-password"><button class="btn btn-primary">Se connecter</button></form>`}
+        : cle ? `<p class="notice ok">Connecté : vos prospects sont partagés dans l’onglet « Prospects » du tableau Google. <button type="button" class="link" data-clic="synchroniser">Synchroniser maintenant</button></p>`
+        : `<form class="g-row" data-submit="enregCle"><input id="pCle" type="password" placeholder="Code de l’espace pro" autocomplete="current-password"><button class="btn btn-primary">Se connecter</button></form>`}
       <h2>Sauvegarde</h2><div class="actions left">
-        <button type="button" class="btn" onclick="exporterCSV()">Exporter pour Excel (CSV)</button>
-        <button type="button" class="btn" onclick="exporterJSON()">Télécharger une sauvegarde</button>
-        <label class="btn">Restaurer une sauvegarde<input type="file" accept=".json" hidden onchange="importerJSON(this.files[0])"></label>
-        <button type="button" class="btn g-danger" onclick="if(confirm('Effacer le cache OpenStreetMap ? Il sera rechargé à la prochaine recherche.')){localStorage.removeItem('itOsmCache');toast('Cache effacé')}">Recharger OpenStreetMap</button></div>
+        <button type="button" class="btn" data-clic="exporterCSV">Exporter pour Excel (CSV)</button>
+        <button type="button" class="btn" data-clic="exporterJSON">Télécharger une sauvegarde</button>
+        <label class="btn">Restaurer une sauvegarde<input type="file" accept=".json" hidden data-change="importerJSON"></label>
+        <button type="button" class="btn g-danger" data-clic="effacerOsm">Recharger OpenStreetMap</button></div>
       <h2>Prospecter dans les règles</h2>
       <ul class="p-regles">
         <li><b>Uniquement des professionnels</b>, pour une offre liée à leur activité. Le démarchage des particuliers par email ou SMS demande leur accord préalable.</li>
@@ -1090,7 +1090,7 @@ const VUES = {
 function render() {
   const n = db.prospects.length, rel = plan().relances.length;
   $('pTabs').innerHTML = [['jour', `Aujourd’hui${rel ? ` <em>${rel}</em>` : ''}`], ['trouver', 'Trouver des prospects'], ['emails', `✉ Envoyer des emails${aEnvoyer().length ? ` <em>${aEnvoyer().length}</em>` : ''}`], ['liste', `Mes prospects (${n})`], ['envoyes', 'Emails envoyés'], ['carte', 'Carte'], ['reglages', 'Réglages']]
-    .map(([k, l]) => `<button type="button" class="${vue === k ? 'on' : ''}" onclick="setVue('${k}')">${l}</button>`).join('');
+    .map(([k, l]) => `<button type="button" class="${vue === k ? 'on' : ''}" data-clic="setVue" data-a="${k}">${l}</button>`).join('');
   $('pVue').innerHTML = bandeauConnexion() + (vue !== 'trouver' ? `<p id="chargement" class="p-load">${esc(chargement)}</p>` : '') + VUES[vue]();
   renderSync();
 }
@@ -1107,29 +1107,29 @@ function renderFiche() {
   const etapes = ['1er message', 'Relance', 'Dernière relance', 'Séquence terminée'];
   const txt = canal === 'email' ? m.email.corps : m[canal];
   const actions = {
-    whatsapp: mobile ? `<a class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/${intl(p.tel)}?text=${encodeURIComponent(txt)}" onclick="setTimeout(()=>contacte('${esc(p.id)}','WhatsApp'),300)">${ico('chat')} Ouvrir WhatsApp avec ce message</a>` : '<p class="muted">WhatsApp : il faut un numéro de portable (0696 / 0697).</p>',
-    sms: p.tel ? `<a class="btn" href="sms:+${intl(p.tel)}?body=${encodeURIComponent(txt)}" onclick="setTimeout(()=>contacte('${esc(p.id)}','SMS'),300)">Envoyer par SMS</a>` : '<p class="muted">Ajoutez un téléphone.</p>',
-    email: p.email ? `<button type="button" class="btn btn-primary${scriptPret() ? '' : ' btn-off'}" onclick="envoyerEmail('${esc(p.id)}')">Envoyer maintenant à ${esc(p.email)}</button><a class="btn" href="mailto:${esc(p.email)}?subject=${encodeURIComponent(m.email.sujet)}&body=${encodeURIComponent(txt)}" onclick="setTimeout(()=>contacte('${esc(p.id)}','Email'),300)">Ouvrir dans ma messagerie</a>`
-      : p.site ? `<button type="button" class="btn btn-primary${scriptPret() ? '' : ' btn-off'}" onclick="analyser('${esc(p.id)}')">Chercher l’email sur son site</button>` : '<p class="muted">Ajoutez une adresse email (voir « Chercher sur Google » à droite).</p>',
-    appel: p.tel ? `<a class="btn btn-primary" href="tel:+${intl(p.tel)}" onclick="setTimeout(()=>appeler('${esc(p.id)}'),300)">${ico('phone')} Appeler le ${esc(p.tel)}</a>` : '<p class="muted">Ajoutez un téléphone.</p>',
-    visite: `<button type="button" class="btn" onclick="noter(parId('${esc(p.id)}'),'Visite sur place');if(parId('${esc(p.id)}').statut==='nouveau')parId('${esc(p.id)}').statut='contacte';sauver(parId('${esc(p.id)}'));renderFiche();render()">J’y suis passé</button>`
+    whatsapp: mobile ? `<a class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/${intl(p.tel)}?text=${encodeURIComponent(txt)}" data-clic="contacte" data-a="${esc(p.id)}" data-b="WhatsApp">${ico('chat')} Ouvrir WhatsApp avec ce message</a>` : '<p class="muted">WhatsApp : il faut un numéro de portable (0696 / 0697).</p>',
+    sms: p.tel ? `<a class="btn" href="sms:+${intl(p.tel)}?body=${encodeURIComponent(txt)}" data-clic="contacte" data-a="${esc(p.id)}" data-b="SMS">Envoyer par SMS</a>` : '<p class="muted">Ajoutez un téléphone.</p>',
+    email: p.email ? `<button type="button" class="btn btn-primary${scriptPret() ? '' : ' btn-off'}" data-clic="envoyerEmail" data-a="${esc(p.id)}">Envoyer maintenant à ${esc(p.email)}</button><a class="btn" href="mailto:${esc(p.email)}?subject=${encodeURIComponent(m.email.sujet)}&body=${encodeURIComponent(txt)}" data-clic="contacte" data-a="${esc(p.id)}" data-b="Email">Ouvrir dans ma messagerie</a>`
+      : p.site ? `<button type="button" class="btn btn-primary${scriptPret() ? '' : ' btn-off'}" data-clic="analyser" data-a="${esc(p.id)}">Chercher l’email sur son site</button>` : '<p class="muted">Ajoutez une adresse email (voir « Chercher sur Google » à droite).</p>',
+    appel: p.tel ? `<a class="btn btn-primary" href="tel:+${intl(p.tel)}" data-clic="appeler" data-a="${esc(p.id)}">${ico('phone')} Appeler le ${esc(p.tel)}</a>` : '<p class="muted">Ajoutez un téléphone.</p>',
+    visite: `<button type="button" class="btn" data-clic="visiteSurPlace" data-a="${esc(p.id)}">J’y suis passé</button>`
   };
-  const champ = (k, label, type = 'text') => `<label>${label}<input type="${type}" value="${esc(p[k] || '')}" onchange="majChamp('${esc(p.id)}','${k}',this.value)"></label>`;
-  $('fiche').innerHTML = `<div class="dialog-head"><h2>${badgeScore(p.score)} <span>${esc(p.nom)}</span></h2><button type="button" class="btn" onclick="$('fiche').close()">Fermer</button></div>
+  const champ = (k, label, type = 'text') => `<label>${label}<input type="${type}" value="${esc(p[k] || '')}" data-change="majChampEl" data-a="${esc(p.id)}" data-b="${k}"></label>`;
+  $('fiche').innerHTML = `<div class="dialog-head"><h2>${badgeScore(p.score)} <span>${esc(p.nom)}</span></h2><button type="button" class="btn" data-clic="fermerFiche">Fermer</button></div>
     ${estNoir(p) ? '<p class="notice">Liste noire : cette entreprise ne doit plus être contactée.</p>' : ''}
     <p class="p-sub">${chipSeg(p.segment)} ${esc(p.commune || '')} · Agence ${AGENCES[agenceDe(p)].nom}${p.creation ? ` · créée le ${frDate(p.creation)}` : ''}${p.effectif ? ' · ' + EFFECTIFS[p.effectif] : ''}</p>
-    <div class="p-statuts">${Object.entries(STATUTS).map(([k, s]) => `<button type="button" class="${p.statut === k ? 'on' : ''}" style="--c:${s.c}" onclick="setStatut('${esc(p.id)}','${k}')">${s.nom}</button>`).join('')}</div>
+    <div class="p-statuts">${Object.entries(STATUTS).map(([k, s]) => `<button type="button" class="${p.statut === k ? 'on' : ''}" style="--c:${s.c}" data-clic="setStatut" data-a="${esc(p.id)}" data-b="${k}">${s.nom}</button>`).join('')}</div>
     <div class="p-fiche">
       <section>
         <h3>Contacter <span class="muted">· ${etapes[Math.min(p.etape || 0, 3)]}${p.relance ? ` · relance prévue ${frDay(p.relance)}` : ''}</span></h3>
-        ${(() => { const r = aVerifier(p); return r.length ? `<div class="p-verif"><b>⚠ Avant d’envoyer</b><ul>${r.map(x => `<li>${esc(x)}</li>`).join('')}</ul>${p.analyse?.titre || p.analyse?.description ? `<p class="muted small">Son site dit : « ${esc([p.analyse.titre, p.analyse.description].filter(Boolean).join(' — ').slice(0, 220))} »</p>` : ''}<div class="actions left">${p.site ? `<a class="btn btn-sm" href="${esc(/^https?:/i.test(p.site) ? p.site : 'https://' + p.site)}" target="_blank" rel="noopener">Voir son site</a>` : ''}<button type="button" class="btn btn-sm" onclick="majChamp('${esc(p.id)}','verifie',true)">✓ J’ai vérifié, le message est adapté</button><button type="button" class="btn btn-sm g-danger" onclick="setStatut('${esc(p.id)}','perdu')">Pas une cible</button></div></div>` : ''; })()}
-        <div class="g-tabs p-canaux">${[['whatsapp', 'WhatsApp'], ['sms', 'SMS'], ['email', 'Email'], ['appel', 'Script d’appel'], ['visite', 'Visite']].map(([k, l]) => `<button type="button" class="${canal === k ? 'on' : ''}" onclick="canal='${k}';renderFiche()">${l}</button>`).join('')}</div>
+        ${(() => { const r = aVerifier(p); return r.length ? `<div class="p-verif"><b>⚠ Avant d’envoyer</b><ul>${r.map(x => `<li>${esc(x)}</li>`).join('')}</ul>${p.analyse?.titre || p.analyse?.description ? `<p class="muted small">Son site dit : « ${esc([p.analyse.titre, p.analyse.description].filter(Boolean).join(' — ').slice(0, 220))} »</p>` : ''}<div class="actions left">${p.site ? `<a class="btn btn-sm" href="${esc(/^https?:/i.test(p.site) ? p.site : 'https://' + p.site)}" target="_blank" rel="noopener">Voir son site</a>` : ''}<button type="button" class="btn btn-sm" data-clic="majVerifie" data-a="${esc(p.id)}">✓ J’ai vérifié, le message est adapté</button><button type="button" class="btn btn-sm g-danger" data-clic="setStatut" data-a="${esc(p.id)}" data-b="perdu">Pas une cible</button></div></div>` : ''; })()}
+        <div class="g-tabs p-canaux">${[['whatsapp', 'WhatsApp'], ['sms', 'SMS'], ['email', 'Email'], ['appel', 'Script d’appel'], ['visite', 'Visite']].map(([k, l]) => `<button type="button" class="${canal === k ? 'on' : ''}" data-clic="setCanal" data-a="${k}">${l}</button>`).join('')}</div>
         ${canal === 'email' ? `<label class="p-lab">Objet<input id="fSujet" value="${esc(m.email.sujet)}"></label>` : ''}
         <textarea id="fMsg" class="p-msg ${canal === 'appel' || canal === 'visite' ? 'script' : ''}" ${canal === 'appel' || canal === 'visite' ? 'readonly' : ''}>${esc(txt)}</textarea>
         <div class="actions left">${actions[canal]}</div>
         <p class="muted small">Le message est écrit pour ce prospect : relisez-le, modifiez-le si besoin. Après l’envoi, la relance est programmée toute seule (J+3, puis J+10).</p>
         <h3>Notes</h3>
-        <div class="g-row"><input id="fNote" placeholder="ex : rappeler mardi, gérante = Mme X…"><button type="button" class="btn" onclick="ajouterNote('${esc(p.id)}')">Ajouter</button></div>
+        <div class="g-row"><input id="fNote" placeholder="ex : rappeler mardi, gérante = Mme X…"><button type="button" class="btn" data-clic="ajouterNote" data-a="${esc(p.id)}">Ajouter</button></div>
         <ul class="p-notes">${[...(p.notes || []).map(n => ({ ...n, note: true })), ...(p.historique || [])].sort((a, b) => b.d.localeCompare(a.d)).map(n => `<li class="${n.note ? 'note' : ''}"><small>${new Date(n.d).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small> ${esc(n.t)}</li>`).join('')}</ul>
       </section>
       <section>
@@ -1140,18 +1140,18 @@ function renderFiche() {
         <p class="p-conseil">${ico('phone')} Meilleur moment pour appeler : <b>${seg.appel}</b></p>
         <h3>Coordonnées</h3>
         <div class="p-champs">${champ('prenom', 'Prénom du contact')}${champ('tel', 'Téléphone', 'tel')}${champ('email', 'Email', 'email')}${champ('site', 'Site internet')}
-          <label class="p-check"><input type="checkbox" ${p.sansSite ? 'checked' : ''} onchange="majChamp('${esc(p.id)}','sansSite',this.checked)"> N’a pas de site internet</label>
-          <label>Activité<select onchange="majChamp('${esc(p.id)}','segment',this.value)">${Object.entries(SEGMENTS).map(([k, s]) => `<option value="${k}" ${p.segment === k ? 'selected' : ''}>${s.nom}</option>`).join('')}</select></label>
-          <label>Commune<select onchange="majChamp('${esc(p.id)}','commune',this.value)"><option value="">—</option>${COMMUNES.map(c => `<option ${normCommune(c[0]) === normCommune(p.commune) ? 'selected' : ''}>${esc(c[0])}</option>`).join('')}</select></label>
-          <label>Relance le<input type="date" value="${esc(p.relance || '')}" onchange="majChamp('${esc(p.id)}','relance',this.value)"></label></div>
+          <label class="p-check"><input type="checkbox" ${p.sansSite ? 'checked' : ''} data-change="majChampChk" data-a="${esc(p.id)}" data-b="sansSite"> N’a pas de site internet</label>
+          <label>Activité<select data-change="majChampEl" data-a="${esc(p.id)}" data-b="segment">${Object.entries(SEGMENTS).map(([k, s]) => `<option value="${k}" ${p.segment === k ? 'selected' : ''}>${s.nom}</option>`).join('')}</select></label>
+          <label>Commune<select data-change="majChampEl" data-a="${esc(p.id)}" data-b="commune"><option value="">—</option>${COMMUNES.map(c => `<option ${normCommune(c[0]) === normCommune(p.commune) ? 'selected' : ''}>${esc(c[0])}</option>`).join('')}</select></label>
+          <label>Relance le<input type="date" value="${esc(p.relance || '')}" data-change="majChampEl" data-a="${esc(p.id)}" data-b="relance"></label></div>
         ${p.site ? `<div class="p-analyse">${(() => {
           const a = p.analyse;
-          if (!a) return `<button type="button" class="btn btn-sm${scriptPret() ? '' : ' btn-off'}" onclick="analyser('${esc(p.id)}')">${ico('search')} Analyser son site (email, téléphone, mobile)</button>`;
-          if (!a.ok) return `<span class="p-ok ko">⚠ Le site ne s’ouvre plus (vérifié le ${frDate(a.quand)})</span> ${scriptPret() ? `<button type="button" class="link" onclick="analyser('${esc(p.id)}')">Réessayer</button>` : ''}`;
+          if (!a) return `<button type="button" class="btn btn-sm${scriptPret() ? '' : ' btn-off'}" data-clic="analyser" data-a="${esc(p.id)}">${ico('search')} Analyser son site (email, téléphone, mobile)</button>`;
+          if (!a.ok) return `<span class="p-ok ko">⚠ Le site ne s’ouvre plus (vérifié le ${frDate(a.quand)})</span> ${scriptPret() ? `<button type="button" class="link" data-clic="analyser" data-a="${esc(p.id)}">Réessayer</button>` : ''}`;
           const etat = (bon, oui, non) => `<span class="p-ok ${bon ? '' : 'ko'}">${bon ? '✓ ' + oui : '⚠ ' + non}</span>`;
           return `${etat(a.https, 'Sécurisé', 'Non sécurisé')}${etat(a.mobile, 'Adapté au mobile', 'Mal affiché sur mobile')}${a.annee ? etat(a.annee > new Date().getFullYear() - 3, 'À jour (' + a.annee + ')', 'Ancien (' + a.annee + ')') : ''}
-            ${(a.emails || []).map(e => `<button type="button" class="p-chip" title="Utiliser cet email" onclick="majChamp('${esc(p.id)}','email','${esc(e)}')">@ ${esc(e)}</button>`).join('')}
-            ${(a.tels || []).map(t => `<button type="button" class="p-chip" title="Utiliser ce numéro" onclick="majChamp('${esc(p.id)}','tel','${esc(t)}')">${ico('phone')} ${esc(t)}</button>`).join('')}`;
+            ${(a.emails || []).map(e => `<button type="button" class="p-chip" title="Utiliser cet email" data-clic="majChampVal" data-a="${esc(p.id)}" data-b="email" data-c="${esc(e)}">@ ${esc(e)}</button>`).join('')}
+            ${(a.tels || []).map(t => `<button type="button" class="p-chip" title="Utiliser ce numéro" data-clic="majChampVal" data-a="${esc(p.id)}" data-b="tel" data-c="${esc(t)}">${ico('phone')} ${esc(t)}</button>`).join('')}`;
         })()}</div>` : ''}
         <div class="p-liens">
           <a href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener">Chercher sur Google</a>
@@ -1163,9 +1163,9 @@ function renderFiche() {
         ${p.activite ? `<p class="muted small">Activité déclarée : ${esc(p.activite)}</p>` : ''}${p.horaires ? `<p class="muted small">Horaires : ${esc(p.horaires)}</p>` : ''}
         <p class="muted small">Source : ${SOURCES[p.source] || p.source}${p.adresse ? ' · ' + esc(p.adresse) : ''}</p>
         <div class="p-fiche-listes">
-          <button type="button" class="btn btn-sm${estBlanc(p) ? ' on' : ''}" onclick="listeFiche('${esc(p.id)}','blanche')">${estBlanc(p) ? '✓ Sur la liste blanche (retirer)' : 'Liste blanche : prioritaire'}</button>
-          <button type="button" class="btn btn-sm g-danger${estNoir(p) ? ' on' : ''}" onclick="listeFiche('${esc(p.id)}','noire')">${estNoir(p) ? '✓ Sur la liste noire (retirer)' : 'Liste noire : ne plus contacter'}</button></div>
-        <button type="button" class="link g-danger-link" onclick="supprimer('${esc(p.id)}')">Supprimer ce prospect</button>
+          <button type="button" class="btn btn-sm${estBlanc(p) ? ' on' : ''}" data-clic="listeFiche" data-a="${esc(p.id)}" data-b="blanche">${estBlanc(p) ? '✓ Sur la liste blanche (retirer)' : 'Liste blanche : prioritaire'}</button>
+          <button type="button" class="btn btn-sm g-danger${estNoir(p) ? ' on' : ''}" data-clic="listeFiche" data-a="${esc(p.id)}" data-b="noire">${estNoir(p) ? '✓ Sur la liste noire (retirer)' : 'Liste noire : ne plus contacter'}</button></div>
+        <button type="button" class="link g-danger-link" data-clic="supprimer" data-a="${esc(p.id)}">Supprimer ce prospect</button>
       </section></div>`;
   // garder les modifications du message pour le lien d'envoi
   const ta = $('fMsg');
@@ -1194,7 +1194,7 @@ async function dessinerCarte() {
     let lat = p.lat, lon = p.lon;
     if (lat == null) { const c = CENTRES.find(x => normCommune(x[0]) === normCommune(p.commune)); if (!c) return; lat = c[1] + ((hash(p.id) % 100) - 50) / 9000; lon = c[2] + ((hash(p.id + 'x') % 100) - 50) / 9000; }
     L.circleMarker([lat, lon], { radius: 5 + p.score / 12, color: '#fff', weight: 1.5, fillColor: STATUTS[p.statut]?.c || '#64748b', fillOpacity: .9 })
-      .addTo(carte).bindPopup(`<b>${esc(p.nom)}</b><br>${esc(SEGMENTS[p.segment]?.nom || '')} · ${p.score} pts<br><button type="button" onclick="ouvrir('${esc(p.id)}')">Ouvrir la fiche</button>`);
+      .addTo(carte).bindPopup(`<b>${esc(p.nom)}</b><br>${esc(SEGMENTS[p.segment]?.nom || '')} · ${p.score} pts<br><button type="button" data-clic="ouvrir" data-a="${esc(p.id)}">Ouvrir la fiche</button>`);
   });
 }
 
@@ -1224,3 +1224,79 @@ async function importerJSON(file) {
 db.prospects.forEach(p => { Object.assign(p, scorer(p)); if (!p.offre) p.offre = offreDe(p); });
 render();
 synchroniser();
+
+/* ---------- Actions de la page (écouteurs délégués : la CSP interdit les gestionnaires en ligne) ---------- */
+(() => {
+  const ACTIONS = {
+    clic: {
+      ouvrir: (e, v, a) => ouvrir(a), analyser: (e, v, a) => analyser(a), envoyerEmail: (e, v, a) => envoyerEmail(a),
+      supprimer: (e, v, a) => supprimer(a), ecarter: (e, v, a) => ecarter(a), ajouterNote: (e, v, a) => ajouterNote(a), ajouter: (e, v, a) => ajouter(a),
+      setVue: (e, v, a) => setVue(a),
+      remplirAuto: () => remplirAuto(), exporterCSV: () => exporterCSV(), envoyerEmailsDuJour: () => envoyerEmailsDuJour(), synchroniser: () => synchroniser(),
+      relancerTous: () => relancerTous(), lancerAuto: () => lancerAuto(), exporterJSON: () => exporterJSON(), envoyerValides: () => envoyerValides(),
+      envoyerSelection: () => envoyerSelection(), completerEmails: () => completerEmails(),
+      listeFiche: (e, v, a, b) => listeFiche(a, b),
+      contacte: (e, v, a, b) => setTimeout(() => contacte(a, b), 300),
+      appeler: (e, v, a) => setTimeout(() => appeler(a), 300),
+      setStatut: (e, v, a, b) => setStatut(a, b),
+      selVider: () => { selection.clear(); render(); },
+      retirerListe: (e, v, a, b) => retirerListe(a, db.listes[a][b].valeur),
+      relanceJ3: (e, v, a) => relanceLe(a, addDays(todayISO(), 3)),
+      reglerAuto: (e, v, a) => reglerAuto(a),
+      rechSource: (e, v, a) => { recherche.source = a; resultats = []; render(); },
+      visiteSurPlace: (e, v, a) => { noter(parId(a), 'Visite sur place'); if (parId(a).statut === 'nouveau') parId(a).statut = 'contacte'; sauver(parId(a)); renderFiche(); render(); },
+      majVerifie: (e, v, a) => majChamp(a, 'verifie', true),
+      majChampVal: (e, v, a, b, c) => majChamp(a, b, c),
+      listeSelection: (e, v, a) => listeSelection(a),
+      effacerOsm: () => { if (confirm('Effacer le cache OpenStreetMap ? Il sera rechargé à la prochaine recherche.')) { localStorage.removeItem('itOsmCache'); toast('Cache effacé'); } },
+      filtreStatut: (e, v, a) => { filtre.statut = filtre.statut === a ? '' : a; render(); },
+      canalOuvrir: (e, v, a, b) => canalOuvrir(a, b),
+      setCanal: (e, v, a) => { canal = a; renderFiche(); },
+      autoNul: () => { auto = null; render(); },
+      ajouterMeilleurs20: () => ajouterMeilleurs(20),
+      ajouterListe: (e, v, a) => ajouterListe(a, $('ajout-' + a).value.split(/[\n,;]+/), $('raison-' + a).value),
+      relanceSel: () => [...selection].forEach(id => relanceLe(id, addDays(todayISO(), 3))),
+      fermerFiche: () => $('fiche').close(),
+    },
+    change: {
+      toggleSel: (e, v, a) => toggleSel(a),
+      selTout: (e, v, a) => selTout(a ? a.split(',') : [], e.checked),
+      relanceVal: (e, v, a) => relanceLe(a, e.value),
+      reglerAutoVal: e => reglerAuto(null, e.value),
+      reglerAutoChk: e => reglerAuto(null, null, e.checked),
+      rechSegment: e => { recherche.segment = e.value; },
+      rechJours: e => { recherche.jours = +e.value; },
+      rechCommune: e => { recherche.commune = e.value; },
+      rechAvecTel: e => { recherche.avecTel = e.checked; },
+      majChampEl: (e, v, a, b) => majChamp(a, b, e.value),
+      majChampChk: (e, v, a, b) => majChamp(a, b, e.checked),
+      importerJSON: e => importerJSON(e.files[0]),
+      filtreTri: e => { filtre.tri = e.value; render(); },
+      filtreSegment: e => { filtre.segment = e.value; render(); },
+      filtreEmail: e => { filtre.email = e.checked; render(); },
+      filtreAgence: e => { filtre.agence = e.value; render(); },
+      regSignature: e => { db.reglages.signature = e.value.trim() || 'L’équipe IloTech'; sauver(); },
+      regParJour: e => { db.reglages.parJour = Math.max(1, +e.value || 10); sauver(); },
+      regMaxEmails: e => { db.reglages.maxEmails = Math.min(60, Math.max(1, +e.value || 25)); sauver(); },
+    },
+    input: {
+      rechQ: e => { recherche.q = e.value; },
+      filtreQ: e => { filtre.q = e.value; clearTimeout(window._fq); window._fq = setTimeout(render, 300); },
+    },
+    submit: {
+      connecterBandeau: (e, v) => { v.preventDefault(); connecter($('pCleBandeau').value); },
+      enregCle: (e, v) => { v.preventDefault(); cle = $('pCle').value.trim(); try { localStorage.setItem('itGestionCle', cle); } catch (err) {} synchroniser(); render(); },
+      chercher: (e, v) => { v.preventDefault(); chercher(); },
+      ajouterManuel: (e, v) => ajouterManuel(v),
+    },
+  };
+  ['clic:click', 'change:change', 'input:input', 'submit:submit'].forEach(s => {
+    const [nom, evt] = s.split(':');
+    document.addEventListener(evt, ev => {
+      for (let el = ev.target.closest ? ev.target.closest('[data-' + nom + ']') : null; el; el = el.parentElement && el.parentElement.closest('[data-' + nom + ']')) {
+        const f = ACTIONS[nom][el.dataset[nom]];
+        if (f && f(el, ev, el.dataset.a, el.dataset.b, el.dataset.c) === 'stop') break;
+      }
+    });
+  });
+})();

@@ -97,7 +97,7 @@ const ETAPES = [
     etapes: ['Ouvrez la page des flyers et choisissez « Particuliers » ou « Professionnels ». Pour les entreprises, la plaquette (plaquette.html) s’imprime aussi en PDF.',
       'Imprimez-la : vous obtenez 4 flyers par feuille A4, avec un QR code qui mène à la prise de rendez-vous.',
       'Laissez-en une pile chez des commerçants partenaires (magasins de téléphonie, papeteries, superettes), dans les mairies et au tableau des résidences.'],
-    lien: ['flyer.html', 'Ouvrir les flyers à imprimer'] },
+    lien: ['../../flyer.html', 'Ouvrir les flyers à imprimer'] },
   { id: 'partenaires', titre: 'Bouche-à-oreille et partenaires', prio: 'Le plus rentable',
     pourquoi: 'Un client content en amène d’autres. Les partenaires vous envoient des clients qui ont déjà besoin de vous.',
     etapes: ['Après chaque intervention : demandez un avis Google et laissez 2 flyers (« pour un proche »).',
@@ -120,11 +120,23 @@ function render() {
     <p class="lead">Les <b>particuliers</b> ne peuvent pas être démarchés par email, SMS ou téléphone sans leur accord : il faut qu’ils vous trouvent. Voici les endroits où ils cherchent, par ordre d’importance, avec les textes prêts à copier. Les prix viennent du site : ils sont toujours à jour. Pour les <b>entreprises</b>, utilisez l’outil <a href="prospection.html">Prospection</a>.</p>
     <div class="v-progres"><span style="width:${Math.round(n / ETAPES.length * 100)}%"></span></div><p class="muted">${n} / ${ETAPES.length} étapes faites</p>
     ${ETAPES.map((e, i) => `<section class="v-etape ${fait[e.id] ? 'fait' : ''}">
-      <header><label class="v-check"><input type="checkbox" ${fait[e.id] ? 'checked' : ''} onchange="cocher('${e.id}',this.checked)"><span>${i + 1}. ${esc(e.titre)}</span></label><em>${esc(e.prio)}</em></header>
+      <header><label class="v-check"><input type="checkbox" ${fait[e.id] ? 'checked' : ''} data-change="cocher" data-a="${e.id}"><span>${i + 1}. ${esc(e.titre)}</span></label><em>${esc(e.prio)}</em></header>
       <p>${esc(e.pourquoi)}</p>
       <ol>${e.etapes.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
       <div class="actions left">${[e.lien, e.lien2, e.lien3].filter(Boolean).map(([u, l], k) => `<a class="btn ${k ? '' : 'btn-primary'}" href="${u}" ${/^https/.test(u) ? 'target="_blank" rel="noopener"' : ''}>${esc(l)}</a>`).join('')}</div>
-      ${(e.textes || []).map(([titre, cle]) => `<div class="v-texte"><div class="v-texte-tete"><b>${esc(titre)}</b><span class="muted small">${TEXTES[cle].length} caractères</span><button type="button" class="btn btn-sm" onclick="copier('${cle}',this)">Copier</button></div><textarea readonly rows="${Math.min(12, TEXTES[cle].split('\n').length + 1)}">${esc(TEXTES[cle])}</textarea></div>`).join('')}
+      ${(e.textes || []).map(([titre, cle]) => `<div class="v-texte"><div class="v-texte-tete"><b>${esc(titre)}</b><span class="muted small">${TEXTES[cle].length} caractères</span><button type="button" class="btn btn-sm" data-clic="copier" data-a="${cle}">Copier</button></div><textarea readonly rows="${Math.min(12, TEXTES[cle].split('\n').length + 1)}">${esc(TEXTES[cle])}</textarea></div>`).join('')}
     </section>`).join('')}`;
 }
 render();
+
+/* ---------- Actions de la page (écouteurs délégués : la CSP interdit les gestionnaires en ligne) ---------- */
+(() => {
+  document.addEventListener('click', ev => {
+    const el = ev.target.closest && ev.target.closest('[data-clic="copier"]');
+    if (el) copier(el.dataset.a, el);
+  });
+  document.addEventListener('change', ev => {
+    const el = ev.target.closest && ev.target.closest('[data-change="cocher"]');
+    if (el) cocher(el.dataset.a, el.checked);
+  });
+})();

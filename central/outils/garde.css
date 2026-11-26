@@ -1,0 +1,14 @@
+/* ILO Central · Outils internes : page masquée jusqu'à la vérification du compte (garde.js), puis écran de connexion ou de refus */
+html.garde-attente body { visibility: hidden; }
+body.garde-ecran { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #15171C; color: #E8EAED; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 16px; box-sizing: border-box; }
+.garde-carte { width: 100%; max-width: 420px; background: #1E2129; border: 1px solid #2A2E37; border-radius: 14px; padding: 28px 24px; box-sizing: border-box; }
+.garde-marque { display: inline-block; color: #5EC4D8; font-weight: 700; text-decoration: none; margin-bottom: 8px; }
+.garde-carte h1 { font-size: 1.35rem; margin: 4px 0 8px; }
+.garde-carte p { color: #B4B9C3; margin: 0 0 16px; }
+.garde-carte form { display: grid; gap: 12px; }
+.garde-carte label { display: grid; gap: 4px; font-size: .9rem; color: #B4B9C3; }
+.garde-carte input { font: inherit; padding: 10px 12px; border-radius: 8px; border: 1px solid #3A3F4B; background: #15171C; color: #E8EAED; }
+.garde-carte button, .garde-btn { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 8px; border: 0; background: #0E7490; color: #fff; cursor: pointer; text-decoration: none; display: inline-block; }
+.garde-carte button:disabled { opacity: .6; }
+#gardeDeco { background: transparent; border: 1px solid #3A3F4B; color: #E8EAED; }
+.garde-err { color: #F28B82; min-height: 1.2em; margin: 0; }

@@ -16,6 +16,8 @@ const MODULES = [['', 'Tableau de bord', true], ['audience', 'Audience'], ['fina
 // intertitres du menu (maquette) : le premier module de chaque groupe porte l'intertitre
 const GROUPES = { '': 'Pilotage', assistant: 'Mon entreprise', applications: 'Écosystème', partenaires: 'Communauté', securite: 'Compte' };
 let mesModerations = [], compteurs = {}, auth2 = null;   // auth2 : niveau de connexion (aal1, aal2) et suivant
+// 26/11 : outils internes venus du site public (pages à part, /central/outils/, réservées à l'administrateur par outils/garde.js)
+const OUTILS = [['./outils/prospection.html', '', 'Prospection', 0], ['./outils/rendez-vous.html', '', 'Rendez-vous', 0], ['./outils/visibilite.html', '', 'Être trouvé', 0]];
 const estAdmin = () => profil?.role === 'admin';
 const visibles = () => MODULES.filter(([, , m]) => estAdmin() || (m && mesModerations.length > 0));
 
@@ -23,7 +25,7 @@ const APP = {
   nom: 'ILO Central', titre: 'ILO Central', accueilConnecte: '#/', sansInscription: true,
   texteConnexion: 'Administration de l’écosystème IloTech : réservée à l’administrateur et aux modérateurs.',
   menu: () => [],
-  menuBas: () => (moi ? visibles() : []).flatMap(([k, t]) => [['#/' + k, '', t, compteurs[k] || 0], ...(k === 'entreprises' && estAdmin() ? [['./gestion/', '', 'Gestion', 0]] : [])]),   // « Gestion » : la gestion privée (clients, devis, factures…) des entreprises de l'écosystème
+  menuBas: () => (moi ? visibles() : []).flatMap(([k, t]) => [['#/' + k, '', t, compteurs[k] || 0], ...(k === 'entreprises' && estAdmin() ? [['./gestion/', '', 'Gestion', 0]] : []), ...(k === 'reseaux' && estAdmin() ? OUTILS : [])]),   // « Gestion » : la gestion privée (clients, devis, factures…) des entreprises de l'écosystème
   enteteRail: () => '<a class="rail-logo" href="#/">ILO Central</a>',
   apresNav: () => {
     if (!moi) return;

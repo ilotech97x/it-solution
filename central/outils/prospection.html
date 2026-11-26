@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr" class="garde-attente">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://*.tile.openstreetmap.org; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://script.google.com https://script.googleusercontent.com https://bodacc-datadila.opendatasoft.com https://overpass-api.de https://*.overpass-api.de https://recherche-entreprises.api.gouv.fr; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prospection · ILO Central</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" href="../../img/favicon.png">
+  <link rel="stylesheet" href="garde.css?v=1">
+  <link rel="stylesheet" href="../../style.css?v=106">
+  <link rel="stylesheet" href="gestion.css?v=100">
+  <link rel="stylesheet" href="prospection.css?v=100">
+</head>
+<body class="page-doc gestion-page prospect-page">
+  <header class="top">
+    <a class="brand" href="rendez-vous.html" aria-label="IloTech — espace pro">
+      <img class="logo" src="../../img/logo-ilo.webp" alt="" width="64" height="38">
+      <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">PROSPECTION</em></b><span class="mono">Trouver et contacter de nouveaux clients</span></span>
+    </a>
+    <span id="syncEtat" class="status mono"></span>
+    <div class="top-actions">
+      <a class="btn btn-head" href="../">← ILO Central</a>
+      <a class="btn btn-head" href="visibilite.html">Être trouvé</a>
+      <a class="btn btn-head" href="rendez-vous.html">Rendez-vous</a>
+      <a class="btn btn-head" href="../../index.html" target="_blank" rel="noopener">Voir le site</a>
+    </div>
+  </header>
+  <main class="g-main">
+    <nav class="g-tabs" id="pTabs" aria-label="Prospection"></nav>
+    <section id="pVue"></section>
+  </main>
+  <dialog id="fiche" class="g-dialog p-dialog" aria-label="Fiche prospect"></dialog>
+  <div id="toast" class="g-toast" role="status" aria-live="polite" hidden></div>
+  <script src="../config.js?v=1"></script>
+  <script src="../lib/supabase.js?v=2.45.4"></script>
+  <script src="garde.js?v=1"></script>
+  <script src="../../data.js?v=103"></script>
+  <script src="../../outils.js?v=107"></script>
+  <script src="theme.js?v=1"></script>
+  <script src="prospection.js?v=101"></script>
+</body>
+</html>

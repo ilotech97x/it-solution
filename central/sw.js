@@ -5,9 +5,9 @@
    Fichiers versionnés (?v=) : cache d'abord (l'adresse change avec le contenu). Autres fichiers : cache puis mise à jour en arrière-plan.
    Jamais les données (Supabase), ni les cartes, ni les vidéos, ni /gestion/. CACHE à monter à chaque publication. */
 const PREFIXE = 'central-';
-const CACHE = PREFIXE + 'v10';
+const CACHE = PREFIXE + 'v11';
 const PORTEE = new URL('./', self.registration.scope).pathname;
-const GESTION = PORTEE + 'gestion/';   // la gestion privée (/central/gestion/) a son propre fonctionnement, sans service worker : jamais servie ni gardée ici
+const GESTION = PORTEE + 'gestion/', OUTILS = PORTEE + 'outils/';   // la gestion privée (/central/gestion/) a son propre fonctionnement, sans service worker : jamais servie ni gardée ici
 const MAX = 220;   // nombre maximal de fichiers gardés
 const API = /\/(rest|auth|storage|functions|realtime)\/v1\//;   // données : jamais gardées, même si l'API est sur la même adresse (tests locaux)
 const SECOURS = '<!doctype html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#15171C"><title>ILO Central — hors connexion</title></head>'
@@ -27,7 +27,7 @@ self.addEventListener('message', e => {
   if (!e.data || e.data.type !== 'coquille' || !Array.isArray(e.data.urls)) return;
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(e.data.urls.slice(0, MAX).map(u => {
     const url = new URL(u, self.location.href);
-    if (url.origin !== location.origin || !url.pathname.startsWith(PORTEE) || url.pathname.startsWith(GESTION)) return null;
+    if (url.origin !== location.origin || !url.pathname.startsWith(PORTEE) || url.pathname.startsWith(GESTION) || url.pathname.startsWith(OUTILS)) return null;
     return c.match(url.href).then(x => x || c.add(url.href)).catch(() => {});
   }))));
 });
@@ -49,6 +49,6 @@ const fichier = (e, r, u) => caches.match(r).then(x => {
 });
 self.addEventListener('fetch', e => {
   const r = e.request, u = new URL(r.url);
-  if (r.method !== 'GET' || u.origin !== location.origin || !u.pathname.startsWith(PORTEE) || u.pathname.startsWith(GESTION) || API.test(u.pathname) || r.headers.has('range')) return;
+  if (r.method !== 'GET' || u.origin !== location.origin || !u.pathname.startsWith(PORTEE) || u.pathname.startsWith(GESTION) || u.pathname.startsWith(OUTILS) || API.test(u.pathname) || r.headers.has('range')) return;
   e.respondWith(r.mode === 'navigate' ? page(e, r, u) : fichier(e, r, u));
 });

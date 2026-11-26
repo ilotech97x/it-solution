@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr" class="garde-attente">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://script.google.com https://script.googleusercontent.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Gestion des rendez-vous · ILO Central</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" href="../../img/favicon.png">
+  <link rel="apple-touch-icon" href="../../img/apple-touch-icon.png">
+  <link rel="stylesheet" href="garde.css?v=1">
+  <link rel="stylesheet" href="../../style.css?v=106">
+  <link rel="stylesheet" href="gestion.css?v=100">
+</head>
+<body class="page-doc gestion-page">
+  <header class="top">
+    <a class="brand" href="../../index.html" aria-label="IloTech — site">
+      <img class="logo" src="../../img/logo-ilo.webp" alt="" width="64" height="38">
+      <span class="brand-text"><b>Ilo<span>Tech</span> <em class="it">PRO</em></b><span class="mono">Gestion des rendez-vous et demandes</span></span>
+    </a>
+    <div class="top-actions">
+      <a class="btn btn-head" href="../">← ILO Central</a>
+      <a class="btn btn-head" href="https://docs.google.com/spreadsheets/u/0/" target="_blank" rel="noopener">Tableau Google</a>
+      <a class="btn btn-head" href="prospection.html">Prospection</a>
+      <a class="btn btn-head" href="visibilite.html">Être trouvé</a>
+      <a class="btn btn-head" href="../../fiche-tarifs.html" target="_blank" rel="noopener">Fiche tarifs</a>
+      <a class="btn btn-head" href="../../index.html" target="_blank" rel="noopener">Voir le site</a>
+      <button type="button" class="btn btn-head" id="logout" hidden>Se déconnecter</button>
+    </div>
+  </header>
+  <main class="g-main" id="g"></main>
+
+  <dialog id="fiche" class="g-dialog" aria-labelledby="ficheTitre"></dialog>
+
+  <script src="../config.js?v=1"></script>
+  <script src="../lib/supabase.js?v=2.45.4"></script>
+  <script src="garde.js?v=1"></script>
+  <script src="../../data.js?v=103"></script>
+  <script src="../../outils.js?v=107"></script>
+  <script src="theme.js?v=1"></script>
+  <script src="gestion.js?v=101"></script>
+</body>
+</html>
