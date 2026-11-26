@@ -161,7 +161,7 @@ async function nouveauDoc(type) {
 // ---------------------------------------------------------------- éditeur commun devis / facture
 // espace client (espace_client.sql) : lien et code à donner au client, consultation, signature, échéancier, paiements déclarés à vérifier
 const ETAT_ECH_PRO = { payee: ['ok', 'Payée'], partielle: ['att', 'En partie payée'], a_payer: ['att', 'À régler'], en_retard: ['ko', 'En retard'], a_venir: ['', 'À venir'] };
-const lienClient = d => `${location.origin}${location.pathname}#/client?ref=${encodeURIComponent(d.numero)}&code=${encodeURIComponent(d.acces_code)}`;
+const lienClient = d => `${adresseClient()}#/client?ref=${encodeURIComponent(d.numero)}&code=${encodeURIComponent(d.acces_code)}`;
 function carteEspaceClient(type, doc, [sig, ech, decl]) {
   const fac = type === 'facture', reste = doc.total_ttc - doc.paye;
   let cumul = 0;
@@ -371,7 +371,7 @@ NX.pages.imprimer = async (type, id) => {
         <p class="petit" style="color:#666">Estimation établie à partir des coûts actuels indiqués par le client ; elle n’engage pas sur des économies futures.</p></section>`; })() : ''}
     ${sig && sig.decision === 'accepte' ? `<p style="margin-top:30px">Bon pour accord, signé en ligne par <b>${esc(sig.nom)}</b> le ${dateHeure(sig.signe_at)} :</p><img src="${esc(sig.image)}" alt="Signature" style="max-width:260px;height:auto">`
       : type === 'devis' ? '<p style="margin-top:30px">Bon pour accord — date et signature du client :</p><div style="height:70px;border:1px dashed #bbb;border-radius:8px;max-width:320px"></div>' : ''}
-    ${enLigne ? `<p class="ec-imp">Signer, suivre${type === 'facture' ? ' et régler (paiement en plusieurs fois possible)' : ''} en ligne : <b>${esc(location.origin + location.pathname)}#/client</b> — référence <b>${esc(doc.numero)}</b>, code d’accès <b>${esc(doc.acces_code)}</b>.</p>` : ''}
+    ${enLigne ? `<p class="ec-imp">Signer, suivre${type === 'facture' ? ' et régler (paiement en plusieurs fois possible)' : ''} en ligne : <b>${esc(adresseClient())}#/client</b> — référence <b>${esc(doc.numero)}</b>, code d’accès <b>${esc(doc.acces_code)}</b>.</p>` : ''}
     <div class="mentions">${o.franchise_tva ? 'TVA non applicable, art. 293 B du CGI.\n' : ''}${doc.notes ? esc(doc.notes) + '\n' : ''}${esc(doc.conditions)}${o.iban && type === 'facture' && doc.type === 'facture' ? `\nRèglement par virement : IBAN ${esc(o.iban)}` : ''}${(doc.org_snap ? doc.org_snap.assurance : ORG.assurance) ? `\nAssurance professionnelle : ${esc(doc.org_snap ? doc.org_snap.assurance : ORG.assurance)}` : ''}</div></article>`);
   $('#imp').onclick = () => window.print();
 };

@@ -5,7 +5,7 @@
 window.CENTRAL = (() => {
   const ST_ABO = { active: ['ok', 'Active'], annulee: ['att', 'Annulée'], expiree: ['ko', 'Expirée'], aucune: ['gris', 'Aucune'] };
   const TYPES_SRC = { appli: 'Appli', robot: 'Robot' };
-  const NEXORA = '../nexora/';
+  const GESTION = './gestion/';   // gestion PRIVÉE d'ILO Central (même moteur que NEXORA, instance séparée) ; jamais ../nexora/ (NEXORA public)
   const ceTag = (st, t) => `<span class="tag ${st[0]}">${esc(st[1])}</span>`;
   const ceInstaller = t => page(t, INSTALLER);
   const ceJour0 = () => new Date().toLocaleDateString('fr-CA', { timeZone: 'America/Martinique' });
@@ -49,18 +49,18 @@ window.CENTRAL = (() => {
     return carte('À faire aujourd’hui', l.length ? `<div class="ctl-liste">${l.map(([ton, txt, bt, h]) => `<div class="ctl-ligne"><span><span class="tag ${ton}" aria-hidden="true">●</span> ${txt}</span><a class="btn btn-s" href="${h}">${bt}</a></div>`).join('')}</div>`
       : '<p class="muted">Rien d’urgent : aucune validation, aucune demande, aucune alerte.</p>', 'ce-afaire');
   };
-  const lienNx = (h, t, org) => `<a class="btn btn-s" href="${NEXORA}${h}" data-nxorg="${esc(org)}">${t}</a>`;
+  const lienNx = (h, t, org) => `<a class="btn btn-s" href="${GESTION}${h}" data-nxorg="${esc(org)}">${t}</a>`;
   const boutonCreer = e => e.manquantes.length ? `<div class="actions"><button type="button" class="btn btn-p btn-s" id="ceCreerEntreprises">Créer les entreprises de l’écosystème</button></div>
-      <p class="petit muted">Manquantes : ${esc(e.manquantes.join(', '))}. Vous en devenez le propriétaire dans NEXORA.</p>` : '';
-  const videEntreprises = e => `<div class="vide-etat"><h3>Aucune entreprise reliée à votre compte</h3><p class="muted">${e.installe ? 'Chaque marque de l’écosystème a sa propre entreprise dans NEXORA, avec ses devis et ses factures.' : 'La base ILO Central n’est pas encore à jour pour cette partie.'}</p>${boutonCreer(e)}</div>`;
+      <p class="petit muted">Manquantes : ${esc(e.manquantes.join(', '))}. Vous en devenez le propriétaire dans la gestion d’ILO Central.</p>` : '';
+  const videEntreprises = e => `<div class="vide-etat"><h3>Aucune entreprise reliée à votre compte</h3><p class="muted">${e.installe ? 'Chaque marque de l’écosystème a sa propre entreprise dans la gestion d’ILO Central, avec ses devis et ses factures.' : 'La base ILO Central n’est pas encore à jour pour cette partie.'}</p>${boutonCreer(e)}</div>`;
   const chiffresEntreprise = x => `<div class="ctl-kpis ce-mini">
       <div class="ctl-kpi"><span>Devis envoyés</span><b>${nbFr(x.devis_envoyes)}</b><small>en attente de réponse</small></div>
       <div class="ctl-kpi"><span>Factures impayées</span><b>${eurC(x.factures_impayees)}</b><small>reste à encaisser</small></div>
       <div class="ctl-kpi"><span>Encaissé ce mois</span><b>${eurC(x.encaisse_mois)}</b><small>paiements reçus</small></div></div>`;
   const carteMarque = x => `<section class="ctl-carte ce-marque" data-marque="${esc(x.marque)}"><h2>${esc(x.nom)} <span class="tag gris">${esc(x.marque)}</span></h2>${chiffresEntreprise(x)}
-      <div class="actions">${lienNx('#/devis', 'Devis', x.org_id)}${lienNx('#/factures', 'Factures', x.org_id)}${lienNx('#/clients', 'Clients', x.org_id)}<a class="btn btn-p btn-s" href="${NEXORA}" data-nxorg="${esc(x.org_id)}">Ouvrir dans NEXORA</a></div></section>`;
+      <div class="actions">${lienNx('#/devis', 'Devis', x.org_id)}${lienNx('#/factures', 'Factures', x.org_id)}${lienNx('#/clients', 'Clients', x.org_id)}<a class="btn btn-p btn-s" href="${GESTION}" data-nxorg="${esc(x.org_id)}">Ouvrir la gestion</a></div></section>`;
   const carteEntreprise = e => carte(`Mes entreprises${e.mes.length ? ' · ' + nbFr(e.mes.length) : ''}`, e.mes.length ? `<div class="ctl-liste">${e.mes.slice(0, 3).map(x => `<div class="ctl-ligne"><span><b>${esc(x.nom)}</b>
-        <small>${nbFr(x.devis_envoyes)} devis envoyé${x.devis_envoyes > 1 ? 's' : ''} · ${eurC(x.factures_impayees)} impayés · ${eurC(x.encaisse_mois)} encaissé ce mois</small></span><a class="btn btn-s" href="${NEXORA}" data-nxorg="${esc(x.org_id)}">Ouvrir</a></div>`).join('')}</div>
+        <small>${nbFr(x.devis_envoyes)} devis envoyé${x.devis_envoyes > 1 ? 's' : ''} · ${eurC(x.factures_impayees)} impayés · ${eurC(x.encaisse_mois)} encaissé ce mois</small></span><a class="btn btn-s" href="${GESTION}#/" data-nxorg="${esc(x.org_id)}">Ouvrir</a></div>`).join('')}</div>
       <p class="petit"><a href="#/entreprises">${e.mes.length > 3 ? `Voir les ${nbFr(e.mes.length)} entreprises` : 'Voir le détail'}</a></p>${boutonCreer(e)}` : videEntreprises(e), 'ce-entreprise');
   const carteAbonnes = ab => {
     if (!ab) return carte('Abonnés NEXORA', '<p class="muted">Pas encore disponible : la base ILO Central n’est pas installée.</p>');
@@ -70,18 +70,18 @@ window.CENTRAL = (() => {
       : '<p class="muted">Aucun abonné pour l’instant.</p><a class="btn btn-s" href="#/abonnes">Voir les abonnés</a>', 'ce-abonnes');
   };
 
-  // ------------------------------------------------------------ Mes entreprises : une carte par marque (NEXORA reste l'outil de travail)
+  // ------------------------------------------------------------ Mes entreprises : une carte par marque (la gestion privée, ./gestion/, reste l'outil de travail)
   APP.pages.entreprises = async () => {
     if (!garde('entreprises')) return;
     attente();
     const e = await mesEntreprises();
-    vue(page('Mes entreprises', `<p class="muted">Chaque marque de l’écosystème a son entreprise dans NEXORA. Les totaux sont calculés par la base ; ILO Central ne copie ni le moteur ni les données de NEXORA.</p>
+    vue(page('Mes entreprises', `<p class="muted">Chaque marque de l’écosystème a son entreprise privée, gérée dans ILO Central (clients, devis, factures, stock, trésorerie…). Ces entreprises n’apparaissent pas dans NEXORA public. Les totaux sont calculés par la base.</p>
       ${e.mes.length ? `<div class="ce-marques">${e.mes.map(carteMarque).join('')}</div>${boutonCreer(e)}` : videEntreprises(e)}`));
   };
-  // « Ouvrir dans NEXORA » : NEXORA retient l'entreprise choisie dans localStorage (nxOrg, même adresse de site) ; création des entreprises manquantes
+  // « Ouvrir la gestion » : la gestion retient l'entreprise choisie dans localStorage (nxOrg, même origine) ; création des entreprises manquantes
   document.addEventListener('click', async ev => {
     const a = ev.target.closest?.('a[data-nxorg]');
-    if (a) { try { localStorage.setItem('nxOrg', a.dataset.nxorg); } catch (er) { /* stockage indisponible : NEXORA ouvrira sa première entreprise */ } return; }
+    if (a) { try { localStorage.setItem('nxOrg', a.dataset.nxorg); } catch (er) { /* stockage indisponible : NEXORA ouvrira sa première entreprise interne */ } return; }
     const b = ev.target.closest?.('#ceCreerEntreprises'); if (!b) return;
     b.disabled = true;
     try { const r = await q(sb.rpc('central_creer_entreprises')); const n = (r || []).filter(x => x.cree).length; toast(n ? `${n} entreprise${n > 1 ? 's' : ''} créée${n > 1 ? 's' : ''}.` : 'Toutes les entreprises existent déjà.'); rendre(); }

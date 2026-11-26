@@ -71,7 +71,7 @@ NX.pages.reglages = async sous => {
     ${ok ? '<div class="actions"><button class="btn btn-p">Enregistrer</button></div>' : ''}</form>
     <div class="carte" style="margin-top:16px"><h2>Vos données</h2><p class="muted">Export complet (clients, devis, factures, paiements, journal) au format JSON, réutilisable ailleurs. Gratuit, à tout moment.</p>
       <div class="actions">${ok ? '<button class="btn" id="export">📤 Exporter toutes les données</button>' : ''}${ROLE !== 'proprietaire' ? `<button class="btn btn-ko" id="quitter">Quitter cette entreprise</button>` : ''}
-      ${ROLE === 'proprietaire' ? `<button class="btn btn-ko" id="supprOrg">Supprimer l’entreprise</button>` : ''}</div></div>`);
+      ${ROLE === 'proprietaire' && !MODE_CENTRAL ? `<button class="btn btn-ko" id="supprOrg">Supprimer l’entreprise</button>` : ''}</div></div>`);
   $('#fOrg').addEventListener('submit', async e => {
     e.preventDefault(); const f = e.target; if (!f.reportValidity()) return;
     const d = Object.fromEntries(new FormData(f)), n = s => (s || '').trim() || null;

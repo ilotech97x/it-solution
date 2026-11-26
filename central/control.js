@@ -23,7 +23,7 @@ const APP = {
   nom: 'ILO Central', titre: 'ILO Central', accueilConnecte: '#/', sansInscription: true,
   texteConnexion: 'Administration de l’écosystème IloTech : réservée à l’administrateur et aux modérateurs.',
   menu: () => [],
-  menuBas: () => (moi ? visibles() : []).map(([k, t]) => ['#/' + k, '', t, compteurs[k] || 0]),
+  menuBas: () => (moi ? visibles() : []).flatMap(([k, t]) => [['#/' + k, '', t, compteurs[k] || 0], ...(k === 'entreprises' && estAdmin() ? [['./gestion/', '', 'Gestion', 0]] : [])]),   // « Gestion » : la gestion privée (clients, devis, factures…) des entreprises de l'écosystème
   enteteRail: () => '<a class="rail-logo" href="#/">ILO Central</a>',
   apresNav: () => {
     if (!moi) return;

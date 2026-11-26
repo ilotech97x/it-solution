@@ -11,6 +11,11 @@ const sb = PRET ? window.supabase.createClient(CFG.url, CFG.cle, { auth: { flowT
 const lienMdp = (email, retour = 'https://immo.ilo-tech.com/?nouveau-mdp=1') => window.supabase.createClient(CFG.url, CFG.cle, { auth: { flowType: 'implicit',
   persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'ilotech-lien-mdp' } }).auth.resetPasswordForEmail(email, { redirectTo: retour });
 const NX = { pages: {}, publiques: {} };
+// Mode « central » (mode.js, chargé avant ce fichier) : instance PRIVÉE d'ILO Central (/central/gestion/), mêmes sources, réservée à l'administrateur,
+// qui ne liste que les entreprises internes de l'écosystème. Sans mode.js (NEXORA public), les entreprises internes sont ignorées.
+const MODE_CENTRAL = window.NX_MODE === 'central';
+// adresse de l'espace client : toujours la page publique de NEXORA (le client n'a pas de compte et n'entre jamais dans ILO Central)
+const adresseClient = () => MODE_CENTRAL ? new URL('../../nexora/', location.href).href : location.origin + location.pathname;
 
 // ---------------------------------------------------------------- outils
 const $ = (s, r = document) => r.querySelector(s);
@@ -76,14 +81,14 @@ async function chargerSession() {
   moi = null; profil = null; ORGS = []; ORG = null; ROLE = null; if (!PRET) return;
   moi = (await sb.auth.getSession()).data.session?.user || null;
   if (!moi) return;
-  [profil, ORGS] = await Promise.all([q(sb.from('profiles').select('id, prenom, nom').eq('id', moi.id).maybeSingle()), chargerOrgs()]);
+  [profil, ORGS] = await Promise.all([q(sb.from('profiles').select('id, prenom, nom, role').eq('id', moi.id).maybeSingle()), chargerOrgs()]);
   choisirOrg(lire('nxOrg'));
   await chargerAbo();
 }
 async function chargerOrgs() {
   const [l, f] = await Promise.all([q(sb.from('nx_membres').select('role, org_id, nx_organisations(*)').eq('user_id', moi.id)), EQ ? q(sb.rpc('nx_mes_fiches')).catch(() => []) : []]);
   FICHES = new Set(f || []);
-  return l.filter(x => x.nx_organisations).map(x => ({ ...x.nx_organisations, role: x.role })).sort((a, b) => a.demo - b.demo || a.nom.localeCompare(b.nom));
+  return l.filter(x => x.nx_organisations && !!x.nx_organisations.interne === MODE_CENTRAL).map(x => ({ ...x.nx_organisations, role: x.role })).sort((a, b) => a.demo - b.demo || a.nom.localeCompare(b.nom));
 }
 function choisirOrg(id) {
   ORG = ORGS.find(o => o.id === id) || ORGS[0] || null; ROLE = ORG?.role || null; ecrire('nxOrg', ORG?.id || null);
@@ -170,12 +175,12 @@ const MENU = () => ROLE === 'employe' ? [['moi', 'Mon espace', null, [['#/moi', 
 function coquille() {
   const h = (location.hash || '#/').split('?')[0], on = p => (p === '#/' ? h === '#/' : h.startsWith(p)) ? 'on' : '';
   document.body.innerHTML = `<div class="app"><aside class="side" id="side" aria-label="Navigation">
-      <a class="marque" href="#/"><img src="img/logo.svg" alt="">NEXORA</a>
+      <a class="marque" href="#/"><img src="img/logo.svg" alt="">${MODE_CENTRAL ? 'ILO Central · Gestion' : 'NEXORA'}</a>${MODE_CENTRAL ? '<a class="it" href="../" id="versCentral">← ILO Central</a>' : ''}
       ${MENU().map(([, g, , l]) => `${g !== 'Accueil' ? `<div class="grp">${g}</div>` : ''}${l.map(([href, t, i]) => `<a class="it ${on(href)}" href="${href}">${icone(i)}${t}</a>`).join('')}`).join('')}
       <div class="bas-side">${esc(profil?.prenom || '')} ${esc(profil?.nom || '')}<br>${esc(ROLES[ROLE] || '')} · <button class="lien" id="deco" style="color:#C9D4E5">Se déconnecter</button>${ABO && ABO_ETAT?.exige ? `<div style="font-size:12px;color:${aboExpire() ? 'var(--ko)' : 'var(--ok)'};margin-top:6px">${aboExpire() ? 'Abonnement expiré' : `Plan ${esc(ABO_ETAT.plan_nom || '')}${ABO_ETAT.fin ? ` · jusqu'au ${date(ABO_ETAT.fin)}` : ''}`}</div>` : ''}</div></aside>
     <div class="main">${ORG?.demo ? `<div class="bandeau-demo">Entreprise de démonstration : les données sont fictives. <a class="btn btn-s" href="#/bienvenue">Créer ma vraie entreprise</a></div>` : ''}${aboExpire() ? `<div class="bandeau-demo" style="background:var(--ko-d);color:var(--ko)">Abonnement expiré : les fonctions sont suspendues jusqu'au renouvellement. Vos données restent conservées.</div>` : ''}
       <header class="top"><button class="btn btn-i burger" id="burger" aria-label="Menu">☰</button>
-        <select id="orgSel" aria-label="Entreprise">${ORGS.map(o => `<option value="${o.id}" ${o.id === ORG.id ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}<option value="+">+ Ajouter une entreprise</option></select>
+        <select id="orgSel" aria-label="Entreprise">${ORGS.map(o => `<option value="${o.id}" ${o.id === ORG.id ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}${MODE_CENTRAL ? '' : '<option value="+">+ Ajouter une entreprise</option>'}</select>
         ${ROLE === 'employe' ? '' : '<button class="cherche" id="cherche">🔎 <span>Rechercher…</span><kbd>Ctrl K</kbd></button>'}<span class="espace"></span>
         ${EQ ? `<button class="btn btn-i cloche" id="cloche" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false">${icone('cloche')}<span class="pastille-n" hidden></span></button>` : ''}
         <button class="btn btn-i" id="themeBtn" aria-label="Changer de thème" title="Thème clair ou sombre">${sombre() ? '☀️' : '🌙'}</button></header>
@@ -216,7 +221,7 @@ const entete = (titre, sous = '', boutons = '') => `<div class="titre-p"><div><h
 // ---------------------------------------------------------------- routeur
 // Modules chargés à la demande (17/11) : l'écran de connexion n'en a pas besoin. Chargés dans l'ordre (async=false), une seule fois, dès qu'on est connecté ou sur l'espace client.
 // Les numéros ?v= sont à monter ici quand un module change.
-const FICHIERS_DIFFERES = ['crm.js?v=2', 'ventes.js?v=5', 'communication.js?v=1', 'erp.js?v=2', 'equipe.js?v=1', 'entreprise.js?v=1', 'reglages.js?v=5', 'recrutement.js?v=1', 'client.js?v=2'];
+const FICHIERS_DIFFERES = ['crm.js?v=2', 'ventes.js?v=6', 'communication.js?v=1', 'erp.js?v=2', 'equipe.js?v=1', 'entreprise.js?v=1', 'reglages.js?v=6', 'recrutement.js?v=1', 'client.js?v=2'];
 let modulesP = null;
 const chargerModules = () => modulesP || (modulesP = Promise.all(FICHIERS_DIFFERES.map(src => new Promise((ok, ko) => {
   const s = document.createElement('script'); s.src = src; s.async = false; s.onload = ok; s.onerror = () => { modulesP = null; ko(new Error('Chargement impossible : ' + src.split('?')[0])); };
@@ -224,9 +229,10 @@ const chargerModules = () => modulesP || (modulesP = Promise.all(FICHIERS_DIFFER
 }))));
 async function rendre() {
   const h = (location.hash || '#/').split('?')[0], parts = h.split('/').slice(1), nom = parts[0] || '';
-  window.scrollTo(0, 0); document.title = 'NEXORA — The Business Operating System';
+  window.scrollTo(0, 0); document.title = MODE_CENTRAL ? 'ILO Central · Gestion' : 'NEXORA — The Business Operating System';
   try {
     if (!PRET) { document.body.innerHTML = '<div class="carte-auth"><div class="carte"><h1>NEXORA</h1><p>Ouverture très bientôt.</p></div></div>'; return; }
+    if (MODE_CENTRAL && NX.garde) { const g = NX.garde(nom); if (g) return await g; }   // accès réservé à l'administrateur (mode.js)
     if (nom === 'invitation') return await NX.publiques.invitation(parts[1]);
     if (moi || nom === 'client') await chargerModules();
     if (nom === 'client') return await NX.publiques.client();   // espace client : la même page, avec ou sans compte
@@ -259,4 +265,4 @@ function demarrer() {
 document.addEventListener('DOMContentLoaded', demarrer);
 
 // appli installable (écran d'accueil) : les fichiers du site restent lisibles sans réseau, jamais les données (sw.js)
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+if (!MODE_CENTRAL && 'serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
