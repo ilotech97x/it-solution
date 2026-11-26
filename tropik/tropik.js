@@ -304,7 +304,7 @@ const APP = {
         ${s.objet_type === 'produit' ? `<a class="btn btn-sec btn-s" href="#/p/${s.objet_id}">Voir le produit</a>` : s.objet_type === 'boutique' ? `<a class="btn btn-sec btn-s" href="#/boutique/${s.objet_id}">Voir la boutique</a>` : ''}
         <form class="f" data-form="moderer" data-id="${s.id}" data-objet="${s.objet_id || ''}" data-type="${s.objet_type}"><label>Décision motivée (10 caractères au moins)<textarea name="decision" required minlength="10" maxlength="500"></textarea></label>
           <div class="actions-r">${s.objet_type === 'produit' && s.produit_statut !== 'retire' ? '<button class="btn btn-ko" value="retirer">Retirer le produit</button>' : ''}<button class="btn btn-sec" value="sans_suite">Classer sans suite</button></div></form></article>`).join('')}</section>`
-        : '<div class="vide-etat"><span class="ico" aria-hidden="true">🛡️</span><h3>Aucun signalement</h3><p>Les signalements d’acheteurs apparaîtront ici. Les demandes de boutique se valident dans le Control Panel.</p></div>'}</div>`);
+        : '<div class="vide-etat"><span class="ico" aria-hidden="true">🛡️</span><h3>Aucun signalement</h3><p>Les signalements d’acheteurs apparaîtront ici. Les demandes de boutique se valident dans ILO Central.</p></div>'}</div>`);
   });
 
   // ---------------------------------------------------------------- aide : droits, classement, commission

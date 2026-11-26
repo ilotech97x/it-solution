@@ -1,4 +1,4 @@
-/* Control Panel — module « Réseaux » (16/11/2026) : tableau de bord privé des publications d'IloTech.
+/* ILO Central — module « Réseaux » (16/11/2026) : tableau de bord privé des publications d'IloTech.
    Lecture seule des fichiers publics du robot de publication (dépôt GitHub ilotech-videos) : réserve, calendrier,
    état du robot, journal. Aucune donnée personnelle, aucune clé : tout ce qui est lu ici est déjà public. */
 const RS_DEPOT = 'https://raw.githubusercontent.com/LeEr1-web/ilotech-videos/main/';

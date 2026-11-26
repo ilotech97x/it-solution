@@ -1,6 +1,6 @@
 {
-  "name": "Control Panel — vue sur toutes les applis",
-  "short_name": "Control Panel",
+  "name": "ILO Central — vue sur toutes les applis",
+  "short_name": "ILO Central",
   "description": "Le panneau de contrôle de l'écosystème : statistiques, visites, clics et administration de toutes les applis (outil interne).",
   "lang": "fr",
   "id": "./",

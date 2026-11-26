@@ -5,9 +5,9 @@
    Fichiers versionnés (?v=) : cache d'abord (l'adresse change avec le contenu). Autres fichiers : cache puis mise à jour en arrière-plan.
    Jamais les données (Supabase), ni les cartes, ni les vidéos. CACHE à monter à chaque publication. */
 const PREFIXE = 'ilotech-';
-const CACHE = PREFIXE + 'v6';
+const CACHE = PREFIXE + 'v7';
 const PORTEE = new URL('./', self.registration.scope).pathname;
-const APPLIS = /^\/(woulib|pass|control|nexora|kivora|sousou|tropik|emploi)\//;   // chacune a son propre service worker
+const APPLIS = /^\/(woulib|pass|control|central|nexora|kivora|sousou|tropik|emploi)\//;   // chacune a son propre service worker
 const MAX = 220;   // nombre maximal de fichiers gardés
 const API = /\/(rest|auth|storage|functions|realtime)\/v1\//;   // données : jamais gardées, même si l'API est sur la même adresse (tests locaux)
 const SECOURS = '<!doctype html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#2b8cff"><title>IloTech — hors connexion</title></head>'

@@ -245,8 +245,8 @@ body:not([data-page=accueil]) .pied,body:not([data-page=accueil]) .eco{display:n
 @media print{body{background:#fff!important;padding:0!important}.haut,.pied,.bas,.no-print,.toast{display:none!important}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important;scroll-behavior:auto!important}}
 
-/* Control Panel : outil interne, sobre et dense, fait d'abord pour l'ordinateur. Posé sur le design system commun (commun/ds.css).
-   Maquette : « Control Panel : vue générale » (barre latérale sombre, fond gris clair, cartes blanches, accent bleu-vert).
+/* ILO Central : outil interne, sobre et dense, fait d'abord pour l'ordinateur. Posé sur le design system commun (commun/ds.css).
+   Maquette : « ILO Central : vue générale » (barre latérale sombre, fond gris clair, cartes blanches, accent bleu-vert).
    Contrastes : action #0E7490 sur blanc 5,4:1 ; texte secondaire #4B5563 sur blanc 7,6:1 ; menu #D1D5DB sur #15171C 12:1. */
 :root{--action:#0E7490;--action-survol:#155E75;--action-doux:#E0F2F7;--lagon:#0E7490;--lagon-fonce:#155E75;--encre:#111827;--texte-2:#4B5563;--bord-champ:#9CA3AF;--ligne:#E5E7EB;
   --fond:#F4F5F7;--surface:#FFFFFF;--doux-fond:#F3F4F6;--police:'Inter Tight',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--rail:236px;--haut-h:16px}
@@ -352,3 +352,28 @@ h1{font-size:26px}h2{font-size:16px}
 .as-total{font-size:14px}.as-action .actions{display:flex;flex-wrap:wrap;gap:8px}
 #asReglages{max-width:640px}#asReglages label{display:grid;gap:4px;font-weight:600}#asReglages fieldset{display:grid;gap:8px;border:1px solid var(--ligne);border-radius:10px;padding:12px}
 #asReglages .as-jour{grid-template-columns:110px 1fr;align-items:center}#asReglages .as-case{display:flex;gap:8px;align-items:center;font-weight:500}
+
+/* ILO Central (25/11) : intertitres du menu, tableau de bord, connexions et robots */
+.rail-titre{display:none}
+@media (min-width:760px){.rail-titre{display:block;margin:14px 10px 4px;font:700 11px/1.2 var(--police);letter-spacing:.08em;text-transform:uppercase;color:#9CA3AF}.bas .rail-logo+.rail-titre{margin-top:0}}
+a.ce-kpi{color:inherit;text-decoration:none}a.ce-kpi:hover{border-color:var(--action)}a.ce-kpi:focus-visible{outline:2px solid var(--action);outline-offset:2px}
+.ce-mini{grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}
+.ce-afaire .ctl-ligne>span:first-child,.ce-entreprise .ctl-kpi small{overflow-wrap:anywhere}
+.ce-entreprise .actions,.ctl-page>.actions{display:flex;flex-wrap:wrap;gap:8px}
+.ce-prive{margin:0}
+.ce-actions{display:flex;flex-wrap:wrap;gap:6px}
+.ce-jeton{border-color:var(--attention);background:#FFFBEB}
+.ce-jeton-l{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.ce-jeton-l code{flex:1 1 260px;min-width:0;padding:10px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--ligne);font-size:13px;word-break:break-all;user-select:all}
+.ce-code{margin:0;padding:12px;border-radius:10px;background:#15171C;color:#E5E7EB;font-size:12.5px;line-height:1.5;overflow-x:auto;max-width:100%}
+.ce-form .ctl-grille-f{grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}
+.ce-sq{background:linear-gradient(90deg,#F3F4F6,#E5E7EB,#F3F4F6);background-size:200% 100%;animation:ce-sq 1.2s linear infinite}
+@keyframes ce-sq{to{background-position:-200% 0}}
+.ce-marques{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:12px;align-items:start}
+.ce-marque>h2{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ce-marque .ctl-kpi b{font-size:22px}
+@media (max-width:759px){.ce-marque .ce-mini{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.ce-marque .ctl-kpi{padding:10px}.ce-marque .ctl-kpi b{font-size:18px}.ce-marque .ctl-kpi small{display:none}}
+.ctl-carte:not(.ctl-part){grid-template-columns:minmax(0,1fr)}
+.ce-abonnes .btn{justify-self:start}
+.ce-code{display:block;width:0;min-width:100%;box-sizing:border-box}
+.tableau{position:relative}

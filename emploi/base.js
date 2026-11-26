@@ -119,7 +119,7 @@ function pageConnexion() {
 }
 function pageInscription() {
   if (moi) return aller(APP.accueilConnecte);
-  if (APP.sansInscription) return rediriger('#/connexion');   // outil interne (Control Panel) : pas d'inscription
+  if (APP.sansInscription) return rediriger('#/connexion');   // outil interne (ILO Central) : pas d'inscription
   vue(`<div class="wrap"><div class="carte-f"><h1>Créer un compte</h1><p class="muted">Un seul compte pour ${esc(APP.nom)}, EventPass et Kaz An Nou.</p>
     <form class="f" id="fIns"><div class="ligne2"><label>Prénom<input name="prenom" required maxlength="60" autocomplete="given-name"></label><label>Nom<input name="nom" maxlength="60" autocomplete="family-name"></label></div>
       <label>Email<input type="email" name="email" required autocomplete="email"></label>

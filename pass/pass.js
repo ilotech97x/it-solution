@@ -139,7 +139,7 @@ function garderBillets(b) { try { localStorage.setItem(CLE_BILLETS, JSON.stringi
 function oublierBillets() { try { localStorage.removeItem(CLE_BILLETS); } catch (e) { /* stockage indisponible */ } }
 
 // ---------------------------------------------------------------- signaler (règlement européen sur les services numériques) : commun/signalements.sql,
-// examiné dans le Control Panel (Modération) ; la décision motivée arrive dans les notifications. Bouton [data-signaler] : type, id, univers, nom
+// examiné dans ILO Central (Modération) ; la décision motivée arrive dans les notifications. Bouton [data-signaler] : type, id, univers, nom
 const MOTIFS_SIG = [['arnaque', 'Arnaque, faux événement ou prix trompeur'], ['faux', 'Fausse information ou faux organisateur'], ['danger', 'Danger ou sécurité insuffisante'],
   ['harcelement', 'Insulte, harcèlement ou menace'], ['illegal', 'Contenu ou vente illégale (alcool à des mineurs, revente de billets…)'], ['choquant', 'Contenu choquant'],
   ['droits', 'Affiche, photo ou texte copiés sans droit'], ['autre', 'Autre chose']];
@@ -207,9 +207,9 @@ const exigeCompte = () => { if (moi) return true; aller('#/connexion?retour=' + 
 function nav() {
   const h = location.hash || '#/', on = p => h.startsWith(p) ? 'on' : '';
   const b = n => n ? `<span class="badge">${n}</span>` : '';
-  // l'administration (validation des organisateurs et des événements, signalements) se fait dans le Control Panel
+  // l'administration (validation des organisateurs et des événements, signalements) se fait dans ILO Central
   $('#nav').innerHTML = `<a href="#/" class="${h === '#/' ? 'on' : ''}">Sorties</a><a href="#/carte" class="${on('#/carte')}">Carte</a>
-    ${moi ? `<a href="#/billets" class="${on('#/billets')}">Billets</a><a href="#/agenda" class="${on('#/agenda')}">Agenda</a><a href="#/orga" class="${on('#/orga')}">${estOrga() ? 'Organisateur' : 'Organiser'}</a>${profil?.role === 'admin' ? '<a href="../control/" title="Administration de l’écosystème IloTech">Control Panel ↗</a>' : ''}
+    ${moi ? `<a href="#/billets" class="${on('#/billets')}">Billets</a><a href="#/agenda" class="${on('#/agenda')}">Agenda</a><a href="#/orga" class="${on('#/orga')}">${estOrga() ? 'Organisateur' : 'Organiser'}</a>${profil?.role === 'admin' ? '<a href="../central/" title="Administration de l’écosystème IloTech">ILO Central ↗</a>' : ''}
       <a class="cloche" href="#/notifs" aria-label="Notifications">🔔${b(nbNotifs)}</a>
       <a class="hud" href="#/profil" title="Mon niveau et mes badges"><span class="niv">${joueur?.niveau || 1}</span><span class="px">${joueur?.xp || 0} XP</span>${barreXp(joueur)}</a>`
       : `<a href="#/orga">Organiser</a><a href="#/connexion" class="${on('#/connexion')}">Connexion</a><a class="btn btn-p btn-s" href="#/inscription">Commencer</a>`}`;
@@ -541,7 +541,7 @@ async function pageOrga(sous, id) {
     }
     const d = ev.target.closest('[data-dupliquer]'); if (!d) return; d.disabled = true; try { await dupliquer(d.dataset.dupliquer); } catch (err) { toast(erreur(err), true); d.disabled = false; } };
 }
-// devenir organisateur : nom, SIRET ou RNA (obligatoire, vérifié par la base), présentation ; la demande est examinée dans le Control Panel
+// devenir organisateur : nom, SIRET ou RNA (obligatoire, vérifié par la base), présentation ; la demande est examinée dans ILO Central
 function pageDevenirOrga() {
   const enCours = profil?.orga === 'demande', refuse = profil?.orga === 'refuse';
   vue(`<div class="wrap"><div class="carte-f" style="max-width:640px"><h1>Vendez vos billets avec EventPass</h1>
@@ -772,7 +772,7 @@ async function pageControle(id) {
   } else if (camera) { $('#cam')?.remove(); $('#etatCam')?.remove(); }
 }
 
-// ---------------------------------------------------------------- administration : dans le Control Panel (../control/), l'administration centrale de l'écosystème
+// ---------------------------------------------------------------- administration : dans ILO Central (../control/), l'administration centrale de l'écosystème
 // (validation motivée des organisateurs et des événements, signalements, double authentification). Les anciennes adresses #/admin y mènent.
 const ADMIN_VERS = { signalements: 'moderation', organisateurs: 'partenaires?type=orga', evenements: 'partenaires?type=evenement' };
 
@@ -947,7 +947,7 @@ async function afficherPage(a, b, c) {
     if (a === 'profil') return await pageProfil();
     if (a === 'notifs') return await pageNotifs();
     if (a === 'imprimer' && b) return await pageImprimer(b);
-    if (a === 'admin') { location.replace('../control/#/' + (ADMIN_VERS[b] || '')); return; }
+    if (a === 'admin') { location.replace('../central/#/' + (ADMIN_VERS[b] || '')); return; }
     if (a === 'connexion') return pageConnexion();
     if (a === 'inscription') return pageInscription();
     if (a === 'compte') return await pageCompte();

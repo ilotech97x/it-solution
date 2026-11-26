@@ -508,7 +508,7 @@ body.sans-defil{overflow:hidden}
 .profil-c small{color:var(--texte-2);font-size:14px}.profil-c em{font-style:normal;font-size:12.5px;font-weight:800;color:var(--canne)}.profil-c>svg{width:18px;height:18px;flex:none;color:var(--texte-2)}
 .profil-c:hover{color:var(--encre);background:var(--fond)}
 
-/* ---------------------------------------------------------------- espaces pro, administration (en attendant Control Panel et le lot 5) */
+/* ---------------------------------------------------------------- espaces pro, administration (en attendant ILO Central et le lot 5) */
 .commission{margin-bottom:16px}.commission summary{cursor:pointer}
 .code-remise{display:inline-block;font:800 32px/1.2 var(--police);letter-spacing:.25em;padding:6px 16px;border-radius:var(--r-btn);background:var(--soleil-doux);color:var(--encre);border:2px dashed var(--soleil)}
 .horaires-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}

@@ -4,10 +4,49 @@ const DESC_ROLES = { proprietaire: 'Tout, y compris supprimer l’entreprise', a
   comptable: 'Factures, avoirs, paiements, catalogue', lecteur: 'Consultation seulement', employe: 'Son planning et ses congés seulement (Mon espace)' };
 const rolesProposes = () => Object.entries(ROLES).filter(([k]) => (ROLE === 'proprietaire' || k !== 'proprietaire') && (EQ || k !== 'employe'));
 
-NX.pages.reglages = async () => {
+// ---------------------------------------------------------------- mon abonnement (#/reglages/abonnement) : lecture seule, tout vient de nx_abonnement_etat (prix et dates calculés en SQL)
+async function exporterDonnees() {
+  const data = await q(sb.rpc('nx_exporter', { org: ORG.id }));
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  a.download = `nexora-${ORG.nom.replace(/[^\w-]+/g, '-')}-${aujourdhui()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 10000); toast('Export téléchargé.');
+}
+const CONTACT_ABO = 'ilotech.contact@gmail.com';
+const aboPastille = e => {
+  const fin = e.fin ? new Date(e.fin) : null, jours = fin ? Math.ceil((fin - Date.now()) / 864e5) : null;
+  if (!e.statut) return e.exige ? ['ko', 'Aucun abonnement'] : ['info', 'Phase pilote : accès libre'];
+  if (e.statut === 'annulee') return ['ko', 'Suspendu'];
+  if (!e.actif) return ['att', 'En retard'];
+  if (e.demo || /essai/i.test(e.plan_code || '')) return ['info', jours != null ? `Essai : ${jours} jour${jours > 1 ? 's' : ''} restant${jours > 1 ? 's' : ''}` : 'Essai'];
+  return ['ok', 'Actif'];
+};
+async function pageAbonnement() {
+  if (!peut('equipe')) return vue(vide('Réservé', 'L’abonnement est géré par les propriétaires et administrateurs.', '<a class="btn" href="#/reglages">Retour aux réglages</a>'));
+  const [e, membres] = await Promise.all([q(sb.rpc('nx_abonnement_etat', { org: ORG.id })), q(sb.rpc('nx_equipe', { org: ORG.id }))]);
+  const prix = e.prix_ht != null && e.plan_nom ? `${montant(e.prix_ht, 'EUR')} HT <span class="muted">/ ${e.periodicite === 'annuel' ? 'an' : 'mois'}</span>` : '<span class="muted">Prix à venir</span>';
+  vue(entete('Mon abonnement', esc(ORG.nom), '<a class="btn" href="#/reglages">← Réglages</a>')
+    + `<div class="carte" id="aboCarte"><div style="display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap"><h2 style="margin:0">${esc(e.plan_nom || 'Aucune formule')}</h2>${tag(aboPastille(e))}</div>
+      <dl class="dl" style="margin:12px 0 0"><dt>Prix</dt><dd>${prix}</dd><dt>Prochaine échéance</dt><dd>${e.fin ? date(e.fin) : '—'}</dd>
+      <dt>Utilisateurs</dt><dd>${membres.length} membre${membres.length > 1 ? 's' : ''}</dd></dl>
+      <div class="actions" style="margin-top:12px"><button class="btn btn-p" id="aboChanger">Changer de formule</button></div></div>
+    <div class="carte" style="margin-top:16px" id="aboFactures"><h2>Factures d’abonnement</h2>${vide('Aucune facture pour le moment', 'Vos factures d’abonnement IloTech apparaîtront ici.')}</div>
+    <div class="carte" style="margin-top:16px"><h2>Vos données</h2><p class="muted">Elles sont isolées dans la base. IloTech voit seulement le nom de l’entreprise, la formule et l’état du paiement.</p>
+      ${peut('parametres') ? '<div class="actions"><button class="btn" id="aboExport">📤 Exporter toutes mes données</button></div>' : ''}</div>`);
+  $('#page').onclick = async ev => {
+    try {
+      if (ev.target.id === 'aboExport') return await exporterDonnees();
+      if (ev.target.id !== 'aboChanger') return;
+      const sujet = encodeURIComponent('Changement de formule NEXORA — ' + ORG.nom);
+      await modale('Changer de formule', `<p>Pour changer de formule, contactez IloTech : nous nous en occupons.</p>
+      <div class="actions"><a class="btn" href="mailto:${CONTACT_ABO}?subject=${sujet}">Écrire par email</a></div>`, { valider: 'Fermer' });
+    } catch (err) { toast(erreur(err), true); }
+  };
+}
+
+NX.pages.reglages = async sous => {
+  if (sous === 'abonnement') return ABO ? pageAbonnement() : vue(vide('Page introuvable', '', '<a class="btn" href="#/reglages">Réglages</a>'));
   const o = ORG, ok = peut('parametres'), dis = ok ? '' : 'disabled';
   vue((param().premiere ? '<div class="carte" style="margin-bottom:16px;border-color:var(--cyan)"><b>🎉 Votre entreprise est créée.</b> Complétez ces informations : elles apparaissent sur vos devis et factures.</div>' : '')
-    + entete('Réglages de l’entreprise', ok ? '' : 'Lecture seule : seuls les propriétaires et administrateurs modifient ces réglages.')
+    + entete('Réglages de l’entreprise', ok ? '' : 'Lecture seule : seuls les propriétaires et administrateurs modifient ces réglages.', ABO && peut('equipe') ? '<a class="btn" href="#/reglages/abonnement">Mon abonnement</a>' : '')
     + `<form class="grille" id="fOrg"><div class="carte f"><h2>Identité</h2>
       <div class="g3"><label style="grid-column:span 2">Nom ou raison sociale<input name="nom" required minlength="2" maxlength="120" value="${esc(o.nom)}" ${dis}></label><label>Forme juridique<input name="forme" maxlength="40" list="formes" value="${esc(o.forme || '')}" ${dis}><datalist id="formes"><option>EI<option>Micro-entreprise<option>EURL<option>SARL<option>SAS<option>SASU<option>Association</datalist></label></div>
       <div class="g3"><label>SIRET<input name="siret" pattern="[0-9 ]{9,17}" value="${esc(o.siret || '')}" ${dis}></label><label>N° TVA intracom.<input name="tva_intra" maxlength="20" value="${esc(o.tva_intra || '')}" ${dis}></label><label>IBAN (affiché sur les factures)<input name="iban" maxlength="40" value="${esc(o.iban || '')}" ${dis}></label></div>
@@ -46,9 +85,7 @@ NX.pages.reglages = async () => {
   $('#page').onclick = async e => {
     try {
       if (e.target.id === 'export') {
-        const data = await q(sb.rpc('nx_exporter', { org: ORG.id }));
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-        a.download = `nexora-${ORG.nom.replace(/[^\w-]+/g, '-')}-${aujourdhui()}.json`; a.click(); toast('Export téléchargé.');
+        await exporterDonnees();
       }
       if (e.target.id === 'quitter' && await confirmer('Quitter l’entreprise', `Vous n’aurez plus accès à « ${esc(ORG.nom)} ».`, 'Quitter')) {
         await q(sb.rpc('nx_retirer_membre', { org: ORG.id, membre: moi.id })); await rechargerOrgs(); aller('#/');

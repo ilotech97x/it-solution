@@ -216,7 +216,7 @@ const entete = (titre, sous = '', boutons = '') => `<div class="titre-p"><div><h
 // ---------------------------------------------------------------- routeur
 // Modules chargés à la demande (17/11) : l'écran de connexion n'en a pas besoin. Chargés dans l'ordre (async=false), une seule fois, dès qu'on est connecté ou sur l'espace client.
 // Les numéros ?v= sont à monter ici quand un module change.
-const FICHIERS_DIFFERES = ['crm.js?v=2', 'ventes.js?v=5', 'communication.js?v=1', 'erp.js?v=2', 'equipe.js?v=1', 'entreprise.js?v=1', 'reglages.js?v=3', 'recrutement.js?v=1', 'client.js?v=2'];
+const FICHIERS_DIFFERES = ['crm.js?v=2', 'ventes.js?v=5', 'communication.js?v=1', 'erp.js?v=2', 'equipe.js?v=1', 'entreprise.js?v=1', 'reglages.js?v=5', 'recrutement.js?v=1', 'client.js?v=2'];
 let modulesP = null;
 const chargerModules = () => modulesP || (modulesP = Promise.all(FICHIERS_DIFFERES.map(src => new Promise((ok, ko) => {
   const s = document.createElement('script'); s.src = src; s.async = false; s.onload = ok; s.onerror = () => { modulesP = null; ko(new Error('Chargement impossible : ' + src.split('?')[0])); };
@@ -249,7 +249,8 @@ function demarrer() {
   (async () => {
     if (PRET) {
       const existe = t => sb.from(t).select('id').limit(1).then(r => !r.error, () => false);   // modules installés dans la base
-      [ERP, COMM, PORTAIL, EQ, REC, ABO] = await Promise.all(['nx_fournisseurs', 'nx_modeles_email', 'nx_echeances', 'nx_creneaux', 'nx_offres', 'nx_plans'].map(existe));
+      [ERP, COMM, PORTAIL, EQ, REC] = await Promise.all(['nx_fournisseurs', 'nx_modeles_email', 'nx_echeances', 'nx_creneaux', 'nx_offres'].map(existe));
+      ABO = await sb.rpc('nx_abonnement_version').then(r => !r.error, () => false);   // nx_plans est fermée (revoke) : on teste la fonction, pas la table
       sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { moi = null; ORG = null; } }); await chargerSession().catch(e => console.error(e));
     }
     rendre();

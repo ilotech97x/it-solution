@@ -216,7 +216,7 @@ APP.pages.compte = async sous => {
       ['cgu.html', ICO.document, 'Conditions d’utilisation', ''], ['confidentialite.html', ICO.document, 'Politique de confidentialité', '']])}
     ${groupe('Plus', [['#/compte/favoris', ICO.coeur, 'Favoris', 'Restaurants et commerces'], ['#/projets', ICO.calendrier, 'Mes projets', 'Anniversaire, mariage, séjour…'], ['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents et routes coupées'],
       ['../pass/', ICO.billet, 'Événements et billets', 'Sur EventPass, même compte'], ['https://immo.ilo-tech.com/', ICO.maison, 'Logements et séjours', 'Sur Kaz An Nou, même compte'],
-      ...profil?.role === 'admin' || mesModerations.length ? [['../control/', ICO.bouclier, 'Administration (Control Panel)', 'Validations, modération, assistance, chiffres']] : []])}
+      ...profil?.role === 'admin' || mesModerations.length ? [['../central/', ICO.bouclier, 'Administration (ILO Central)', 'Validations, modération, assistance, chiffres']] : []])}
     <div class="menu-g" style="margin-top:14px">${ligne(['#/deconnexion', ICO.sortie, 'Se déconnecter', '', 'ko'])}</div></div>`);
 };
 // bouton « Signaler » d'un restaurant, d'une commande, d'une course… (data-signaler = type, data-id, data-univers, data-nom)
@@ -259,12 +259,12 @@ APP.pages.activite = async () => {
   $('#app').onclick = e => { const b = e.target.closest('[data-encore]'); if (b) recommander(b.dataset.encore, b.dataset.resto); };
 };
 
-// ---------------------------------------------------------------- administration : dans le Control Panel (../control/), l'administration centrale de l'écosystème
+// ---------------------------------------------------------------- administration : dans ILO Central (../control/), l'administration centrale de l'écosystème
 // les anciennes adresses #/admin/... y mènent, sur le bon module
 let mesModerations = [];
 const ADMIN_VERS = { '': '', tableau: '', food: 'partenaires?type=restaurant', woulib: 'partenaires?type=chauffeur', univers: 'applications', commissions: 'commissions',
   signalements: 'moderation', assistance: 'assistance', suppressions: 'securite' };
-APP.pages.admin = sous => { location.replace('../control/#/' + (ADMIN_VERS[sous || ''] ?? '')); };
+APP.pages.admin = sous => { location.replace('../central/#/' + (ADMIN_VERS[sous || ''] ?? '')); };
 
 // les pages des univers sont déclarées par food.js, move.js et gps.js, chargés après ce fichier
 document.addEventListener('DOMContentLoaded', demarrer);

@@ -1,4 +1,4 @@
-/* Control Panel — module « Assistant » (24/11/2026) : suivi des demandes des clients (WhatsApp, formulaire, Gmail, espace client NEXORA)
+/* ILO Central — module « Assistant » (24/11/2026) : suivi des demandes des clients (WhatsApp, formulaire, Gmail, espace client NEXORA)
    traitées par l'assistant, validation des devis et factures qu'il prépare (ok / modifier / refuser), journal du jour, réglages.
    Base : commun/assistant.sql (as_suivi, as_decider_ui, as_reglages_lire, as_reglages_enregistrer). Aucun prix ni total n'est calculé ici :
    tout vient de la base. Caché (message d'installation) tant que ces fonctions ne sont pas installées. */
