@@ -531,7 +531,17 @@ const APP = {
     // la page se met à jour toute seule (les autres membres déclarent et confirment), sans écraser une saisie en cours
     minuteur = setInterval(async () => {
       if (document.hidden || enSaisie()) return;
-      try { const x = await q(sb.rpc('sou_detail', { t_id: id })); if (JSON.stringify(x) !== instantane && !$('#app [data-sur]')) dessiner(x); } catch (e) { /* on réessaie au prochain passage */ }
+      if (document.querySelector('dialog[open]')) return;   // une fenêtre est ouverte : on ne touche à rien
+      try {
+        const x = await q(sb.rpc('sou_detail', { t_id: id }));
+        if (JSON.stringify(x) === instantane || $('#app [data-sur]')) return;
+        // on garde ouverts les volets ouverts et la position de la page
+        const ouverts = [...document.querySelectorAll('#app details')].map((el, i) => el.open ? (el.querySelector('summary')?.textContent.trim() || '#' + i) : null).filter(Boolean);
+        const y = window.scrollY;
+        dessiner(x);
+        document.querySelectorAll('#app details').forEach((el, i) => { if (ouverts.includes(el.querySelector('summary')?.textContent.trim() || '#' + i)) el.open = true; });
+        window.scrollTo(0, y);
+      } catch (e) { /* on réessaie au prochain passage */ }
     }, 15000);
   }
   const enSaisie = () => document.activeElement?.matches?.('#app input:not([type=radio]):not([type=checkbox]), #app textarea, #app select');
