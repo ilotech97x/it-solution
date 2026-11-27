@@ -238,8 +238,8 @@ async function afficherPage(h, parts) {
     // module chargé seulement quand on l'ouvre (GPS, projets…) : l'appli démarre plus vite
     if (!page && APP.differes?.[parts[0]]) { await chargerScript(APP.differes[parts[0]]); page = APP.pages[parts[0]]; }
     if (page) return await page(...parts.slice(1));
-    vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Page introuvable</h3><a href="#/">Accueil</a></div>');
-  } catch (e) { vue(`<div class="wrap"><div class="vide-etat" style="margin-top:30px"><h3>Oups</h3><p>${esc(erreur(e))}</p><a href="#/">Accueil</a></div></div>`); }
+    vue('<div class="wrap vide-etat" style="margin-top:30px"><h3 role="heading" aria-level="1">Page introuvable</h3><a href="#/">Accueil</a></div>');
+  } catch (e) { if (APP.pageErreur) return vue(APP.pageErreur(e)); vue(`<div class="wrap"><div class="vide-etat" style="margin-top:30px"><h3>Oups</h3><p>${esc(erreur(e))}</p><a href="#/">Accueil</a></div></div>`); }
 }
 function demarrer() {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';

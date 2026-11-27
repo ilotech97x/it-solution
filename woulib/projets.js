@@ -43,12 +43,13 @@ async function nouveauProjet() {
       ${etapes.length ? `<p class="petit muted" style="margin:0">Étapes préparées : ${etapes.map(e => esc(e[0])).join(' · ')}. Vous pourrez en ajouter ou en retirer.</p>` : ''}
       <button class="btn btn-p">Créer le projet</button></form></div>`);
   $('#fProjet').addEventListener('submit', async e => {
-    e.preventDefault(); const d = Object.fromEntries(new FormData(e.target));
+    e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)), b = e.target.querySelector('button[type=submit], button:not([type])');
+    if (b?.disabled) return; if (b) b.disabled = true;   // un seul projet créé, même en cas de double appui
     try {
       const n = await q(sb.from('projets').insert({ modele: m, titre: d.titre.trim(), date_prevue: d.date || null, budget: d.budget === '' ? null : Number(d.budget), invites: d.invites === '' ? null : Number(d.invites),
         territoire: terrPrefere() || profil?.territoire || null, etapes: etapes.map(([titre, univers]) => ({ titre, univers, fait: false, montant: 0, note: '' })) }).select('id').single());
       toast('Projet créé : à vous de jouer !'); aller('#/projet/' + n.id);
-    } catch (err) { toast(erreur(err), true); }
+    } catch (err) { if (b) b.disabled = false; toast(erreur(err), true); }
   });
 }
 
@@ -56,7 +57,7 @@ APP.pages.projet = async id => {
   if (!exigeCompte()) return;
   await chargerRegistre();
   const p = await q(sb.from('projets').select('*').eq('id', id).maybeSingle());
-  if (!p) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Projet introuvable</h3><a href="#/projets">Mes projets</a></div>');
+  if (!p) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h1>Projet introuvable</h1><a href="#/projets">Mes projets</a></div>');
   let minu = null;
   const enregistrer = () => { clearTimeout(minu); minu = setTimeout(async () => { try { await q(sb.from('projets').update({ etapes: p.etapes, notes: p.notes }).eq('id', id)); } catch (err) { toast(erreur(err), true); } }, 500); };
   const dessiner = () => {

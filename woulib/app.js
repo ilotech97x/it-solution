@@ -89,7 +89,7 @@ const APP = {
     const t = territoireActif(); b.innerHTML = `${ICO.pin}<span>${esc(t)}</span>${ICO.bas}`; b.setAttribute('aria-label', `Choisir le territoire, actuellement ${t}`);
   },
   icones: () => ICO,
-  differes: { gps: 'gps.js?v=6', projets: 'projets.js?v=3', projet: 'projets.js?v=3', assistance: 'compte.js?v=3', recherche: 'recherche.js?v=2', pro: 'pro.js?v=2' },   // chargés à la première ouverture
+  differes: { gps: 'gps.js?v=7', projets: 'projets.js?v=4', projet: 'projets.js?v=4', assistance: 'compte.js?v=4', recherche: 'recherche.js?v=2', pro: 'pro.js?v=2' },   // chargés à la première ouverture
   // bouton retour d'une page ouverte directement (lien partagé) : l'accueil de son univers
   parent: h => Object.values(MODULES).find(m => m.routes.test(h.split('?')[0]))?.accueil || '#/',
   // à chaque changement de page : arrêter les rafraîchissements, couper le GPS hors des pages qui guident, couleurs de l'univers visité
@@ -136,6 +136,29 @@ function choisirTerritoire() {
   d.addEventListener('close', () => d.remove());
 }
 document.addEventListener('click', e => { if (e.target.closest('#terrApp')) choisirTerritoire(); });
+
+// accessibilité et réseau (Woulib seul) : titre d'onglet par page, focus ramené sur le contenu après un changement de page,
+// bandeau « hors ligne », page d'erreur avec « Réessayer »
+(() => {
+  const t = document.getElementById('titreApp'), a = document.getElementById('app');
+  if (t && a) {
+    a.tabIndex = -1;
+    new MutationObserver(() => {
+      const n = t.textContent.trim(); document.title = n ? `${n} — Woulib` : APP.titre;
+      const f = document.activeElement;
+      if (f && f !== document.body && (!f.isConnected || f.closest('.bas, .nav, .haut, .rail'))) a.focus({ preventScroll: true });
+    }).observe(t, { childList: true, characterData: true, subtree: true });
+  }
+  document.getElementById('evite')?.addEventListener('click', () => a?.focus());   // lien d'évitement : le hash sert au routeur, d'où un bouton
+  const b = document.createElement('div'); b.className = 'hors-ligne'; b.setAttribute('role', 'status'); b.hidden = true;
+  b.textContent = 'Vous êtes hors ligne : certaines actions sont impossibles pour le moment.'; document.body.append(b);
+  const maj = () => { b.hidden = navigator.onLine; };
+  addEventListener('offline', maj); addEventListener('online', () => { maj(); toast('Connexion rétablie'); });
+  maj();
+  APP.pageErreur = e => `<div class="wrap"><div class="vide-etat" style="margin-top:30px"><h1>Oups</h1><p>${esc(erreur(e))}</p>
+    <button type="button" class="btn btn-p" data-reessayer>Réessayer</button><a href="#/">Accueil</a></div></div>`;
+  document.addEventListener('click', e => { if (e.target.closest('[data-reessayer]')) rendre(); });
+})();
 
 // une petite carte de restaurant ou de commerce pour les rangées qui défilent (accueil)
 const carteRangee = (x, n) => { const e = etatOuverture(x); return `<a class="carte-r" href="#/resto/${x.id}"><span class="cr-img ph-w ${estBoutique(x) ? 't-com' : 't-food'}" data-ic="${estBoutique(x) ? 'sac' : UIF.cuisine(x.cuisine)}">${UIF.img(x.photo, estBoutique(x) ? 'sac' : UIF.cuisine(x.cuisine), 400, 192)}</span>

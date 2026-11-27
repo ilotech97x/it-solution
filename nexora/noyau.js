@@ -221,7 +221,7 @@ const entete = (titre, sous = '', boutons = '') => `<div class="titre-p"><div><h
 // ---------------------------------------------------------------- routeur
 // Modules chargés à la demande (17/11) : l'écran de connexion n'en a pas besoin. Chargés dans l'ordre (async=false), une seule fois, dès qu'on est connecté ou sur l'espace client.
 // Les numéros ?v= sont à monter ici quand un module change.
-const FICHIERS_DIFFERES = ['crm.js?v=2', 'ventes.js?v=6', 'communication.js?v=1', 'erp.js?v=2', 'equipe.js?v=1', 'entreprise.js?v=1', 'reglages.js?v=6', 'recrutement.js?v=1', 'client.js?v=2'];
+const FICHIERS_DIFFERES = ['crm.js?v=2', 'ventes.js?v=6', 'communication.js?v=1', 'erp.js?v=2', 'equipe.js?v=1', 'entreprise.js?v=1', 'reglages.js?v=7', 'recrutement.js?v=1', 'client.js?v=2'];
 let modulesP = null;
 const chargerModules = () => modulesP || (modulesP = Promise.all(FICHIERS_DIFFERES.map(src => new Promise((ok, ko) => {
   const s = document.createElement('script'); s.src = src; s.async = false; s.onload = ok; s.onerror = () => { modulesP = null; ko(new Error('Chargement impossible : ' + src.split('?')[0])); };

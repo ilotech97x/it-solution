@@ -1222,3 +1222,25 @@ body.grand .g5{grid-template-columns:repeat(3,minmax(0,1fr))}
 .accueil-plus{content-visibility:auto;contain-intrinsic-size:auto 1100px}
 .pied{content-visibility:auto;contain-intrinsic-size:auto 640px}
 @media (max-width:900px){.accueil-plus{contain-intrinsic-size:auto 2240px}.pied{contain-intrinsic-size:auto 1710px}}
+
+/* TÉLÉPHONE (27/11) : cibles tactiles d'au moins 44 px, aucun débordement, grilles en une colonne */
+@media (max-width:700px){
+  .top .brand,.top-actions .btn,.tn-in .tn-inst,.cur button,.lock button,.help-row .btn,.mobilebar .mobile-sel{min-height:44px;min-width:44px}
+  .top .brand{display:inline-flex;align-items:center}
+  .tn-in .tn-inst{min-height:44px!important;min-width:44px!important}
+  .stepper li button{min-height:44px;min-width:44px}
+  .pied-reseaux a{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}
+  .sec button.link{min-height:44px;padding:12px 0}
+  .reveal a{display:inline-block;padding:12px 0;min-height:44px;box-sizing:border-box}
+  .btn,button,select,input:not([type=checkbox]):not([type=radio]):not([type=hidden]){min-height:44px}
+  input,select,textarea{font-size:16px;max-width:100%}
+  img,video,iframe,svg{max-width:100%}
+  table{max-width:100%}
+  pre,code{overflow-wrap:anywhere}
+  h1,h2,h3,p,li,a{overflow-wrap:anywhere}
+}
+@media (max-width:700px){
+  .seo-liens a,.reseaux a{min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center}
+  .fil a{display:inline-block;padding:13px 4px;margin:-13px 0}
+  .wrap a.marque,.wrap a.btn{min-height:44px;display:inline-flex;align-items:center}
+}

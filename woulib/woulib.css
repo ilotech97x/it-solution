@@ -907,3 +907,12 @@ img[hidden]{display:none!important}
 @media (max-width:1023px){.page-bouger .installer{display:none}.page-bouger .bouger-col{max-height:56dvh}}
 .roles{background:var(--doux-fond)}.roles a{color:var(--encre)}.roles a[aria-pressed="true"]{color:var(--action)}
 @media (min-width:1000px){.banniere-v{aspect-ratio:21/6;max-height:none}}
+
+/* accessibilité et réseau (28/11) : lien d'évitement, bandeau hors ligne, page d'erreur */
+.evite{position:fixed;left:8px;top:-60px;z-index:2147483646;padding:10px 16px;border-radius:12px;background:var(--marque);color:#fff;font:600 15px/1.2 inherit;border:0}
+.evite:focus{top:8px}
+#app:focus{outline:none}
+.hors-ligne{position:fixed;left:0;right:0;bottom:calc(var(--bas-h,64px) + env(safe-area-inset-bottom,0px));z-index:2147483645;padding:10px 16px;text-align:center;background:#3a1408;color:#fff;font-size:14px}
+.hors-ligne[hidden]{display:none}
+@media (min-width:900px){.hors-ligne{bottom:0}}
+.vide-etat h1{margin:0;font-size:17px}

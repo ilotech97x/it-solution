@@ -266,7 +266,7 @@ const carteResto = (x, n, prio) => { const e = etatOuverture(x), bq = estBoutiqu
 APP.pages.resto = async id => {
   attente(); await chargerRegistre();
   const r = await memo('resto:' + id, () => q(sb.from('restaurants').select('*').eq('id', id).maybeSingle()), 20000);
-  if (!r) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Restaurant introuvable</h3><a href="#/manger">Tous les restaurants</a></div>');
+  if (!r) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h1>Restaurant introuvable</h1><a href="#/manger">Tous les restaurants</a></div>');
   const [tous, n] = await memo('resto-carte:' + id, () => Promise.all([q(sb.from('plats').select('*').eq('restaurant_id', id).order('ordre').order('created_at')), q(sb.from('notes_resto').select('*').eq('restaurant_id', id))]), 20000);
   const plats = sansLicence(r) ? tous.filter(p => !p.majeur) : tous;   // sans licence déclarée, l'alcool n'est pas en vente (la base le refuse aussi)
   const bq = estBoutique(r), CATS = bq ? CATS_BOUTIQUE : CATS_PLAT;
@@ -476,7 +476,7 @@ APP.pages.suivi = async id => {
   let L = null;
   const dessiner = async () => {
     const c = await q(sb.from('commandes').select('*, restaurants(*), commande_lignes(*)').eq('id', id).maybeSingle());
-    if (!c) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h3>Commande introuvable</h3></div>');
+    if (!c) return vue('<div class="wrap vide-etat" style="margin-top:30px"><h1>Commande introuvable</h1></div>');
     const lv = c.mode === 'livraison' ? await q(sb.rpc('suivi_livraison', { cmd: id })).catch(() => null) : null;
     const lvActive = lv && ['acceptee', 'au_restaurant', 'recuperee'].includes(lv.statut);
     const etapes = ETAPES.filter(e => c.mode === 'livraison' || !['en_livraison'].includes(e[0])).map(e => e[0] === 'livree' && c.mode === 'emporter' ? ['retiree', '🎉', 'Retirée'] : e[0] === 'en_preparation' && estBoutique(c.restaurants) ? ['en_preparation', '📦', 'Préparation'] : e);
@@ -515,7 +515,7 @@ APP.pages.suivi = async id => {
       ${['livree', 'retiree'].includes(c.statut) && !avis.length ? `<form class="f panneau" id="fAvis" style="margin-top:18px"><h2 style="margin:0">C’était bon ?</h2><label>Note<select name="note">${[5, 4, 3, 2, 1].map(n => `<option value="${n}">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</option>`).join('')}</select></label>
         <label>Votre avis<textarea name="texte" maxlength="1000" style="min-height:80px"></textarea></label><button class="btn btn-p">Publier mon avis</button></form>` : ''}</div></div>`);
     $('#annuler')?.addEventListener('click', async () => { if (!confirm('Annuler la commande ?')) return; try { await q(sb.rpc('changer_commande', { cmd: id, nouveau: 'annulee' })); dessiner(); } catch (err) { toast(erreur(err), true); } });
-    $('#fAvis')?.addEventListener('submit', async e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); try { await q(sb.from('avis_resto').insert({ commande_id: id, note: +d.note, texte: d.texte.trim() })); toast('Merci pour votre avis !'); dessiner(); } catch (err) { toast(erreur(err), true); } });
+    $('#fAvis')?.addEventListener('submit', async e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)), bA = e.target.querySelector('button'); if (bA?.disabled) return; if (bA) bA.disabled = true; try { await q(sb.from('avis_resto').insert({ commande_id: id, note: +d.note, texte: d.texte.trim() })); toast('Merci pour votre avis !'); dessiner(); } catch (err) { if (bA) bA.disabled = false; toast(erreur(err), true); } });
     if ($('#carteLv')) {   // carte : restaurant, domicile, livreur
       try {
         L = L || await chargerCarte();

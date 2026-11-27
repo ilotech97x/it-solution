@@ -118,7 +118,7 @@ APP.pages.colis = async id => {
     }
     if (fini) { clearInterval(minuterie); minuterie = null; }
   };
-  try { await dessiner(); } catch (err) { return vue(`<div class="wrap vide-etat" style="margin-top:30px"><h3>${esc(erreur(err))}</h3><a class="btn" href="#/colis">Mes colis</a></div>`); }
+  try { await dessiner(); } catch (err) { return vue(`<div class="wrap vide-etat" style="margin-top:30px"><h1>${esc(erreur(err))}</h1><a class="btn" href="#/colis">Mes colis</a></div>`); }
   $('#app').onclick = async ev => {
     const b = ev.target.closest('[data-colis]'); if (!b) return;
     if (b.dataset.colis === 'echec' && !confirm('Le colis n’a pas pu être remis ?')) return;

@@ -172,7 +172,7 @@ async function pageConfidentialite() {
       const r = await q(sb.rpc('demander_suppression', { motif_s: new FormData(e.target).get('motif') || null }));
       try { await sb.auth.signOut(); } catch (x) { /* la session est déjà fermée côté serveur */ }
       await chargerMoi(); nav();
-      vue(`<div class="wrap"><div class="vide-etat" style="margin-top:30px"><h3>Votre compte est supprimé</h3>
+      vue(`<div class="wrap"><div class="vide-etat" style="margin-top:30px"><h1>Votre compte est supprimé</h1>
         <p class="muted">${r === 'faite' ? 'Vos informations personnelles sont effacées.' : 'Vos informations sont effacées ; l’équipe termine l’effacement de votre email sous un mois au plus.'} Merci d’avoir utilisé Woulib.</p>
         <a class="btn btn-p" href="#/">Accueil</a></div></div>`);
     } catch (err) { toast(sansCode(err), true); b.disabled = false; delete b.dataset.confirme; b.textContent = 'Supprimer mon compte'; }

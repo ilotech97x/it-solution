@@ -58,7 +58,7 @@ function arreterGuidage() {
 APP.pages.gps = async () => {
   arreterGuidage(); await chargerRegistre();
   const p = param(), dest = p.lat && p.lng ? { lat: Number(p.lat), lng: Number(p.lng), nom: p.nom || 'Destination' } : null;
-  vue(`<div class="gps"><div id="gpsCarte"></div>
+  vue(`<div class="gps"><h1 class="sr-seul">GPS</h1><div id="gpsCarte"></div>
     <div class="gps-haut" id="gpsHaut">${dest ? '<div class="gps-consigne"><span class="gps-fl">🧭</span><div><b>Recherche de votre position…</b><span class="petit">Autorisez la localisation</span></div></div>' : ''}</div>
     <div class="gps-alerte" id="gpsAlerte" hidden></div>
     <div class="gps-bas" id="gpsBas">${dest ? '' : `<form id="fDest" class="gps-recherche"><input name="q" placeholder="Où allez-vous ?" aria-label="Destination" autocomplete="off" required><button class="btn btn-p">Aller</button></form>
@@ -71,12 +71,14 @@ APP.pages.gps = async () => {
   carte.on('dragstart', () => { if (guidage) { guidage.suivre = false; majBas(); } });
   if (!dest) {
     $('#fDest').addEventListener('submit', async e => {
-      e.preventDefault(); const t = e.target.q.value.trim();
+      e.preventDefault(); const t = e.target.q.value.trim(), bR = e.target.querySelector('button');
+      if (bR.disabled) return; bR.disabled = true; bR.textContent = '…'; $('#resultats').setAttribute('aria-busy', 'true');
       try {
         const l = await geocoder(t, terrPrefere());
         $('#resultats').innerHTML = l.length ? l.map((x, i) => `<button type="button" class="gps-res" data-i="${i}">📍 ${esc(x.nom)}</button>`).join('') : '<p class="petit">Aucun lieu trouvé.</p>';
         $('#resultats').onclick = ev => { const b = ev.target.closest('[data-i]'); if (!b) return; const x = l[b.dataset.i]; aller('#/gps?' + new URLSearchParams({ lat: x.lat, lng: x.lng, nom: x.nom.split(',')[0] })); };
       } catch (err) { toast('Recherche impossible pour le moment.', true); }
+      bR.disabled = false; bR.textContent = 'Aller'; $('#resultats')?.removeAttribute('aria-busy');
     });
   }
   if (!('geolocation' in navigator)) return toast('Ce téléphone ne donne pas sa position.', true);

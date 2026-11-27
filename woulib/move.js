@@ -473,7 +473,7 @@ APP.pages.partage = async jeton => {
     } catch (e) { /* carte facultative */ }
     if (fini) { clearInterval(minuterie); minuterie = null; }
   };
-  try { await dessiner(); } catch (err) { return vue(`<div class="wrap vide-etat" style="margin-top:30px"><h3>${esc(erreur(err))}</h3><a class="btn" href="#/">Découvrir Woulib</a></div>`); }
+  try { await dessiner(); } catch (err) { return vue(`<div class="wrap vide-etat" style="margin-top:30px"><h1>${esc(erreur(err))}</h1><a class="btn" href="#/">Découvrir Woulib</a></div>`); }
   clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.startsWith('#/partage/') && !document.hidden && !enSaisie()) dessiner().catch(() => {}); }, 10000);
 };
 

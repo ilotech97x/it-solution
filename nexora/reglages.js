@@ -35,6 +35,18 @@ async function pageAbonnement() {
     try {
       if (ev.target.id === 'aboExport') return await exporterDonnees();
       if (ev.target.id !== 'aboChanger') return;
+      // Formules (sites/nexora/formules.sql) ; si la base ne les a pas encore, repli sur le contact par email.
+      const plans = await sb.rpc('nx_plans_liste').then(r => (r.error ? null : r.data), () => null);
+      if (Array.isArray(plans) && plans.length) {
+        const choix = plans.map(p => `<label class="carte" style="display:flex;gap:12px;align-items:flex-start;margin:0 0 10px;cursor:pointer;min-height:44px">
+          <input type="radio" name="plan" value="${esc(p.code)}" required ${p.code === e.plan_code ? 'checked' : ''} style="margin-top:4px">
+          <span><strong>${esc(p.nom)}</strong> — ${montant(p.prix_ht, 'EUR')} HT / ${p.periodicite === 'annuel' ? 'an' : 'mois'}<br><span class="muted petit">${esc(p.description || '')}</span></span></label>`).join('');
+        const r = await modale('Changer de formule', choix + '<p class="muted petit">Le paiement en ligne arrive bientôt : IloTech vous enverra la facture de la formule choisie.</p>', { valider: 'Choisir cette formule' });
+        if (!r || !r.plan || r.plan === e.plan_code) return;
+        await q(sb.rpc('nx_choisir_formule', { org: ORG.id, p_code: r.plan }));
+        toast('Formule enregistrée');
+        return pageAbonnement();
+      }
       const sujet = encodeURIComponent('Changement de formule NEXORA — ' + ORG.nom);
       await modale('Changer de formule', `<p>Pour changer de formule, contactez IloTech : nous nous en occupons.</p>
       <div class="actions"><a class="btn" href="mailto:${CONTACT_ABO}?subject=${sujet}">Écrire par email</a></div>`, { valider: 'Fermer' });
