@@ -526,3 +526,4 @@ html[data-contraste] .btn-sec{border-width:2px}
   .sou.pg-t:has(.sou-2)>.sou-2>div:first-child{grid-column:1;grid-row:span 3}
   .sou.pg-t:has(.sou-2)>.cote,.sou.pg-t:has(.sou-2)>.sou-2>div:last-child{grid-column:2}
 }
+.creer-q:focus{outline:none}.champ[aria-invalid=true]{border-color:var(--erreur);box-shadow:0 0 0 3px color-mix(in srgb,var(--erreur) 20%,transparent)}.vide-etat .btn+.btn{margin-top:0}
