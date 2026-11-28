@@ -488,6 +488,30 @@ const CATEGORIES = [
     accroche: 'Un objet, un support, une pièce : on l’imprime en 3D.' }
 ];
 
+// Familles de la page Services (filtres « Tout voir », Informatique, Internet & réseaux…) : chaque service est dans UNE famille.
+// L'ordre de la liste « services » est l'ordre d'affichage. Un service absent de la liste n'apparaît pas : en ajouter un ici en créant un service.
+const FAMILLES = [
+  { id: 'informatique', nom: 'Informatique', icon: 'monitor', couleur: '#2b8cff',
+    desc: 'Dépannage, réparation, installation, mobiles, jeux, cours : chez vous, en agence ou à distance.',
+    services: ['repair', 'boost', 'hwfixe', 'hwportable', 'install', 'printer', 'ups', 'reconditionne', 'mobile', 'recup', 'stockage', 'recyclage', 'console', 'emulation', 'gamer', 'cours', 'seniors', 'abonnement', 'impression3d'] },
+  { id: 'reseaux', nom: 'Internet & réseaux', icon: 'wifi', couleur: '#22d3ee',
+    desc: 'Starlink, Wi-Fi, réseau d’entreprise, téléphone fixe, TV et maison connectée.',
+    services: ['starlink', 'network', 'reseaupro', 'telephonie', 'multimedia', 'domotique'] },
+  { id: 'securite', nom: 'Sécurité', icon: 'shield', couleur: '#ef4444',
+    desc: 'Caméras, alarmes, antivirus, sauvegarde, cybersécurité, RGPD et plan cyclone.',
+    services: ['camera', 'alarme', 'antivirus', 'comptes', 'sauvegarde', 'cyberexpress', 'cyber', 'formation', 'rgpd', 'cyclone'] },
+  { id: 'web', nom: 'Web', icon: 'globe', couleur: '#6366f1',
+    desc: 'Sites, applications, référencement, réseaux sociaux, vidéo, drone et immobilier.',
+    services: ['siteweb', 'maintweb', 'sitepirate', 'appmobile', 'marketing', 'reseaux', 'contenuia', 'drone', 'immobilier'] },
+  { id: 'ia', nom: 'Automatisation & IA', icon: 'sparkles', couleur: '#a855f7',
+    desc: 'Intelligence artificielle, programmation sur mesure, tableaux de bord, logiciel de gestion.',
+    services: ['iapro', 'devsurmesure', 'data', 'erp', 'locsaison'] },
+  { id: 'pro', nom: 'Professionnels', icon: 'briefcase', couleur: '#8b5cf6',
+    desc: 'Maintenance, facturation électronique, emails pro, caisse, conseil et énergie pour les entreprises.',
+    services: ['maintenance', 'locationpc', 'efacture', 'cloudpro', 'pos', 'conseil', 'dsi', 'energie'] }
+];
+const famOf = id => FAMILLES.find(f => f.services.includes(id));
+
 // Annoncés sous les onglets (« Bientôt ») — retirez une ligne quand le service est lancé.
 // photos (illustrations) par onglet : img/photos/<nom>.jpg — affichées à la place du dessin quand elles existent
 // photos (illustrations) par service : img/photos/svc-<id>.jpg ; sans photo, la carte prend celle de l'onglet (1re carte) ou un dessin

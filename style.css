@@ -1275,3 +1275,54 @@ body.grand .g5{grid-template-columns:repeat(3,minmax(0,1fr))}
   .u-ico{width:32px;height:32px;border-radius:50%}
   .u-long{display:none}.u-court{display:inline}
 }
+
+/* ===== Page Services : filtres par famille, recherche, groupes, cartes (v110) ===== */
+.filtres-row{display:flex;flex-direction:column;gap:10px;margin:12px 0 10px}
+.f-recherche{position:relative;display:flex;align-items:center}
+.f-recherche .ico{position:absolute;left:15px;width:18px;height:18px;color:var(--muted);pointer-events:none}
+.f-recherche input{width:100%;min-height:46px;padding:10px 16px 10px 42px;border:1.5px solid var(--line-2);border-radius:999px;background:var(--surface-2);color:var(--text);font:500 16px var(--sans);-webkit-appearance:none;appearance:none}
+.f-recherche input::placeholder{color:var(--muted);opacity:1}
+.filtres{display:flex;flex-wrap:wrap;gap:8px}
+.filter{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 8px 6px 16px;border:1.5px solid var(--line-2);border-radius:999px;background:var(--surface-2);color:var(--text);font:700 14px var(--sans);white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s,transform .1s}
+.filter:hover{border-color:var(--t)}
+.filter:active{transform:scale(.97)}
+.filter .f-nb,.fam-titre .f-nb{min-width:24px;padding:2px 8px;border-radius:99px;background:var(--surface-3);color:var(--text);font:700 12px/1.4 var(--sans);font-style:normal;text-align:center}
+.filter.selected{background:color-mix(in srgb,var(--t) 55%,#000);border-color:var(--t);color:#fff;box-shadow:0 0 0 2px color-mix(in srgb,var(--t) 40%,transparent)}
+.filter.selected .f-nb{background:rgba(255,255,255,.26);color:#fff}
+.filter.selected::before{content:"✓";font-weight:900}
+.filter:focus-visible,.f-recherche input:focus-visible,.carte-actions .voir:focus-visible{outline:3px solid var(--text);outline-offset:2px}
+.svc-liste{min-height:120px}
+.fam{margin:22px 0 8px;scroll-margin-top:70px}
+.fam:first-child{margin-top:12px}
+.fam-titre{display:flex;align-items:center;gap:10px;margin:0 0 4px;font-size:20px;line-height:1.25}
+.fam-ico{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:color-mix(in srgb,var(--t) 55%,#000);color:#fff}
+.fam-ico .ico{width:20px;height:20px;color:#fff}
+.fam-desc{margin:0 0 12px;color:var(--muted);font-size:14.5px;line-height:1.45}
+.f-vide{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.grid.services.svc-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+@media (min-width:640px){.grid.services.svc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1000px){.grid.services.svc-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:1500px){.grid.services.svc-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.svc-grid .service.carte{min-height:150px}
+.svc-grid .carte-corps>b{font-size:16px}
+.svc-grid .carte-desc{font-size:14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.svc-grid .carte-corps .price-row .mono{font-size:14px;color:var(--text)}
+.carte-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px}
+.carte-actions .voir{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1.5px solid var(--line-2);border-radius:12px;color:var(--text);font:700 14px var(--sans);text-decoration:none}
+.carte-actions .voir:hover{border-color:var(--t);background:var(--surface-3)}
+.carte-actions .add{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:0;border-radius:12px;background:color-mix(in srgb,var(--t) 55%,#000);color:#fff;font:800 14px var(--sans)}
+.service.carte.on .carte-actions .add{background:var(--ok);color:#fff}
+@media (max-width:700px){
+  .filtres-row{display:contents}
+  .f-recherche{margin:12px 0 4px}
+  .filtres{position:sticky;top:0;z-index:12;flex-wrap:nowrap;overflow-x:auto;gap:8px;margin:6px -6px 10px;padding:8px 8px 8px;background:var(--surface);border-bottom:1px solid var(--line);scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .filtres::-webkit-scrollbar{display:none}
+  .filter{flex:0 0 auto;scroll-snap-align:start}
+  .fam-titre{font-size:19px}
+  .svc-grid .service.carte{grid-template-columns:88px minmax(0,1fr)}
+  .svc-grid .carte-corps{padding:10px 10px 10px 12px}
+  .carte-actions{flex-wrap:nowrap;gap:6px}
+  .carte-actions .voir{padding:0 12px}
+  .carte-actions .add{padding:0 10px;font-size:13.5px;white-space:nowrap}
+}
+@media (prefers-reduced-motion:reduce){.filter{transition:none}}

@@ -34,6 +34,7 @@ const DEFAULT = {
   d: { appType: '', mode: 'site', commune: '', agence: 'ducos', creneau: '', date: '', type: 'individual', budget: 'medium', appareil: '', desc: '', contrat: false, name: '', email: '', phone: '', address: '', pref: 'whatsapp', consent: false, website: '', chatMsg: MESSAGES_WA[0][1], chatCommune: '' }
 };
 let state = load();
+state.filtre = 'all'; state.q = '';   // le filtre vient de l'adresse (#filtre=web), jamais du brouillon
 // hauteur de l'en-tête : l'outil occupe exactement le reste du premier écran
 const hautEntete = () => { try { const h = document.querySelector('header.top'); if (h) document.documentElement.style.setProperty('--haut-entete', h.offsetHeight + 'px'); } catch (e) {} };
 window.addEventListener('resize', hautEntete); setTimeout(hautEntete, 0);
@@ -435,16 +436,73 @@ function vitrineCompacte(c) {
   </div>`;
 }
 
+// ----- filtres de la page Services : familles, recherche, compteurs, lien partageable (#filtre=web)
+const sansAccent = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[-’'.]/g, '');   // « Wi-Fi » = « wifi »
+function servicesVisibles(fam) {
+  const q = sansAccent(state.q).trim().split(/\s+/).filter(Boolean);
+  return fam.services.filter(id => CATEGORIES.some(c => !c.bientot && c.services.includes(id))).filter(id => {
+    if (!q.length) return true;
+    const x = svc(id), cat = catOf(id), texte = sansAccent([x.nom, x.desc, fam.nom, cat.nom, cat.accroche].join(' '));
+    return q.every(m => texte.includes(m));
+  });
+}
+function barreFiltres() {
+  const nb = Object.fromEntries(FAMILLES.map(f => [f.id, servicesVisibles(f).length]));
+  const total = Object.values(nb).reduce((a, b) => a + b, 0);
+  const bouton = (id, nom, n, t) => `<button type="button" id="filtre-${id}" class="filter ${state.filtre === id ? 'selected' : ''}" data-filter="${id}" aria-pressed="${state.filtre === id}" style="--t:${t}">${esc(nom)} <em class="f-nb">${n}</em></button>`;
+  return `<div class="filtres-row" id="filtres-row">
+    <div class="f-recherche"><label class="sr-only" for="svc-q">Rechercher un service</label>${ico('search')}<input type="search" id="svc-q" value="${esc(state.q)}" placeholder="Rechercher (Wi-Fi, caméra…)" autocomplete="off" enterkeyhint="search"></div>
+    <div class="filtres" id="service-filters" role="group" aria-label="Familles de services">${bouton('all', 'Tout voir', total, 'var(--primary)')}${FAMILLES.map(f => bouton(f.id, f.nom, nb[f.id], f.couleur)).join('')}</div></div>`;
+}
+function listeServices() {
+  const fams = FAMILLES.filter(f => state.filtre === 'all' || f.id === state.filtre);
+  const grille = f => `<div class="grid services svc-grid">${servicesVisibles(f).map(id => {
+    const x = svc(id), inPack = packValid() && pack(state.pack).items[id];
+    return carteService(x, catOf(id), !inPack && state.sel.includes(id), inPack);
+  }).join('')}</div>`;
+  const ok = fams.filter(f => servicesVisibles(f).length);
+  if (!ok.length) return `<p class="notice f-vide">Aucun service ne correspond à « ${esc(state.q)} ». <button type="button" class="link" data-act="raz-filtres">Tout afficher</button></p>`;
+  if (state.filtre !== 'all') return vitrineFamille(ok[0]) + grille(ok[0]);
+  return ok.map(f => `<section class="fam" id="fam-${f.id}" style="--t:${f.couleur}" aria-labelledby="fam-t-${f.id}">
+    <h3 class="fam-titre" id="fam-t-${f.id}"><span class="fam-ico">${ico(f.icon)}</span>${esc(f.nom)} <em class="f-nb">${servicesVisibles(f).length}</em></h3>
+    <p class="fam-desc">${esc(f.desc)}</p>${grille(f)}</section>`).join('');
+}
+// bandeau de la famille choisie : l'accroche et le prix de départ
+function vitrineFamille(f) {
+  const moins = f.services.map(svc).filter(x => x.base).sort((a, b) => a.base - b.base)[0];
+  return `<div class="cat-vitrine" style="--t:${f.couleur}"><span class="cv-icone">${ico(f.icon)}</span>
+    <p class="cv-texte"><b>${esc(f.nom)}</b><span class="cv-accroche">${esc(f.desc)}</span></p>
+    <span class="cv-prix-1"><small>dès</small> <b>${moins ? eur(moins.base) : 'Devis'}</b></span></div>`;
+}
+// frappe dans la recherche : on met à jour la liste et les compteurs sans toucher au champ (le curseur et le clavier restent en place)
+function majFiltres() {
+  const l = document.getElementById('svc-liste');
+  if (!l) return;
+  const nb = Object.fromEntries(FAMILLES.map(f => [f.id, servicesVisibles(f).length]));
+  nb.all = Object.values(nb).reduce((a, b) => a + b, 0);
+  document.querySelectorAll('#service-filters [data-filter]').forEach(b => { const e = b.querySelector('.f-nb'); if (e) e.textContent = nb[b.dataset.filter]; });
+  l.innerHTML = listeServices();
+}
+const FILTRES_OK = () => ['all', ...FAMILLES.map(f => f.id)];
+function setFiltre(id, majUrl = true) {
+  if (!FILTRES_OK().includes(id)) id = 'all';
+  state.filtre = id;
+  if (majUrl) { try { history.replaceState(null, '', location.pathname + location.search + (id === 'all' ? '' : '#filtre=' + id)); } catch (e) {} }
+  stat('filtre', id);
+}
+function filtreDuLien() { const m = /^#filtre=([\w-]*)$/.exec(location.hash); return m ? (FILTRES_OK().includes(m[1]) ? m[1] : 'all') : null; }
+
 // carte d'un service : image à gauche (photo de la catégorie pour le 1er service, sinon illustration), texte à droite
 function carteService(x, c, on, inPack) {
   const t = themeOf(x.id);
   const media = PHOTOS_SVC[x.id] ? `<img class="illu photo carte-photo" src="img/photos/svc-${x.id}-s.webp" alt="${esc(x.nom)} (illustration)" width="246" height="278" loading="lazy" decoding="async">`
     : c.services[0] === x.id && photoCat(c) ? photoCat(c, 'carte-photo') : illustration({ id: 's-' + x.id, icon: x.icon, badge: c.badge, couleur: t }, 'bande');
-  return `<label class="tile service carte ${on ? 'on' : ''} ${inPack ? 'included' : ''} ${x.id === dernierAjout ? 'vient' : ''}" style="--t:${t}">
+  return `<label class="tile service carte ${on ? 'on' : ''} ${inPack ? 'included' : ''} ${x.id === dernierAjout ? 'vient' : ''}" id="svc-${x.id}" style="--t:${t}">
     <input type="checkbox" name="svc" value="${x.id}" ${on ? 'checked' : ''} ${inPack ? 'disabled' : ''} onchange="toggle('${x.id}')">
     <span class="carte-media">${media}</span>
     <span class="carte-corps"><b>${esc(x.nom)}</b><span class="carte-desc">${inPack ? '✓ Inclus dans votre formule' : esc(x.desc)}</span>
-      ${inPack ? '' : `<span class="price-row"><span class="mono">${fromPrice(x)}</span><span class="add">${on ? '✓ Ajouté' : '+ Ajouter'}</span></span>`}</span></label>`;
+      ${inPack ? '' : `<span class="price-row"><span class="mono">${x.base ? 'À partir de ' + fromPrice(x).replace(/^dès /, '') : 'Gratuit'}</span></span>
+      <span class="carte-actions"><a class="voir" href="services.html#${x.id}" aria-label="Voir le détail : ${esc(x.nom)}">Voir</a><span class="add">${on ? '✓ Ajouté au devis' : '+ Ajouter au devis'}</span></span>`}</span></label>`;
 }
 
 function packCard(p, on, action) {
@@ -512,25 +570,13 @@ const VIEWS = {
     }
     return `<div class="pick-head"><h2 id="stepTitle">De quoi avez-vous besoin ?</h2>
         <div class="help-row"><button type="button" class="btn btn-help" onclick="setTab('symptomes')">${ico('search')}<span>Je ne sais pas, j'explique mon problème</span></button></div></div>
-      <div class="univers-row"><span class="univers" role="tablist" aria-label="Pôles">${UNIVERS.map(u => {
-          const n = CATEGORIES.filter(c => c.univers === u.id && !c.bientot).flatMap(c => c.services).filter((id, i, a) => a.indexOf(id) === i && state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
-          const on = univOf(state.cat) === u.id;
-          return `<button type="button" role="tab" id="pole-${u.id}" style="--t:${u.couleur}" title="${esc(u.desc)}" aria-label="${esc(u.nom)}" aria-selected="${on}" aria-controls="cats" tabindex="${on ? 0 : -1}" data-univ="${u.id}"><span class="u-ico">${ico(u.icon)}</span><span class="u-nom"><span class="u-long">${esc(u.nom)}</span><span class="u-court">${esc(u.court || u.nom)}</span><em class="u-nb" title="${nbSvc(u.id)} services">${nbSvc(u.id)}</em></span>${n ? `<em class="count">${n}</em>` : ''}</button>`;
-        }).join('')}</span>${(u => u ? `<p class="u-resume" style="--t:${u.couleur}">${esc(u.resume || u.desc)}</p>` : '')(UNIVERS.find(u => u.id === univOf(state.cat)))}</div>
-      <div class="cats" id="cats" role="tablist" aria-label="Type de besoin" style="--t:${(UNIVERS.find(u => u.id === univOf(state.cat)) || {}).couleur}">${CATEGORIES.filter(c => !c.bientot && c.univers === univOf(state.cat)).map(c => {
-        const n = c.services.filter(id => state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
-        return `<button type="button" role="tab" id="cat-${c.id}" style="--t:${c.couleur}" aria-selected="${state.cat === c.id}" aria-controls="svc-panel" tabindex="${state.cat === c.id ? 0 : -1}" data-cat="${c.id}"><span class="c-ico">${ico(c.icon)}</span><span class="c-nom">${c.nom}</span><em class="c-nb">${c.services.length}</em>${n ? `<em class="count">${n}</em>` : c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</button>`;
-      }).join('')}</div>
-      ${vitrineCompacte(CATEGORIES.find(c => c.id === state.cat))}
-      <div class="grid g5 services" id="svc-panel" role="tabpanel" aria-labelledby="cat-${state.cat}">${CATEGORIES.find(c => c.id === state.cat).services.map(id => {
-          const x = svc(id);
-          const inPack = packValid() && pack(state.pack).items[x.id];
-          return carteService(x, CATEGORIES.find(c => c.id === state.cat), !inPack && state.sel.includes(x.id), inPack);
-        }).join('')}</div>
+      ${barreFiltres()}
+      <div id="svc-liste" class="svc-liste" role="region" aria-label="Services" aria-live="polite">${listeServices()}</div>
       ${blocMateriel()}
       ${(() => {
-        const cat = CATEGORIES.find(c => c.id === state.cat);
-        const list = state.toutes ? PACKS : PACKS.filter(p => (state.pack === p.id && packValid()) || Object.keys(p.items).some(id => cat.services.includes(id))).slice(0, 3);
+        const f = FAMILLES.find(x => x.id === state.filtre);
+        const ids = f ? f.services : null;
+        const list = state.toutes ? PACKS : (ids ? PACKS.filter(p => (state.pack === p.id && packValid()) || Object.keys(p.items).some(id => ids.includes(id))) : PACKS.filter(p => p.populaire || (state.pack === p.id && packValid()))).slice(0, 3);
         const bouton = `<button type="button" class="link sec-toggle" onclick="state.toutes=!state.toutes;render()">${state.toutes ? 'Moins de formules' : `Voir les ${PACKS.length} formules`}</button>`;
         if (!list.length) return `<p class="sec sec-seul">${ico('box')} Formules tout compris à prix fixe ${bouton}</p>`;
         return `<h3 class="sec">${ico('box')} ${state.toutes ? 'Toutes nos formules' : 'Ou la formule tout compris'} <span class="muted">prix fixe, moins cher que séparément</span>${bouton}</h3>
@@ -623,7 +669,7 @@ function render() {
   // garde le focus clavier sur le même élément après mise à jour
   const a = document.activeElement;
   const key = a && a.name ? `[name="${a.name}"][value="${a.value}"]` : a && a.id && $('app').contains(a) ? '#' + a.id : null;
-  const vueCle = state.step + '|' + state.cat;
+  const vueCle = state.step + '|' + state.filtre;
   try { $('app').classList.toggle('anime', vueCle !== derniereVue); } catch (e) {}
   derniereVue = vueCle;
   $('app').innerHTML = VIEWS[state.step]();
@@ -634,9 +680,9 @@ function render() {
   renderSummary();
   save();
   if (key) document.querySelector(key)?.focus();
-  document.querySelectorAll('.univers [aria-selected="true"], .cats [aria-selected="true"]').forEach(b => {
+  document.querySelectorAll('.filtres .selected').forEach(b => {
     const p = b.parentElement;
-    if (p.scrollWidth > p.clientWidth) p.scrollLeft = b.offsetLeft - p.offsetLeft - 12;
+    if (p.scrollWidth > p.clientWidth) p.scrollLeft += b.getBoundingClientRect().left - p.getBoundingClientRect().left - 12;
   });
 }
 
@@ -698,34 +744,25 @@ function setGrand(on) {
 }
 function showSel() { document.querySelector('.summary').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 const univOf = cat => (CATEGORIES.find(c => c.id === cat) || CATEGORIES[0]).univers;
-// onglets au clavier (pôles et catégories) : flèches, Début, Fin ; le focus reste sur l'onglet choisi après l'affichage
-document.addEventListener('keydown', e => {
-  const tab = e.target.closest?.('[role="tab"]'), liste = tab?.closest('.univers, .cats');
-  if (!liste || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
-  const tabs = [...liste.querySelectorAll('[role="tab"]')], i = tabs.indexOf(tab);
-  const j = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
-  const cible = liste.classList.contains('univers') ? '.univers [role="tab"]' : '.cats [role="tab"]';
-  e.preventDefault(); tabs[j].click();
-  setTimeout(() => document.querySelectorAll(cible)[j]?.focus());
-});
-// nombre de services d'un pôle (compteur affiché sur la puce)
-function nbSvc(u) { return CATEGORIES.filter(c => c.univers === u && !c.bientot).flatMap(c => c.services).filter((id, i, a) => a.indexOf(id) === i).length; }
-// changer de pôle ou de type : la page ne saute pas (même position de défilement, focus gardé sur la puce touchée)
+// choisir une famille : la page ne saute pas (même position de défilement), le focus revient sur la puce touchée
 function sansSaut(f) { const y = scrollY; f(); scrollTo(0, y); }
-function setUniv(u) { const c = CATEGORIES.find(x => x.univers === u && !x.bientot); if (c) { sansSaut(() => { state.cat = c.id; render(); }); stat('pole', u); } }
-function setCat(c) { if (CATEGORIES.find(x => x.id === c && !x.bientot)) sansSaut(() => { state.cat = c; render(); }); }
+const filtreDe = svcId => (famOf(svcId) || FAMILLES[0]).id;
+function choisirFiltre(id) { sansSaut(() => { state.q = ''; setFiltre(id); render(); document.getElementById('filtre-' + state.filtre)?.focus({ preventScroll: true }); }); }
+// anciens liens : un pôle (menu, ?pole=) ou une catégorie (carrousel, ?cat=) ouvre la famille de son premier service
+function setUniv(u) { const c = CATEGORIES.find(x => x.univers === u && !x.bientot); if (c) { choisirFiltre(filtreDe(c.services[0])); stat('pole', u); } }
+function setCat(c) { const x = CATEGORIES.find(y => y.id === c && !y.bientot); if (x) { state.cat = c; choisirFiltre(filtreDe(x.services[0])); } }
 
 // actions de l'en-tête et du sélecteur de services : écouteurs (aucun onclick en ligne, compatible avec une CSP stricte)
 (function () {
   document.addEventListener('click', e => {
-    const b = e.target.closest('[data-act],[data-univ],[data-cat],[data-menu-univ]');
+    const b = e.target.closest('[data-act],[data-filter],[data-menu-univ]');
     if (!b) return;
-    if (b.dataset.univ) return setUniv(b.dataset.univ);
-    if (b.dataset.cat) return setCat(b.dataset.cat);
+    if (b.dataset.filter) return choisirFiltre(b.dataset.filter);
     if (b.dataset.menuUniv) { $('menuSite').close(); setUniv(b.dataset.menuUniv); return scrollTo({ top: 0, behavior: 'smooth' }); }
     e.preventDefault();
     const a = b.dataset.act;
-    if (a === 'home') home();
+    if (a === 'raz-filtres') choisirFiltre('all');
+    else if (a === 'home') home();
     else if (a === 'grand') setGrand(!document.body.classList.contains('grand'));
     else if (a === 'aide') openHelp();
     else if (a === 'menu') ouvrirMenu();
@@ -1135,11 +1172,15 @@ if (location.hash === '#suivi') { state.step = 'suivi'; suivi = { ref: new URLSe
 // lien direct vers un pôle ou un onglet : index.html?pole=web ou ?cat=drone (boutons « Découvrir » de la page Services)
 (q => {
   const c = CATEGORIES.find(x => !x.bientot && (x.id === q.get('cat') || (!q.get('cat') && x.univers === q.get('pole'))));
-  if (c) { state.cat = c.id; state.step = 1; state.tab = 'services'; }
+  if (c) { state.cat = c.id; state.step = 1; state.tab = 'services'; state.filtre = filtreDe(c.services[0]); }
   // ?svc=starlink : service déjà coché (la question « matériel » s'affiche tout de suite)
   const s = c && c.services.includes(q.get('svc')) && q.get('svc');
   if (s && !state.sel.includes(s)) state.sel.push(s);
 })(new URLSearchParams(location.search));
+// lien partageable : index.html#filtre=web ouvre la famille ; recherche : liste mise à jour à la frappe (sans refaire le champ)
+if (filtreDuLien()) { state.filtre = filtreDuLien(); state.step = 1; state.tab = 'services'; }
+window.addEventListener('hashchange', () => { const f = filtreDuLien(); if (f && f !== state.filtre) { state.q = ''; state.filtre = f; state.step = 1; state.tab = 'services'; render(); } });
+document.addEventListener('input', e => { if (e.target.id === 'svc-q') { state.q = e.target.value; majFiltres(); } });
 setInterval(updateStatus, 60000);
 try { if (localStorage.getItem('itGrand')) setGrand(true); } catch (e) {}
 renderStatic();
