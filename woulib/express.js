@@ -16,7 +16,7 @@ APP.pages.express = async () => {
   await chargerRegistre(); if (!universOuvert('express')) return universFerme('express');
   let terr = terrPrefere() || profil?.territoire || 'Martinique'; if (!TERRITOIRES[terr] || terr === 'Autre pays') terr = 'Martinique';
   const pts = { retrait: null, depot: null }; let taille = 'petit', estim = {}, L = null, carte = null, calques = null;
-  vue(`<div class="wrap page-move"><h1 class="titre-move">Delivery</h1><p class="sous-joie">Un colis à envoyer ? On s’en occupe 📦</p>${roles(0, [['#/express', 'J’envoie un colis'], ['#/chauffeur?livreur=1', 'Je livre (livreur)']])}<p class="muted" style="margin:10px 0 14px">📦 Un livreur vérifié récupère le colis et le livre.</p><div class="fiche fiche-d"><div><div id="carte" class="carte-move"></div></div>
+  vue(`<div class="wrap page-move"><h1 class="titre-move">Delivery</h1><p class="sous-joie">Un colis à envoyer ? On s’en occupe 📦</p>${roles(0, [['#/express', 'J’envoie un colis'], ['#/chauffeur?livreur=1', 'Je livre (livreur)']])}<p class="muted" style="margin:10px 0 14px">📦 Un livreur vérifié récupère le colis et le livre.</p><div class="fiche fiche-d"><div style="position:relative"><div id="carte" class="carte-move"></div><p class="carte-legende" id="legendeCarte" aria-live="polite"></p></div>
     <aside><form class="f panier colle" id="fColis">
       ${['retrait', 'depot'].map(k => `<div><label>${k === 'retrait' ? '📦 Où récupérer le colis' : '🏁 Où le livrer'}<div style="display:flex;gap:6px"><input id="${k}" placeholder="Adresse, quartier, commerce…" autocomplete="off" maxlength="200" style="flex:1">
         <button type="button" class="btn btn-s" data-chercher="${k}" aria-label="Chercher">🔎</button></div></label><div id="res-${k}" class="petit"></div>
@@ -32,6 +32,7 @@ APP.pages.express = async () => {
       <div class="bandeau att interdits-c"><span aria-hidden="true">⛔</span><div><b>Objets interdits dans un colis</b><ul>${INTERDITS_COLIS.map(x => `<li>${x}</li>`).join('')}</ul>
         <small>Le livreur peut refuser un colis douteux${colisV2() ? ` ; au-delà de ${eur(valeurMax(terr))}, remettez l’objet en main propre` : ''}.</small></div></div>
       <label class="majeur-ok"><input type="checkbox" name="sans_interdit" required> <span><b>Mon colis ne contient aucun objet interdit</b><small>Vous restez responsable de son contenu.</small></span></label>
+      ${PROD_V1 ? htmlPaiement('express', terr, {}) : ''}
       <div id="total"></div><button class="btn btn-p" id="envoyer">Envoyer le colis</button>
       <p class="muted petit" style="margin:0">Livreurs vérifiés. Prix selon la distance et la taille, réglé directement au livreur.</p></form></aside></div></div>`);
   const majPrix = () => {
@@ -75,16 +76,18 @@ APP.pages.express = async () => {
       const id = await q(sb.rpc('envoyer_colis', { terr, taille_c: taille, quoi: d.quoi, retrait: $('#retrait').value.trim(), dlat: pts.retrait.lat, dlng: pts.retrait.lng, tel_retrait: d.tel.trim(),
         depot: $('#depot').value.trim(), alat: pts.depot.lat, alng: pts.depot.lng, nom_dest: d.nom.trim(), tel_dest: d.tel_dest.trim(), payeur: d.payeur, note_c: d.note || null,
         ...(colisV2() ? { valeur_c: Number(d.valeur), sans_interdit: !!d.sans_interdit } : {}) }));
+      let enLigne = false; if (PROD_V1) { try { enLigne = await appliquerPaiement('colis', id, d); } catch (err) { toast(erreur(err), true); } }
+      if (enLigne) return;
       toast('📦 Colis envoyé : nous prévenons les livreurs !'); aller('#/colis/' + id);
     } catch (err) { toast(erreur(err), true); b.disabled = false; }
   });
-  try { L = await chargerCarte(); const c = CENTRES[terr] || CENTRES.Martinique; carte = fondCarte(L, $('#carte'), [c[0], c[1]], c[2]); calques = L.layerGroup().addTo(carte); }
+  try { L = await chargerCarte(); const c = CENTRES[terr] || CENTRES.Martinique; carte = fondCarte(L, $('#carte'), [c[0], c[1]], c[2]); calques = L.layerGroup().addTo(carte); carteLive(L, carte, terr, { roles: ['livreur'], legende: '#legendeCarte' }); }
   catch (e) { $('#carte').innerHTML = '<p class="muted" style="padding:20px">Carte indisponible.</p>'; }
 };
 
 // ---------------------------------------------------------------- suivre (expéditeur) ou livrer (livreur)
 APP.pages.colis = async id => {
-  if (!exigeCompte()) return;
+  if (!exigeCompte()) return; await chargerRegistre();
   if (!id) return rediriger('#/activite?f=colis');   // la liste des colis vit dans l'onglet Activité
   let L = null, carte = null, calques = null;
   const dessiner = async () => {
@@ -97,6 +100,7 @@ APP.pages.colis = async id => {
       ${['annule', 'echec'].includes(c.statut) ? '' : `<div class="quetes" style="margin:12px 0">${ETAPES_COLIS.map((e, i) => `<div class="quete ${i < pos || c.statut === 'livre' ? 'faite' : i === pos ? 'actuelle' : ''}"><span class="q-coche">${i <= pos ? '✓' : ''}</span><span class="q-ico">${e[1]}</span><span class="q-titre">${e[2]}</span></div>`).join('')}</div>`}
       <p class="petit">📦 ${esc(c.retrait_txt)}<br>🏁 ${esc(c.depot_txt)} · pour <b>${esc(c.depot_nom)}</b></p>
       <div style="font:700 22px var(--titres)">${eur(c.prix)} <span class="muted petit" style="font:600 13px var(--texte)">· ${c.distance_km} km · payé par ${c.paye_par === 'expediteur' ? 'l’expéditeur au retrait' : 'le destinataire à la livraison'}</span></div>
+      ${PROD_V1 ? (c.client ? `<p class="petit" style="margin:6px 0 0">${esc(libellePaiement(c, 'à la livraison'))}</p>${boutonPayer('colis', c)}` : htmlEncaissement({ id, statut: c.statut === 'recupere' ? 'recuperee' : c.statut === 'livre' ? 'livree' : c.statut, paiement: c.paiement, paiement_statut: c.paiement_statut, a_encaisser: ['especes', 'carte_livreur'].includes(c.paiement) && c.paiement_statut === 'a_encaisser' ? c.prix : 0 }, 'colis')) : ''}
       ${c.valeur_declaree != null ? `<p class="petit muted" style="margin:4px 0 0">Valeur déclarée du contenu : ${eur(c.valeur_declaree)} · l’expéditeur a attesté qu’il ne contient aucun objet interdit.</p>` : ''}
       ${c.client && c.code && !fini ? `<div class="panneau" style="margin:12px 0;padding:12px;border-color:var(--jaune)"><span class="petit">Code à donner au destinataire (il le dit au livreur à la remise) :</span> <b class="code-remise">${esc(c.code)}</b>
         <div class="actions" style="margin-top:8px"><a class="btn btn-s btn-wa" target="_blank" rel="noopener" href="${wa(c.depot_tel, `Bonjour ${c.depot_nom}, un colis Woulib arrive pour vous (${c.description}). Code à donner au livreur : ${c.code}. Suivez-le avec l’expéditeur.`)}">Envoyer le code au destinataire</a></div></div>` : ''}

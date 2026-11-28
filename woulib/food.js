@@ -38,7 +38,7 @@ const LIB_CAT = { ...CATS_BOUTIQUE, ...CATS_PLAT };
 // les 14 allergènes majeurs (règlement INCO) : affichés avant la commande ; null = pas encore renseigné, [] = aucun
 const ALLERGENES = { gluten: 'Gluten', crustaces: 'Crustacés', oeufs: 'Œufs', poissons: 'Poissons', arachides: 'Arachides', soja: 'Soja', lait: 'Lait', fruits_coque: 'Fruits à coque',
   celeri: 'Céleri', moutarde: 'Moutarde', sesame: 'Sésame', sulfites: 'Sulfites', lupin: 'Lupin', mollusques: 'Mollusques' };
-const texteAllergenes = p => !Array.isArray(p.allergenes) ? '' : p.allergenes.length ? '⚠️ Allergènes : ' + p.allergenes.map(a => ALLERGENES[a] || a).join(', ') : 'Sans les 14 allergènes majeurs';
+const texteAllergenes = p => !Array.isArray(p.allergenes) ? (typeof PROD_V1 !== 'undefined' && PROD_V1 ? 'Allergènes non renseignés : demandez au restaurant avant de commander' : '') : p.allergenes.length ? '⚠️ Allergènes : ' + p.allergenes.map(a => ALLERGENES[a] || a).join(', ') : 'Sans les 14 allergènes majeurs';
 const TYPES_BOUTIQUE = ['boissons', 'epicerie', 'autre'];
 const estBoutique = r => r?.genre === 'boutique';
 const cuisinesVisibles = () => Object.entries(CUISINES).filter(([k]) => BOUTIQUES || !TYPES_BOUTIQUE.slice(0, 2).includes(k));
@@ -389,11 +389,12 @@ APP.pages.resto = async id => {
           <div style="display:flex;gap:6px;align-items:flex-end"><label style="flex:1">Code promo<input name="code" maxlength="20" autocomplete="off" style="text-transform:uppercase"></label><button type="button" class="btn btn-s" id="appliquer">Appliquer</button></div>
           <label>Un mot pour le restaurant<input name="note" maxlength="500" placeholder="Sans piment, code du portail…"></label></details>
         <div id="alcoolHeure" role="status"></div><div id="totaux"></div>
-        <p class="muted petit" style="margin:0">Allergènes : voir chaque ${bq ? 'article' : 'plat'} ; une question ? Contactez ${bq ? 'la boutique' : 'le restaurant'} avant de commander.</p><p class="muted petit" style="margin:0">${bq ? 'Paiement à la livraison ou au retrait (espèces ou carte, selon la boutique).' : 'Paiement au restaurant ou au livreur (espèces ou carte, selon le restaurant).'}</p>
+        <p class="muted petit" style="margin:0">Allergènes : voir chaque ${bq ? 'article' : 'plat'} ; une question ? Contactez ${bq ? 'la boutique' : 'le restaurant'} avant de commander.</p>${PROD_V1 ? htmlPaiement('food', r.territoire, { virement: true, emporter: mode === 'emporter' }) : `<p class="muted petit" style="margin:0">${bq ? 'Paiement à la livraison ou au retrait (espèces ou carte, selon la boutique).' : 'Paiement au restaurant ou au livreur (espèces ou carte, selon le restaurant).'}</p>`}
         <p class="muted petit" style="margin:0">${bq ? 'Repas, glaces, produits frais et autres denrées périssables : pas de droit de rétractation (art. L221-28 du Code de la consommation). Autres articles : 14 jours, auprès de la boutique.' : 'Repas : pas de droit de rétractation (art. L221-28 du Code de la consommation).'} <a href="cgu.html" target="_blank" rel="noopener">Conditions</a></p>
         <div class="pied-cmd"><p class="recap" id="recap"></p><p class="art-err" id="erreurCmd" role="alert" hidden></p><button class="btn btn-p" id="commander" ${commandable ? '' : 'disabled'}>${commandable ? (programmable ? 'Programmer ma commande' : 'Commander') : 'Restaurant fermé'}</button></div></form></div></aside></div>
     <button type="button" class="barre-panier" id="barrePanier" hidden></button><div class="voile-panier" id="voilePanier"></div></div>`);
   const majAdresse = () => {
+    document.querySelector('.pai')?.setAttribute('data-mode', mode); if (mode === 'emporter' && document.querySelector('.pai [value=carte_livreur]:checked')) document.querySelector('.pai [value=especes]').checked = true;
     $('#adresse').innerHTML = mode === 'livraison' ? `<span class="carte-adr-t">${ICO.pin}<b>Livraison à</b></span><label>Adresse de livraison<input name="adresse" required maxlength="300" autocomplete="street-address"></label>
       <label>Ville<input name="commune" required maxlength="60" list="villesK" value="${esc(r.communes_livrees.length === 1 ? r.communes_livrees[0] : r.commune)}"></label>
       <datalist id="villesK">${(r.communes_livrees.length ? r.communes_livrees : TERRITOIRES[r.territoire]?.villes || []).map(v => `<option value="${esc(v)}">`).join('')}</datalist>
@@ -527,7 +528,9 @@ APP.pages.resto = async id => {
       const pos = mode === 'livraison' ? (await geocoder(`${d.adresse}, ${d.commune}`, r.territoire).catch(() => []))[0] : null;
       const c = await q(sb.rpc('passer_commande', { resto: id, mode_cmd: mode, lignes, adresse_cmd: d.adresse || null, commune_cmd: d.commune || null, telephone_cmd: d.telephone.trim(), note_cmd: d.note || null,
         lat_cmd: pos?.lat ?? null, lng_cmd: pos?.lng ?? null, heure_cmd: d.heure ? localVersUTC(d.heure, fuseauR) : null, code_cmd: codeOk, ...(BASE_V2 ? { pourboire_cmd: mode === 'livraison' && tip ? tip : null } : {}), ...(alcoolV2() ? { majeur_cmd: !!d.majeur } : {}) }));
-      cart = {}; panier.ecrire(id, cart); oublier('resto'); oublier('acc-'); toast(`Commande envoyée à ${r.nom}. ${bq ? 'La boutique' : 'Le restaurant'} doit l’accepter : vous serez prévenu ici.`); aller('#/suivi/' + c.id);
+      let enLigne = false; if (PROD_V1) { try { enLigne = await appliquerPaiement('commande', c.id, d); } catch (err) { toast(erreur(err), true); } }
+      cart = {}; panier.ecrire(id, cart); oublier('resto'); oublier('acc-'); if (enLigne) return;
+      toast(`Commande envoyée à ${r.nom}. ${bq ? 'La boutique' : 'Le restaurant'} doit l’accepter : vous serez prévenu ici.`); aller('#/suivi/' + c.id);
     } catch (err) {
       const msg = erreur(err).replace(/^[A-Z_]{4,}\s+/, ''), x = lignesPanier().find(y => msg.includes(y.p.nom));   // l'erreur va sous l'article cité, sinon juste au-dessus du bouton
       erreurSous(x ? 'el-' + x.k : 'erreurCmd', msg); b.disabled = false; if (/stock|épuisé|PAUSE/i.test(err.message || '')) oublier('resto'); }
@@ -573,7 +576,7 @@ APP.pages.suivi = async id => {
           ${c.frais > 0 ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Livraison</span><span>${eur(c.frais)}</span></div>` : ''}
           ${Number(c.pourboire) ? `<div class="muted" style="display:flex;justify-content:space-between"><span>Pourboire du livreur</span><span>${eur(c.pourboire)}</span></div>` : ''}
           ${c.pour_heure ? `<p class="petit"><b>Programmée pour ${esc(jourHeure(c.pour_heure))}</b></p>` : ''}${c.majeur ? '<p class="petit"><b>Pièce d’identité demandée à la remise.</b></p>' : ''}<div class="total-p">Total ${eur(c.total)}</div>
-          <p class="muted petit">${liv ? `Livraison : ${esc(c.adresse)}, ${esc(c.commune)}` : `À retirer : ${esc(c.restaurants?.adresse || c.restaurants?.commune || '')}`} · ${lv ? `paiement au livreur à la livraison (${eur(c.total)})` : 'paiement sur place'}</p></div>
+          <p class="muted petit">${liv ? `Livraison : ${esc(c.adresse)}, ${esc(c.commune)}` : `À retirer : ${esc(c.restaurants?.adresse || c.restaurants?.commune || '')}`} · ${PROD_V1 ? esc(libellePaiement(c, liv ? 'à la livraison' : 'sur place')) + ` (${eur(c.total)})` : lv ? `paiement au livreur à la livraison (${eur(c.total)})` : 'paiement sur place'}</p>${PROD_V1 ? boutonPayer('commande', c) : ''}</div>
         <div class="actions">${c.restaurants?.telephone ? `<a class="btn btn-sec btn-wa" href="${wa(c.restaurants.telephone, 'Bonjour, à propos de ma commande ' + c.id.slice(0, 6).toUpperCase() + ' sur Woulib.')}" target="_blank" rel="noopener">WhatsApp au restaurant</a>` : ''}
           ${c.statut === 'envoyee' ? '<button class="btn btn-s btn-ko" id="annuler">Annuler</button>' : ''}
           <a class="btn btn-s" href="#/assistance?sujet=commande&id=${c.id}">Un problème ?</a><button type="button" class="btn btn-s" data-signaler="commande" data-id="${c.id}" data-univers="food" data-nom="cette commande">Signaler</button></div>

@@ -19,7 +19,7 @@ let minuterie = null, suiviGps = null;
 // ---------------------------------------------------------------- Bouger : un seul formulaire, trois modes séparés (AUDIT partie 2.4)
 // Taxi et VTC passent par le moteur de courses actuel (move.sql). Covoiturage et entraide ne sont pas ouverts : leur onglet le dit
 // et propose d'être prévenu (univers « bientôt », woulib/bouger.sql), sans aucun faux trajet ni faux conducteur.
-declarerUnivers('move', { routes: /^#\/(bouger|move|woulib|course|courses|chauffeur|livraison|partage|admin\/woulib|gps)\b/, zone: 'move', accueil: '#/bouger', appel: 'Réserver un trajet' });
+declarerUnivers('move', { routes: /^#\/(bouger|move|woulib|course|courses|chauffeur|livreur|covoiturage|livraison|partage|admin\/woulib|gps)\b/, zone: 'move', accueil: '#/bouger', appel: 'Réserver un trajet' });
 // quatre modes (vision du 09/11) ; seuls Taxi et VTC sont ouverts. « Je cherche un stop » et « Je prends en stop » relèvent de l'entraide
 // (gratuite), fermée comme le covoiturage jusqu'à l'avis juridique : leur onglet explique les règles prévues et propose une alerte.
 // alertes route (mêmes types que le GPS, gps.js) : montrées sur la carte de Mobility
@@ -71,15 +71,16 @@ APP.pages.bouger = async () => {
           <label>Un mot pour le chauffeur<input name="note" maxlength="300" placeholder="Siège enfant, n° de vol, portail bleu…"></label>
           ${telConnu ? `<label>Téléphone<input name="telephone" type="tel" required pattern="[0-9 +]{6,20}" value="${esc(contact.telephone)}" autocomplete="tel"></label>` : ''}
           <label>Territoire<select name="territoire" id="terr">${optsTerritoires(terr).replace(/<option[^>]*>Autre pays<\/option>/, '')}</select></label></details>
+        ${PROD_V1 ? htmlPaiement('move', terr, {}) : ''}
         <button class="btn btn-p btn-g btn-plein" id="reserver">Commander</button>
         <p class="muted petit" style="margin:0">Prix estimé par Woulib selon la distance, réglé directement au chauffeur (péages, longue attente ou détour en plus). Chauffeurs professionnels vérifiés : carte VTC ou licence de taxi.</p></div>
       ${pasOuvert('covoiturage', 'Le covoiturage n’est pas encore ouvert', 'Rejoindre un conducteur qui fait déjà ce trajet pour lui, en partageant seulement les frais.')}
       ${pasOuvert('stop', '« Je cherche un stop » n’est pas encore ouvert', 'Vous activerez votre disponibilité quand vous le voulez : le reste du temps, personne ne vous voit. Avant l’accord des deux personnes, la carte ne montre qu’une position approximative.', 'entraide')}
       ${pasOuvert('prendre', '« Je prends en stop » n’est pas encore ouvert', 'Les conducteurs vérifiés un par un activent leur disponibilité pour un trajet. Le lieu exact du rendez-vous n’est donné qu’après l’accord des deux personnes.', 'entraide')}
     </form>
-    <div class="liste-g bouger-plus">${[...universOuvert('express', terr) ? [['#/express', ICO.colis, 'Envoyer un colis', 'Un livreur vérifié le récupère et le remet']] : [], ['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents, routes coupées']]
+    <div class="liste-g bouger-plus">${[...universOuvert('express', terr) ? [['#/express', ICO.colis, 'Envoyer un colis', 'Un livreur vérifié le récupère et le remet']] : [], ...PROD_V1 ? [['#/covoiturage', ICO.gens, 'Proposer un covoiturage', 'Partagez les frais, vos arrêts sont sur la carte']] : [], ['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents, routes coupées']]
       .map(([h, i, t, d]) => `<a class="menu-l" href="${h}"><span class="ico-l">${i}</span><div><b>${t}</b><small>${d}</small></div>${ICO.droite}</a>`).join('')}</div>
-    </div><div class="bouger-carte" id="zoneCarte"><div id="carte" class="carte-move" role="img" aria-label="Carte du trajet"></div><button type="button" class="carte-loc" aria-label="Partir de ma position">${ICO.localiser}</button><p class="carte-legende" id="legendeCarte" aria-live="polite"></p></div></div></div>`);
+    </div><div class="bouger-carte" id="zoneCarte"><div id="carte" class="carte-move" role="img" aria-label="Carte du trajet"></div><button type="button" class="carte-loc" aria-label="Partir de ma position">${ICO.localiser}</button><p class="carte-legende" id="legendeCarte" aria-live="polite"></p><p class="carte-legende" id="legendeCarteLive" aria-live="polite"></p></div></div></div>`);
 
   const majTotal = () => {
     Object.keys(CATS).forEach(k => {
@@ -188,6 +189,8 @@ APP.pages.bouger = async () => {
     try {
       const c = await q(sb.rpc('demander_course', { terr, cat, depart: $('#depart').value.trim().slice(0, 200), dlat: pts.depart.lat, dlng: pts.depart.lng, arrivee: $('#arrivee').value.trim().slice(0, 200), alat: pts.arrivee.lat, alng: pts.arrivee.lng,
         nb_passagers: nbPass, nb_bagages: +d.bagages || 0, telephone_cl: (d.telephone || '').trim(), heure_souhaitee: d.heure ? localVersUTC(d.heure, fuseauDe(terr)) : null, note_cl: d.note || null }));
+      let enLigne = false; if (PROD_V1) { try { enLigne = await appliquerPaiement('course', c.id, d); } catch (err) { toast(erreur(err), true); } }
+      if (enLigne) return;
       toast('Demande envoyée aux chauffeurs. Vous serez prévenu dès qu’un chauffeur accepte.'); aller('#/course/' + c.id);
     } catch (err) { toast(erreur(err), true); b.disabled = false; b.removeAttribute('aria-busy'); }
   });
@@ -203,8 +206,9 @@ APP.pages.bouger = async () => {
     // carte vivante : chauffeurs qui se sont dits disponibles (position arrondie, sans nom) et alertes route, rafraîchies toutes les 30 s
     const vivant = L.layerGroup().addTo(carte), mk = (h, cls, titre) => L.divIcon({ className: 'mk ' + cls, html: `<span title="${esc(titre)}">${h}</span>`, iconSize: [30, 30], iconAnchor: [15, 15] });
     const vivante = async () => {
-      const [ch, al] = await Promise.all([q(sb.rpc('chauffeurs_carte', { terr })).catch(() => null), q(sb.rpc('signalements_proches', { plat: c[0], plng: c[1], rayon_km: 80 })).catch(() => [])]);
+      let [ch, al] = await Promise.all([q(sb.rpc('chauffeurs_carte', { terr })).catch(() => null), q(sb.rpc('signalements_proches', { plat: c[0], plng: c[1], rayon_km: 80 })).catch(() => [])]);
       if (!$('#legendeCarte')) return;
+      if (PROD_V1) ch = null;   // la carte en direct (production.sql) remplace l'ancienne
       vivant.clearLayers();
       (ch || []).forEach(x => L.marker([x.lat, x.lng], { icon: mk('🚕', 'mk-ch', 'Chauffeur disponible'), keyboard: false }).addTo(vivant));
       al.forEach(x => L.marker([x.lat, x.lng], { icon: mk((ALERTES_ROUTE[x.type] || ['⚠️'])[0], 'mk-al', (ALERTES_ROUTE[x.type] || ['', 'Alerte'])[1]), keyboard: false })
@@ -212,6 +216,7 @@ APP.pages.bouger = async () => {
       $('#legendeCarte').innerHTML = (ch ? `<span>🚕 ${ch.length ? `${ch.length} chauffeur${ch.length > 1 ? 's' : ''} disponible${ch.length > 1 ? 's' : ''}` : 'Aucun chauffeur disponible en ce moment'}</span>` : '')   // base pas encore à jour : on ne dit rien plutôt qu'un faux « aucun »
         + `<span>${al.length ? `⚠️ ${al.length} alerte${al.length > 1 ? 's' : ''} route` : '✓ Aucune alerte route'}</span>`;
     };
+    if (PROD_V1) carteLive(L, carte, terr, { roles: ['vtc', 'taxi', 'covoiturage'], stops: true, legende: '#legendeCarteLive' });
     vivante(); clearInterval(minuterie); minuterie = setInterval(() => { if (location.hash.split('?')[0] === '#/bouger' && !document.hidden) vivante().catch(() => {}); }, 30000);
   } catch (e) { if ($('#carte')) $('#carte').innerHTML = '<p class="muted" style="padding:20px">Carte indisponible.</p>'; }
 };
@@ -220,7 +225,7 @@ APP.pages.move = () => rediriger('#/bouger' + (location.hash.includes('?') ? '?'
 
 // ---------------------------------------------------------------- suivi d'une course (client et chauffeur)
 APP.pages.course = async id => {
-  if (!exigeCompte()) return;
+  if (!exigeCompte()) return; await chargerRegistre();
   let L = null, carte = null, calques = null, cadre = false, avisFait = null, sos = false;   // sos : panneau d'urgence ouvert (gardé au rafraîchissement)
   const dessiner = async () => {
     const [r] = await q(sb.rpc('detail_course', { cid: id }));
@@ -237,6 +242,7 @@ APP.pages.course = async id => {
       ${fini ? `<div class="verdict ko"><big>${c.statut === 'annulee' ? '❌' : '⌛'}</big>Course ${c.statut === 'annulee' ? 'annulée' : 'expirée : aucun chauffeur disponible'}</div>`
         : `<div class="quetes" style="margin:12px 0">${ETAPES_C.map((e, i) => `<div class="quete ${i < pos || c.statut === 'terminee' ? 'faite' : i === pos ? 'actuelle' : ''}"><span class="q-coche">${i <= pos ? '✓' : ''}</span><span class="q-ico">${e[1]}</span><span class="q-titre">${e[2]}</span></div>`).join('')}</div>`}
       <div style="font:700 24px var(--titres)">${eur(c.prix_estime)} <span class="muted petit" style="font:600 14px var(--texte)">estimé · ${c.distance_km} km · ${CATS[c.categorie][0]} ${CATS[c.categorie][1]} · ${c.passagers} pers.</span></div>
+      ${PROD_V1 ? (client ? `<p class="petit" style="margin:6px 0 0">${esc(libellePaiement(c, 'à bord'))}</p>${boutonPayer('course', c)}` : htmlEncaissement({ id: c.id, statut: c.statut === 'a_bord' ? 'recuperee' : c.statut === 'terminee' ? 'livree' : c.statut, paiement: c.paiement, paiement_statut: c.paiement_statut, a_encaisser: ['especes', 'carte_livreur'].includes(c.paiement) && c.paiement_statut === 'a_encaisser' ? c.prix_estime : 0 }, 'course')) : ''}
       ${c.note ? `<p class="petit">📝 ${esc(c.note)}</p>` : ''}
       ${ch ? `<div class="ligne-l" style="grid-template-columns:48px 1fr;margin-top:12px"><span style="font-size:34px">🧑‍✈️</span><div><b>${esc(ch.prenom || 'Votre chauffeur')}</b>${ch.note ? ` · ⭐ ${ch.note}` : ''} <span class="tag">${ch.type === 'taxi' ? 'Taxi' : 'VTC'}</span>
         <div class="muted petit">${esc(ch.vehicule)}${ch.couleur ? ' · ' + esc(ch.couleur) : ''} · <b>${esc(ch.immatriculation)}</b></div></div></div>` : !fini && c.statut === 'demande' ? '<p class="muted">🔎 Nous prévenons les chauffeurs disponibles près de vous…</p>' : ''}
@@ -310,7 +316,7 @@ APP.pages.chauffeur = async sous => {
   if (!moi) return vue(`<section class="hero"><div class="wrap"><div class="press">🧑‍✈️ Chauffeurs et livreurs</div><h1>Des courses et des livraisons, <em>vous gardez l’essentiel</em>.</h1>
     <p>VTC ou taxi avec carte professionnelle, ou livreur à scooter, à vélo ou en voiture : recevez des missions près de vous, acceptez celles qui vous arrangent. Le client vous paie directement ; Woulib prend seulement 10 % (les pourboires restent à 100 % pour vous).</p>
     <div class="actions"><a class="btn btn-p" href="#/inscription?retour=%23%2Fchauffeur">Devenir chauffeur ou livreur</a><a class="btn" href="#/connexion?retour=%23%2Fchauffeur">J’ai déjà un compte</a></div></div></section>`);
-  const ch = await q(sb.from('chauffeurs').select('*').eq('id', moi.id).maybeSingle());
+  const [ch] = await Promise.all([q(sb.from('chauffeurs').select('*').eq('id', moi.id).maybeSingle()), chargerRegistre()]);
   if (!ch || sous === 'profil') return formChauffeur(ch);
   const livreur = ch.type === 'livreur';
   if (ch.statut !== 'valide') {
@@ -330,7 +336,8 @@ APP.pages.chauffeur = async sous => {
       <div class="panneau" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b style="font-size:20px">${moiCh.disponible ? '🟢 Disponible' : '⚪ Hors service'}</b>
         <div class="muted petit">${esc(ch.vehicule)}${ch.immatriculation ? ' · ' + esc(ch.immatriculation) : ''}${livreur ? ' · livreur' : ` · ${CATS[ch.categorie][0]} ${CATS[ch.categorie][1]}`}${ch.livraisons && !livreur ? ' · accepte les livraisons' : ''} · ${esc(ch.territoire)}</div></div>
         <button class="btn ${moiCh.disponible ? 'btn-ko' : 'btn-ok'}" id="dispo">${moiCh.disponible ? 'Passer hors service' : 'Je suis disponible'}</button></div>
-      ${boutiqueHtml}
+      ${await blocPartage()}
+      ${boutiqueHtml}${PROD_V1 && ch.livraisons ? `<a class="appel-boutique" href="#/livreur"><span>🛵</span><div><b>Tableau livreur</b><small>Missions à prendre, adresses, paiements à encaisser, gains</small></div><i>›</i></a>` : ''}
       ${gains ? `<div class="grille" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:14px 0">${[['Aujourd’hui', gains.jour], ['7 jours', gains.semaine], ['30 jours', gains.mois]].map(([t, v]) => `<div class="panneau" style="padding:12px;text-align:center"><div class="muted petit">${t}</div><b style="font:700 24px var(--titres)">${eur(v)}</b></div>`).join('')}</div>
         <p class="muted petit" style="margin-top:-6px">${gains.nb_livraisons} livraison(s) et ${gains.nb_courses} course(s) sur 30 jours. Montants indicatifs : frais de livraison et prix estimés des courses.</p>
       ${cm}
@@ -368,12 +375,13 @@ APP.pages.chauffeur = async sous => {
 // ---------------------------------------------------------------- mission de livraison (livreur)
 const ST_LV = { recherche: ['att', 'Recherche'], acceptee: ['ok', 'Vers le restaurant'], au_restaurant: ['ok', 'Au restaurant'], recuperee: ['ok', 'En livraison'], livree: ['gris', 'Livrée'], annulee: ['ko', 'Annulée'], echec: ['ko', 'Non livrée'] };
 APP.pages.livraison = async id => {
-  if (!exigeCompte()) return;
+  if (!exigeCompte()) return; await chargerRegistre();
   let L = null;
   const dessiner = async () => {
     const d = await q(sb.rpc('detail_livraison', { lid: id }));
     const fini = ['livree', 'annulee', 'echec'].includes(d.statut), r = d.restaurant, c = d.client;
     partagerPosition(!fini);
+    const enc = PROD_V1 ? await blocMission(id, 'livraison') : '';
     const etapes = [['acceptee', '🛵', 'Vers le restaurant'], ['au_restaurant', '🍽️', 'Au restaurant'], ['recuperee', '📦', 'Commande récupérée'], ['livree', '🎉', 'Livrée']], pos = etapes.findIndex(e => e[0] === d.statut);
     const gps = (lat, lng) => lat != null ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}` : null;
     const adrC = [c.adresse, c.commune].filter(Boolean).join(', '), adrR = [r.adresse, r.commune].filter(Boolean).join(', ');
@@ -383,11 +391,11 @@ APP.pages.livraison = async id => {
         ${fini ? `<div class="verdict ${d.statut === 'livree' ? '' : 'ko'}"><big>${d.statut === 'livree' ? '🎉' : '❌'}</big>${d.statut === 'livree' ? 'Livraison terminée, merci !' : d.statut === 'echec' ? 'Livraison non effectuée' : 'Livraison annulée'}</div>`
           : `<div class="quetes" style="margin:12px 0">${etapes.map((e, i) => `<div class="quete ${i < pos ? 'faite' : i === pos ? 'actuelle' : ''}"><span class="q-coche">${i <= pos ? '✓' : ''}</span><span class="q-ico">${e[1]}</span><span class="q-titre">${e[2]}</span></div>`).join('')}</div>`}
         <div style="font:700 22px var(--titres)">${eur(d.gain)} pour vous</div>
-        <p class="petit">💶 À encaisser chez le client : <b>${eur(d.a_encaisser)}</b> (dont ${eur(d.part_restaurant)} à remettre au restaurant)</p>
+        ${PROD_V1 ? enc + `<p class="petit">Dont ${eur(d.part_restaurant)} à remettre au restaurant (hors frais de livraison et pourboire).</p>` : `<p class="petit">💶 À encaisser chez le client : <b>${eur(d.a_encaisser)}</b> (dont ${eur(d.part_restaurant)} à remettre au restaurant)</p>`}
         <div class="panneau" style="padding:10px;margin:10px 0"><b>🍽️ Retrait</b> · ${esc(r.nom)}<div class="petit">${esc(adrR)}</div>
-          <div class="actions" style="margin-top:6px">${gps(r.lat, r.lng) ? `<a class="btn btn-s btn-j" href="${lienGps(r.lat, r.lng, r.nom)}">🧭 GPS Woulib</a><a class="btn btn-s" href="${gps(r.lat, r.lng)}" target="_blank" rel="noopener">Google Maps</a>` : ''}${r.telephone ? `<a class="btn btn-s" href="tel:${esc(r.telephone)}">📞 Restaurant</a>` : ''}</div></div>
+          <div class="actions" style="margin-top:6px">${gps(r.lat, r.lng) ? `<a class="btn btn-s btn-j" href="${lienGps(r.lat, r.lng, r.nom)}">🧭 GPS Woulib</a><a class="btn btn-s" href="${gps(r.lat, r.lng)}" target="_blank" rel="noopener">Google Maps</a>${PROD_V1 ? `<a class="btn btn-s" href="https://waze.com/ul?ll=${r.lat},${r.lng}&navigate=yes" target="_blank" rel="noopener">Waze</a>` : ''}` : ''}${r.telephone ? `<a class="btn btn-s" href="tel:${esc(r.telephone)}">📞 Restaurant</a>` : ''}</div></div>
         ${!fini ? `<div class="panneau" style="padding:10px;margin:10px 0"><b>🏠 Client</b> · ${esc(c.nom)}<div class="petit">${esc(adrC)}${c.note ? `<br>📝 ${esc(c.note)}` : ''}</div>
-          <div class="actions" style="margin-top:6px">${gps(c.lat, c.lng) ? `<a class="btn btn-s btn-j" href="${lienGps(c.lat, c.lng, c.nom)}">🧭 GPS Woulib</a><a class="btn btn-s" href="${gps(c.lat, c.lng)}" target="_blank" rel="noopener">Google Maps</a>` : adrC ? `<a class="btn btn-s" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adrC)}" target="_blank" rel="noopener">🧭 Itinéraire</a>` : ''}
+          <div class="actions" style="margin-top:6px">${gps(c.lat, c.lng) ? `<a class="btn btn-s btn-j" href="${lienGps(c.lat, c.lng, c.nom)}">🧭 GPS Woulib</a><a class="btn btn-s" href="${gps(c.lat, c.lng)}" target="_blank" rel="noopener">Google Maps</a>${PROD_V1 ? `<a class="btn btn-s" href="https://waze.com/ul?ll=${c.lat},${c.lng}&navigate=yes" target="_blank" rel="noopener">Waze</a>` : ''}` : adrC ? `<a class="btn btn-s" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adrC)}" target="_blank" rel="noopener">🧭 Itinéraire</a>` : ''}
             ${c.telephone ? `<a class="btn btn-s" href="tel:${esc(c.telephone)}">📞 Client</a><a class="btn btn-s btn-wa" href="${wa(c.telephone, 'Bonjour, votre livreur Woulib ici.')}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</div></div>
           <p class="petit"><b>Articles :</b> ${(d.articles || []).map(a => `${a.quantite} × ${esc(a.nom)}`).join(', ')}</p>` : ''}
         <div class="actions">${{ acceptee: '<button class="btn btn-p" data-lv="au_restaurant">🍽️ Je suis au restaurant</button><button class="btn btn-s btn-ko" data-lv="recherche">Me désister</button>',
@@ -430,7 +438,7 @@ function formChauffeur(ch) {
       <div class="ligne3"><label>Véhicule<input name="vehicule" required minlength="2" maxlength="60" placeholder="Toyota Corolla, scooter 125, vélo…" value="${esc(x.vehicule)}"></label><label>Immatriculation<input name="immatriculation" minlength="4" maxlength="15" value="${esc(x.immatriculation || '')}"></label><label>Couleur<input name="couleur" maxlength="30" value="${esc(x.couleur || '')}"></label></div>
       <div class="ligne2 pro"><label>Catégorie<select name="categorie">${Object.entries(CATS).map(([k, [i, t, d]]) => `<option value="${k}" ${k === x.categorie ? 'selected' : ''}>${i} ${t} (${d})</option>`).join('')}</select></label><label>Places passagers<input name="places" type="number" min="1" max="8" value="${x.places}"></label></div>
       <label class="pro" style="display:flex;gap:8px;font-weight:600"><input type="checkbox" name="livraisons" ${x.livraisons ? 'checked' : ''} style="width:auto"> J’accepte aussi des livraisons de repas entre deux courses</label>
-      <label style="display:flex;gap:8px;font-weight:600"><input type="checkbox" required style="width:auto"> <span id="certif"></span> J’accepte les <a href="cgu.html" target="_blank">conditions</a>.</label>
+      <label style="display:flex;gap:8px;font-weight:600"><input type="checkbox" required style="width:auto"> <span id="certif"></span> J’accepte les <a href="${PROD_V1 ? 'conditions-livreurs.html' : 'cgu.html'}" target="_blank">conditions${PROD_V1 ? ' des livreurs et chauffeurs' : ''}</a>.</label>
       <button class="btn btn-p">${ch ? 'Enregistrer' : 'Envoyer ma demande'}</button></form></div>`);
   const f = $('#fCh');
   const maj = () => {
@@ -445,7 +453,7 @@ function formChauffeur(ch) {
     ev.preventDefault(); const d = Object.fromEntries(new FormData(f)), lv = d.type === 'livreur';
     const l = { type: d.type, numero_carte: lv ? null : d.numero_carte.trim(), siret: d.siret.trim() || null, territoire: d.territoire, vehicule: d.vehicule.trim(), immatriculation: d.immatriculation.trim().toUpperCase() || null,
       couleur: d.couleur.trim() || null, categorie: lv ? 'eco' : d.categorie, places: lv ? 1 : +d.places, livraisons: lv || !!d.livraisons };
-    try { if (ch) await q(sb.from('chauffeurs').update(l).eq('id', moi.id)); else await q(sb.from('chauffeurs').insert(l)); toast(ch ? 'Enregistré.' : 'Demande envoyée, nous vous recontactons.'); aller('#/chauffeur'); }
+    try { if (ch) await q(sb.from('chauffeurs').update(l).eq('id', moi.id)); else { await q(sb.from('chauffeurs').insert(l)); await accepterDocument('livreurs', 'chauffeur', moi.id); } toast(ch ? 'Enregistré.' : 'Demande envoyée, nous vous recontactons.'); aller('#/chauffeur'); }
     catch (err) { toast(erreur(err), true); }
   });
 }

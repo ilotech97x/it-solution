@@ -9,7 +9,8 @@ const MODULES = {};
 function declarerUnivers(code, m) { MODULES[code] = m; }
 // registre lu dans la base (statut, ouverture par territoire) ; repli si la base ne répond pas.
 // BASE_V2 : la base a reçu univers.sql, move.sql et food.sql à jour (sinon les fonctions qui en dépendent restent masquées)
-let REGISTRE = null, BASE_V2 = false, BOUTIQUES = false;   // BOUTIQUES : boutique.sql installé
+let REGISTRE = null, BASE_V2 = false, BOUTIQUES = false, PROD_V1 = false;   // PROD_V1 : production.sql installé (paiements, conditions acceptées, espace livreur, carte live)
+let _unused_prod = null;   // BOUTIQUES : boutique.sql installé
 // « market » et « daily » (doublons de la rubrique Commerce) sont masqués dans la base (univers.sql) et absents d'ici
 const REPLI = [['food', '🍛', 'Woulib Food', 'actif'], ['move', '🚗', 'Woulib Move', 'actif'], ['express', '📦', 'Woulib Express', 'actif'],
   ['services', '🔧', 'Woulib Services', 'externe', 'https://immo.ilo-tech.com/#/services'], ['experiences', '🌴', 'Woulib Experiences', 'externe', '../pass/#/?genre=experience'], ['events', '🎟️', 'Woulib Events', 'externe', '../pass/'],
@@ -19,11 +20,11 @@ async function chargerRegistre() {
   if (REGISTRE) return REGISTRE;
   try {
     // les trois requêtes partent ensemble (pas de chaîne au démarrage) ; la dernière dit si boutique.sql est installé
-    const [u, t, bq] = await Promise.all([q(sb.from('univers').select('*').order('ordre')), q(sb.from('univers_territoires').select('univers, territoire, actif, parametres')),
-      q(sb.from('restaurants').select('genre').limit(1)).then(() => true, () => false)]);
+    const [u, t, bq, pv] = await Promise.all([q(sb.from('univers').select('*').order('ordre')), q(sb.from('univers_territoires').select('univers, territoire, actif, parametres')),
+      q(sb.from('restaurants').select('genre').limit(1)).then(() => true, () => false), q(sb.rpc('woulib_production_version')).then(() => true, () => false)]);
     REGISTRE = u.filter(x => x.statut !== 'masque').map(x => ({ ...x, fermes: t.filter(y => y.univers === x.code && !y.actif).map(y => y.territoire),
       reglages: Object.fromEntries(t.filter(y => y.univers === x.code && y.parametres).map(y => [y.territoire, y.parametres])) })); BASE_V2 = true;
-    BOUTIQUES = bq;
+    BOUTIQUES = bq; PROD_V1 = pv;
   } catch (e) { REGISTRE = REPLI; }
   return REGISTRE;
 }
@@ -89,7 +90,7 @@ const APP = {
     const t = territoireActif(); b.innerHTML = `${ICO.pin}<span>${esc(t)}</span>${ICO.bas}`; b.setAttribute('aria-label', `Choisir le territoire, actuellement ${t}`);
   },
   icones: () => ICO,
-  differes: { gps: 'gps.js?v=7', projets: 'projets.js?v=4', projet: 'projets.js?v=4', assistance: 'compte.js?v=4', recherche: 'recherche.js?v=2', pro: 'pro.js?v=3' },   // chargés à la première ouverture
+  differes: { gps: 'gps.js?v=7', projets: 'projets.js?v=4', projet: 'projets.js?v=4', assistance: 'compte.js?v=4', recherche: 'recherche.js?v=2', pro: 'pro.js?v=4' },   // chargés à la première ouverture
   // bouton retour d'une page ouverte directement (lien partagé) : l'accueil de son univers
   parent: h => Object.values(MODULES).find(m => m.routes.test(h.split('?')[0]))?.accueil || '#/',
   // à chaque changement de page : arrêter les rafraîchissements, couper le GPS hors des pages qui guident, couleurs de l'univers visité
@@ -236,7 +237,8 @@ APP.pages.compte = async sous => {
     ${groupe('Espace pro', [...resto.length ? [['#/pro', bq ? ICO.commerce : ICO.manger, bq ? 'Ma boutique' : 'Mon restaurant', 'Carte, articles, stock, commandes en direct']] : [],
       ...ch.length ? [['#/chauffeur', ch[0].type === 'livreur' ? ICO.colis : ICO.taxi, 'Espace chauffeur et livreur', 'Courses, livraisons, colis, gains']] : [], ['#/pros', ICO.pro, 'Devenir partenaire', 'Restaurant, commerce, chauffeur, livreur']])}
     ${groupe('Aide et sécurité', [['#/assistance', ICO.aide, 'Assistance', 'Une question, un problème, mes signalements'], [wa(WA, 'Bonjour, j’ai une question sur Woulib.'), ICO.telephone, 'Aide sur WhatsApp', '0696 48 26 78'],
-      ['cgu.html', ICO.document, 'Conditions d’utilisation', ''], ['confidentialite.html', ICO.document, 'Politique de confidentialité', '']])}
+      ['cgu.html', ICO.document, 'Conditions d’utilisation', ''], ['cgv.html', ICO.document, 'Conditions de vente', 'Repas, courses, colis'], ['confidentialite.html', ICO.document, 'Politique de confidentialité', ''],
+      ['mentions-legales.html', ICO.document, 'Mentions légales', ''], ['conditions-livreurs.html', ICO.document, 'Conditions livreurs et chauffeurs', ''], ['conditions-commercants.html', ICO.document, 'Conditions commerçants et restaurants', '']])}
     ${groupe('Plus', [['#/compte/favoris', ICO.coeur, 'Favoris', 'Restaurants et commerces'], ['#/projets', ICO.calendrier, 'Mes projets', 'Anniversaire, mariage, séjour…'], ['#/gps', ICO.gps, 'GPS et alertes route', 'Itinéraire, guidage à la voix, accidents et routes coupées'],
       ['../pass/', ICO.billet, 'Événements et billets', 'Sur EventPass, même compte'], ['https://immo.ilo-tech.com/', ICO.maison, 'Logements et séjours', 'Sur Kaz An Nou, même compte'],
       ...profil?.role === 'admin' || mesModerations.length ? [['../central/', ICO.bouclier, 'Administration (ILO Central)', 'Validations, modération, assistance, chiffres']] : []])}

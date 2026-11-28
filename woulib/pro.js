@@ -64,6 +64,7 @@ async function formResto(id, genre) {
         <p class="aide" style="margin:0">Le tabac, les cigarettes électroniques et les produits à la nicotine sont interdits sur Woulib (vente à distance interdite).</p></fieldset>` : ''}
       <div><b>Photo</b><div id="apercu" style="max-width:240px;margin:8px 0"></div><input type="file" id="ph" accept="image/*"></div>
       <label style="display:flex;gap:8px;font-weight:600"><input type="checkbox" required style="width:auto"> ${bq ? 'Mon activité est déclarée (SIRET) ; si je vends de l’alcool, ma licence est valide, je respecte les heures de vente et je ne vends jamais à un mineur (pièce d’identité à la remise) ; je ne vends ni tabac ni produit à la nicotine ; les prix affichés sont les vrais prix.' : 'Mon activité est déclarée (SIRET) et respecte les règles d’hygiène ; les prix affichés sont les vrais prix.'}</label>
+      ${PROD_V1 && !id ? htmlCondPro('commercants') : ''}
       <div class="actions"><button class="btn btn-p" value="en_attente">${id && r.statut === 'publie' ? 'Enregistrer' : 'Enregistrer et envoyer en validation'}</button>${!id || r.statut !== 'publie' ? '<button class="btn" value="brouillon">Brouillon</button>' : ''}</div></form></div>`);
   const ap = () => { $('#apercu').innerHTML = ph ? `<img src="${esc(photo(ph))}" alt="" style="border-radius:16px">` : ''; }; ap();
   brancherVilles(document.querySelector('#fR [name=territoire]'), 'villesR');
@@ -91,7 +92,7 @@ async function formResto(id, genre) {
       if (pos) { l.lat = pos.lat; l.lng = pos.lng; }
     }
     if (!(id && r.statut === 'publie')) l.statut = envoi;
-    try { if (id) await q(sb.from('restaurants').update(l).eq('id', id)); else { const n = await q(sb.from('restaurants').insert(l).select('id').single()); toast(bq ? 'Boutique créée : ajoutez vos articles !' : 'Restaurant créé : ajoutez votre carte !'); return aller('#/pro/menu/' + n.id); } toast('Enregistré.'); aller('#/pro'); }
+    try { if (id) await q(sb.from('restaurants').update(l).eq('id', id)); else { const n = await q(sb.from('restaurants').insert(l).select('id').single()); await accepterDocument('commercants', 'restaurant', n.id); toast(bq ? 'Boutique créée : ajoutez vos articles !' : 'Restaurant créé : ajoutez votre carte !'); return aller('#/pro/menu/' + n.id); } toast('Enregistré.'); aller('#/pro'); }
     catch (err) { toast(/licence_alcool|permis_nuit/.test(err.message || '') ? 'Numéro de licence ou de permis invalide : 3 à 40 caractères, dont au moins un chiffre.' : erreur(err), true); }
   });
 }
@@ -288,6 +289,7 @@ async function pageCommandesPro(rid) {
       ${c.statut === 'acceptee' ? tag(ST_CMD.acceptee) : ''}${c.pour_heure ? `<span class="tag att">⏰ Pour ${esc(jourHeure(c.pour_heure))}</span>` : ''}${c.majeur ? '<span class="tag ko">18+ : contrôlez une pièce d’identité à la remise</span>' : ''}
       <ul class="kb-l">${c.commande_lignes.map(x => `<li><b>${x.quantite} ×</b> ${esc(x.nom)}${x.options ? ` <span class="muted">· ${esc(x.options)}</span>` : ''}${x.note ? ` <i>(${esc(x.note)})</i>` : ''}</li>`).join('')}</ul>${c.note ? `<p class="petit">Note : ${esc(c.note)}</p>` : ''}
       <div class="kb-m"><span class="kb-mode ${c.mode === 'livraison' ? 'liv' : 'emp'}">${c.mode === 'livraison' ? 'Livraison' : 'À emporter'}</span><b>${eur(c.total)}</b></div>
+      ${PROD_V1 ? `<div class="kb-pai">${puceP(c)}${c.paiement_statut !== 'paye' && (c.paiement === 'virement' || c.mode === 'emporter' && ['especes', 'carte_livreur'].includes(c.paiement)) && !['refusee', 'annulee'].includes(c.statut) ? `<button type="button" class="btn btn-s btn-ok" data-paye="${c.id}">Paiement reçu</button>` : ''}</div>` : ''}
       <span class="petit muted">${c.mode === 'livraison' ? `${esc(c.adresse)}, ${esc(c.commune)}` : 'À retirer sur place'} · <a href="${wa(c.telephone, 'Bonjour, ici le restaurant pour votre commande ' + c.id.slice(0, 6).toUpperCase() + ' (Woulib).')}" target="_blank" rel="noopener">${esc(c.telephone)}</a>
         ${Number(c.remise) ? ` · code ${esc(c.code_promo)} −${eur(c.remise)}` : ''}${Number(c.pourboire) ? ` · dont ${eur(c.pourboire)} de pourboire livreur` : ''}</span>
       ${infoLv(v)}${actions.length ? `<div class="kb-actions">${actions.map(([s, t, cl]) => `<button type="button" class="btn btn-s ${cl}" data-cmd="${c.id}" data-st="${s}">${t}</button>`).join('')}</div>` : ''}</article>`; };
@@ -305,6 +307,8 @@ async function pageCommandesPro(rid) {
   await dessiner();
   $('#app').onclick = async ev => {
     if (ev.target.closest('[data-son]')) { const on = !sonPro(); sonPro(on); if (on) bip(1); return dessiner(); }
+    const pr = ev.target.closest('[data-paye]');
+    if (pr) { pr.disabled = true; try { await q(sb.rpc('resto_marquer_paye', { cmd: pr.dataset.paye })); toast('Paiement noté.'); await dessiner(); } catch (err) { toast(erreur(err), true); pr.disabled = false; } return; }
     const b = ev.target.closest('[data-cmd]'); if (!b) return;
     if (['refusee', 'annulee'].includes(b.dataset.st) && !confirm(b.dataset.st === 'refusee' ? 'Refuser cette commande ? Le client est prévenu.' : 'Annuler cette commande ? Le client est prévenu.')) return;
     b.disabled = true;
