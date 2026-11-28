@@ -5,7 +5,7 @@
    Fichiers versionnés (?v=) : cache d'abord (l'adresse change avec le contenu). Autres fichiers : cache puis mise à jour en arrière-plan.
    Jamais les données (Supabase), ni les cartes, ni les vidéos. CACHE à monter à chaque publication. */
 const PREFIXE = 'ilotech-';
-const CACHE = PREFIXE + 'v8';
+const CACHE = PREFIXE + 'v9';
 const PORTEE = new URL('./', self.registration.scope).pathname;
 const APPLIS = /^\/(woulib|pass|control|central|nexora|kivora|sousou|tropik|emploi)\//;   // chacune a son propre service worker
 const MAX = 220;   // nombre maximal de fichiers gardés

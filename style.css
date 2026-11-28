@@ -1244,3 +1244,34 @@ body.grand .g5{grid-template-columns:repeat(3,minmax(0,1fr))}
   .fil a{display:inline-block;padding:13px 4px;margin:-13px 0}
   .wrap a.marque,.wrap a.btn{min-height:44px;display:inline-flex;align-items:center}
 }
+
+/* ===== 27/11 refonte mobile : navigation du bas, sélecteur de services collant, espace client ===== */
+/* --tn-bas (défini par la barre du bas, téléphone seulement) = hauteur à laisser libre en bas de l'écran */
+.u-nb{margin-left:6px;padding:0 7px;border-radius:99px;background:color-mix(in srgb,var(--t) 24%,transparent);font:800 11.5px/18px var(--sans);font-style:normal;color:inherit;vertical-align:1px}
+.cats .c-nb{margin-left:4px;font:700 12px/1 var(--sans);font-style:normal;opacity:.75}
+:root:not([data-theme="light"]) .univers button[aria-selected="true"] .u-nb{background:rgba(255,255,255,.26);color:#fff}
+.esp-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;margin:18px 0}
+.esp-carte{display:flex;align-items:center;gap:14px;min-height:88px;padding:14px 16px;border:1.5px solid var(--line);border-left:5px solid var(--c);border-radius:18px;background:var(--surface-2);color:var(--text);text-decoration:none;transition:transform .15s,border-color .15s}
+.esp-carte:hover{border-color:var(--c);transform:translateY(-1px)}
+.esp-carte:focus-visible{outline:3px solid var(--c);outline-offset:2px}
+.esp-ico{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--c)}
+.esp-ico svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.esp-txt{flex:1;min-width:0}.esp-txt b{display:block;font-size:17px}.esp-txt span{display:block;color:var(--muted);font-size:14px;line-height:1.4}
+.esp-go{flex:none;font-size:28px;line-height:1;color:var(--c)}
+@media (max-width:900px){
+  .mobilebar{bottom:var(--tn-bas,0px);padding-bottom:10px}
+  body:not([data-etape="1"]) .config .nav{bottom:var(--tn-bas,0px);padding-bottom:10px}
+  .toast{bottom:calc(84px + var(--tn-bas,env(safe-area-inset-bottom,0px)))}
+}
+@media (max-width:700px){
+  /* pôles : une ligne de puces qui défile de côté et reste collée en haut pendant le défilement */
+  .top-actions{width:auto;flex:none;margin-left:auto}   /* l'en-tête ne chevauche plus le logo */
+  .top .brand{min-width:0}
+  .content{overflow:visible;overflow:clip}   /* un parent qui défile empêcherait la ligne de pôles de rester collée */
+  .univers-row{position:sticky;top:0;z-index:12;margin:8px -6px;padding:6px 6px 4px;background:var(--surface);border-bottom:1px solid var(--line)}
+  .univers{display:flex;grid-template-columns:none;overflow-x:auto;gap:8px;padding:9px 4px 3px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .univers::-webkit-scrollbar{display:none}
+  .univers button{flex:0 0 auto;flex-direction:row;justify-content:flex-start;min-height:44px;padding:4px 14px 4px 5px;border-radius:999px;font-size:14px;white-space:nowrap;text-align:left;scroll-snap-align:start}
+  .u-ico{width:32px;height:32px;border-radius:50%}
+  .u-long{display:none}.u-court{display:inline}
+}

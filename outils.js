@@ -108,7 +108,8 @@ function setTheme(t) {
 try {
   const zone = document.querySelector('.top .top-actions');
   if (zone && !document.body.classList.contains('gestion-page')) {
-    zone.insertAdjacentHTML('afterbegin', '<button type="button" class="btn btn-head btn-theme" id="themeBtn" onclick="setTheme(document.documentElement.dataset.theme === \'light\' ? \'dark\' : \'light\')"></button>');
+    zone.insertAdjacentHTML('afterbegin', '<button type="button" class="btn btn-head btn-theme" id="themeBtn"></button>');
+    document.getElementById('themeBtn').addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
     setTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
   }
 } catch (e) {}

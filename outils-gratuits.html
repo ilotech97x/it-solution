@@ -21,7 +21,7 @@
   <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
   <script>try{if(localStorage.getItem('itTheme')==='light')document.documentElement.dataset.theme='light'}catch(e){}</script>
-  <link rel="stylesheet" href="style.css?v=107">
+  <link rel="stylesheet" href="style.css?v=108">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"IloTech","item":"https://ilo-tech.com/"},{"@type":"ListItem","position":2,"name":"Conseils","item":"https://ilo-tech.com/conseils.html"},{"@type":"ListItem","position":3,"name":"Outils gratuits","item":"https://ilo-tech.com/outils-gratuits.html"}]}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"ItemList","name":"Outils gratuits IloTech","itemListElement":[{"@type":"ListItem","position":1,"name":"Générateur de QR code","url":"https://ilo-tech.com/outils-gratuits.html#o1"},{"@type":"ListItem","position":2,"name":"Générateur de mot de passe","url":"https://ilo-tech.com/outils-gratuits.html#o2"},{"@type":"ListItem","position":3,"name":"Calculateur d’onduleur","url":"https://ilo-tech.com/outils-gratuits.html#o3"}]}</script>
   <link rel="manifest" href="/manifest.webmanifest">
@@ -30,20 +30,37 @@
 <!--tn--><style>
 .tn{background:#050912;border-bottom:1px solid #16233d;font-family:inherit;position:relative;z-index:21}
 .tn-in{display:flex;gap:6px;max-width:1240px;margin:0 auto;padding:6px 12px}
-.tn-a{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:9px;min-height:40px;padding:5px 10px;border-radius:12px;color:#9fb0c8;text-decoration:none;
+.tn-a{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:5px 10px;border-radius:12px;color:#9fb0c8;text-decoration:none;position:relative;
   font-size:14px;font-weight:700;line-height:1.15;border:1px solid transparent;transition:background-color .18s,color .18s,border-color .18s}
 .tn-a svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .tn-a small{display:block;font-size:11.5px;font-weight:500;color:#6f809b}
 .tn-a:hover{color:#fff;background:#0d1628;border-color:#1d2c48}
 .tn-a.on{color:#fff;background:linear-gradient(135deg,var(--tnc),color-mix(in srgb,var(--tnc) 55%,#050912));border-color:var(--tnc);box-shadow:0 4px 18px color-mix(in srgb,var(--tnc) 35%,transparent)}
 .tn-a.on small{color:rgba(255,255,255,.82)}
-.tn-a:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.tn-a:focus-visible{outline:3px solid #fff;outline-offset:-3px}
+.tn-esp{flex:0 0 auto;margin-left:auto;padding:5px 16px;border-color:#1d2c48}
+.tn-esp small{display:none}
 .tn-c{display:none}
-@media (max-width:640px){.tn-in{gap:4px;padding:5px 8px}.tn-a{flex-direction:column;gap:2px;min-height:46px;font-size:12.5px;padding:4px 4px;border-radius:10px}
-  .tn-a small,.tn-l{display:none}.tn-c{display:inline}.tn-a svg{width:19px;height:19px}}
+@media (max-width:640px){#espaceClient{display:none!important}
+  :root{--tn-bas:calc(62px + env(safe-area-inset-bottom,0px))}
+  body{padding-bottom:var(--tn-bas)}
+  .tn{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:50;border-bottom:0;border-top:1px solid #16233d;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+  .tn-in{gap:2px;padding:4px 4px}
+  .tn-a,.tn-esp{flex:1 1 0;margin:0;flex-direction:column;justify-content:center;gap:2px;min-height:54px;min-width:44px;font-size:11.5px;padding:6px 2px 4px;border-radius:12px;border:0;text-align:center;overflow:hidden}
+  .tn-a small,.tn-l{display:none}.tn-c{display:inline}.tn-a svg{width:23px;height:23px}
+  .tn .tn-inst{display:none!important}   /* le navigateur propose déjà d'installer l'appli sur téléphone */
+  .tn-a:hover{background:transparent;color:#9fb0c8}
+  .tn-a.on,.tn-a.on:hover{color:#fff;background:color-mix(in srgb,var(--tnc) 24%,transparent);box-shadow:none}
+  .tn-a.on::before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;border-radius:0 0 3px 3px;background:var(--tnc)}
+  .tn-a.on svg{color:color-mix(in srgb,var(--tnc) 55%,#fff);stroke-width:2.3}
+  [data-theme="light"] .tn{background:#fff;border-top-color:#d8e0ee;box-shadow:0 -8px 24px rgba(20,40,80,.12)}
+  [data-theme="light"] .tn-a{color:#475672}
+  [data-theme="light"] .tn-a.on,[data-theme="light"] .tn-a.on:hover{color:#0e1a2e;background:color-mix(in srgb,var(--tnc) 16%,#fff)}
+  [data-theme="light"] .tn-a.on svg{color:color-mix(in srgb,var(--tnc) 80%,#000)}
+}
 @media print{.tn{display:none}}
-</style><nav class="tn" aria-label="Les trois parties d’IloTech">
-<div class="tn-in"><a class="tn-a" href="/digital/" style="--tnc:#a855f7"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15V9l11-5v16L4 15z"/><path d="M15 9.5a3.5 3.5 0 0 1 0 5"/><path d="M7 15.5l1.5 4.5h3L10 16"/></svg><span><span class="tn-l">Digital &amp; Marketing<small>Réseaux, contenus IA, sites</small></span><span class="tn-c">Digital</span></span></a><a class="tn-a on" href="/" style="--tnc:#2b8cff" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0-5.3 5.3L4 17l3 3 5.2-5.2a4 4 0 0 0 5.3-5.3l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><span><span class="tn-l">Services<small>Dépannage, Starlink, caméras</small></span><span class="tn-c">Services</span></span></a><a class="tn-a" href="/boutique.html" style="--tnc:#22c55e"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span><span class="tn-l">Boutique<small>Matériel, mobilité électrique</small></span><span class="tn-c">Boutique</span></span></a></div></nav><!--/tn-->
+</style><nav class="tn" aria-label="Navigation principale d’IloTech">
+<div class="tn-in"><a class="tn-a" href="/digital/" style="--tnc:#a855f7"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15V9l11-5v16L4 15z"/><path d="M15 9.5a3.5 3.5 0 0 1 0 5"/><path d="M7 15.5l1.5 4.5h3L10 16"/></svg><span><span class="tn-l">Digital &amp; Marketing<small>Réseaux, contenus IA, sites</small></span><span class="tn-c">Studio</span></span></a><a class="tn-a on" href="/" style="--tnc:#2b8cff" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5a4 4 0 0 0-5.3 5.3L4 17l3 3 5.2-5.2a4 4 0 0 0 5.3-5.3l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><span><span class="tn-l">Services<small>Dépannage, Starlink, caméras</small></span><span class="tn-c">Services</span></span></a><a class="tn-a" href="/boutique.html" style="--tnc:#22c55e"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span><span class="tn-l">Boutique<small>Matériel, mobilité électrique</small></span><span class="tn-c">Boutique</span></span></a><a class="tn-a tn-esp" href="/espace-client.html" style="--tnc:#f59e0b"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg><span><span class="tn-l">Espace client<small>Suivi, devis, factures</small></span><span class="tn-c">Espace client</span></span></a></div></nav><!--/tn-->
   <header class="top">
     <a class="brand" href="index.html" aria-label="IloTech — accueil">
       <img class="logo" src="img/logo-ilo.webp" alt="IloTech" width="64" height="38">
@@ -74,13 +91,13 @@
     <ul class="seo-liens"><li><a href="guide-arnaques-sms-martinique.html">Reconnaître les arnaques</a></li><li><a href="guide-coupures-courant-martinique.html">Protéger son matériel des coupures</a></li><li><a href="installation-starlink-martinique.html">Installation Starlink</a></li><li><a href="services.html">Tous nos services</a></li></ul>
   </main>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="outils-gratuits.js?v=107"></script>
+  <script src="outils-gratuits.js?v=108"></script>
   <footer class="seo-pied"><p class="reseaux">Suivez-nous : <a href="https://www.instagram.com/ilo.tech.97/" target="_blank" rel="noopener me" aria-label="IloTech sur instagram"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8"/></svg><span>Instagram</span></a><a href="https://www.tiktok.com/@ilo.tech" target="_blank" rel="noopener me" aria-label="IloTech sur tiktok"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.5 2.6 2.4 4.4 5 4.6"/></svg><span>TikTok</span></a><a href="https://www.youtube.com/@Ilo_Tech" target="_blank" rel="noopener me" aria-label="IloTech sur youtube"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="M10 9.2v5.6l4.8-2.8z"/></svg><span>YouTube</span></a></p><p>IloTech — entreprise individuelle · SIRET 104 702 436 00015 · <a href="services.html">Services et tarifs</a> · <a href="conseils.html">Conseils</a> · <a href="outils-gratuits.html">Outils gratuits</a> · <a href="https://ilo-tech.com/digital/">IloTech Studio, agence marketing</a> · <a href="https://immo.ilo-tech.com/">IloTech Immobilier</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></p><!--eco--><style>.eco{max-width:1200px;margin:26px auto 8px;padding:0 16px;box-sizing:border-box;text-align:left}.eco-t{font-weight:800;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;opacity:.7;margin:0 0 10px}.eco-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:10px}.eco .eco-g a{display:flex!important;gap:10px;align-items:center;padding:9px 12px;margin:0!important;border-radius:16px;border:1px solid rgba(127,127,127,.28);background:rgba(127,127,127,.07);color:inherit!important;text-decoration:none!important;transition:transform .15s,border-color .15s}.eco .eco-g a:hover{transform:translateY(-2px);border-color:var(--c)}.eco-g i{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-style:normal;font-size:20px;background:var(--c)}.eco-g b{display:block;font-size:15px;line-height:1.2;margin:0!important;color:inherit}.eco-g small{display:block;font-size:12.5px;line-height:1.3;opacity:.75}@media print{.eco{display:none}}</style><nav class="eco" aria-label="L’écosystème"><p class="eco-t">L’écosystème</p><div class="eco-g"><a href="https://ilo-tech.com/digital/" style="--c:#a855f7"><i aria-hidden="true">🎬</i><span><b>IloTech Studio</b><small>Agence marketing et IA</small></span></a><a href="https://immo.ilo-tech.com/" style="--c:#f97316"><i aria-hidden="true">🏡</i><span><b>Kaz An Nou</b><small>Villas, gîtes et services maison</small></span></a><a href="https://ilo-tech.com/pass/" style="--c:#FF3D7F"><i aria-hidden="true">🎟️</i><span><b>EventPass</b><small>Sorties, concerts et billets</small></span></a><a href="https://ilo-tech.com/woulib/" style="--c:#FF5A36"><i aria-hidden="true">🚀</i><span><b>Woulib</b><small>Repas livrés, VTC, taxis et GPS</small></span></a><a href="https://ilo-tech.com/nexora/" style="--c:#8067F5"><i aria-hidden="true">📊</i><span><b>NEXORA</b><small>CRM, devis et factures pour entreprises</small></span></a><a href="https://ilo-tech.com/sousou/" style="--c:#16a34a"><i aria-hidden="true">🤝</i><span><b>Sousou</b><small>Tontine entre proches</small></span></a><a href="https://ilo-tech.com/emploi/" style="--c:#0f766e"><i aria-hidden="true">💼</i><span><b>Travay — Emploi</b><small>Offres d’emploi et recrutement</small></span></a><a href="https://ilo-tech.com/tropik/" style="--c:#F5A524"><i aria-hidden="true">👟</i><span><b>Tropik</b><small>Boutique multi-vendeurs : chaussures et mode (bientôt)</small></span></a><a href="https://ilo-tech.com/evenements/" style="--c:#f43f5e"><i aria-hidden="true">🔊</i><span><b>Eventik</b><small>Matériel pour événements (bientôt)</small></span></a></div></nav><!--/eco-->
 </footer>
   <script src="config.js?v=1" defer></script>
   <script src="mesure.js?v=2" defer></script>
-  <script src="data.js?v=107" defer></script>
-  <script src="outils.js?v=107" defer></script>
+  <script src="data.js?v=108" defer></script>
+  <script src="outils.js?v=108" defer></script>
   <script src="/appli.js?v=2" defer></script>
 </body>
 </html>

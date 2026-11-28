@@ -515,11 +515,11 @@ const VIEWS = {
       <div class="univers-row"><span class="univers" role="tablist" aria-label="Pôles">${UNIVERS.map(u => {
           const n = CATEGORIES.filter(c => c.univers === u.id && !c.bientot).flatMap(c => c.services).filter((id, i, a) => a.indexOf(id) === i && state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
           const on = univOf(state.cat) === u.id;
-          return `<button type="button" role="tab" id="pole-${u.id}" style="--t:${u.couleur}" title="${esc(u.desc)}" aria-label="${esc(u.nom)}" aria-selected="${on}" aria-controls="cats" tabindex="${on ? 0 : -1}" onclick="setUniv('${u.id}')"><span class="u-ico">${ico(u.icon)}</span><span class="u-nom"><span class="u-long">${esc(u.nom)}</span><span class="u-court">${esc(u.court || u.nom)}</span></span>${n ? `<em class="count">${n}</em>` : ''}</button>`;
+          return `<button type="button" role="tab" id="pole-${u.id}" style="--t:${u.couleur}" title="${esc(u.desc)}" aria-label="${esc(u.nom)}" aria-selected="${on}" aria-controls="cats" tabindex="${on ? 0 : -1}" data-univ="${u.id}"><span class="u-ico">${ico(u.icon)}</span><span class="u-nom"><span class="u-long">${esc(u.nom)}</span><span class="u-court">${esc(u.court || u.nom)}</span><em class="u-nb" title="${nbSvc(u.id)} services">${nbSvc(u.id)}</em></span>${n ? `<em class="count">${n}</em>` : ''}</button>`;
         }).join('')}</span>${(u => u ? `<p class="u-resume" style="--t:${u.couleur}">${esc(u.resume || u.desc)}</p>` : '')(UNIVERS.find(u => u.id === univOf(state.cat)))}</div>
       <div class="cats" id="cats" role="tablist" aria-label="Type de besoin" style="--t:${(UNIVERS.find(u => u.id === univOf(state.cat)) || {}).couleur}">${CATEGORIES.filter(c => !c.bientot && c.univers === univOf(state.cat)).map(c => {
         const n = c.services.filter(id => state.sel.includes(id) && !(packValid() && pack(state.pack).items[id])).length;
-        return `<button type="button" role="tab" id="cat-${c.id}" style="--t:${c.couleur}" aria-selected="${state.cat === c.id}" aria-controls="svc-panel" tabindex="${state.cat === c.id ? 0 : -1}" onclick="setCat('${c.id}')"><span class="c-ico">${ico(c.icon)}</span><span class="c-nom">${c.nom}</span>${n ? `<em class="count">${n}</em>` : c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</button>`;
+        return `<button type="button" role="tab" id="cat-${c.id}" style="--t:${c.couleur}" aria-selected="${state.cat === c.id}" aria-controls="svc-panel" tabindex="${state.cat === c.id ? 0 : -1}" data-cat="${c.id}"><span class="c-ico">${ico(c.icon)}</span><span class="c-nom">${c.nom}</span><em class="c-nb">${c.services.length}</em>${n ? `<em class="count">${n}</em>` : c.nouveau ? '<em class="neuf">Nouveau</em>' : ''}</button>`;
       }).join('')}</div>
       ${vitrineCompacte(CATEGORIES.find(c => c.id === state.cat))}
       <div class="grid g5 services" id="svc-panel" role="tabpanel" aria-labelledby="cat-${state.cat}">${CATEGORIES.find(c => c.id === state.cat).services.map(id => {
@@ -708,8 +708,30 @@ document.addEventListener('keydown', e => {
   e.preventDefault(); tabs[j].click();
   setTimeout(() => document.querySelectorAll(cible)[j]?.focus());
 });
-function setUniv(u) { const c = CATEGORIES.find(x => x.univers === u && !x.bientot); if (c) { state.cat = c.id; render(); stat('pole', u); } }
-function setCat(c) { if (CATEGORIES.find(x => x.id === c && !x.bientot)) { state.cat = c; render(); } }
+// nombre de services d'un pôle (compteur affiché sur la puce)
+function nbSvc(u) { return CATEGORIES.filter(c => c.univers === u && !c.bientot).flatMap(c => c.services).filter((id, i, a) => a.indexOf(id) === i).length; }
+// changer de pôle ou de type : la page ne saute pas (même position de défilement, focus gardé sur la puce touchée)
+function sansSaut(f) { const y = scrollY; f(); scrollTo(0, y); }
+function setUniv(u) { const c = CATEGORIES.find(x => x.univers === u && !x.bientot); if (c) { sansSaut(() => { state.cat = c.id; render(); }); stat('pole', u); } }
+function setCat(c) { if (CATEGORIES.find(x => x.id === c && !x.bientot)) sansSaut(() => { state.cat = c; render(); }); }
+
+// actions de l'en-tête et du sélecteur de services : écouteurs (aucun onclick en ligne, compatible avec une CSP stricte)
+(function () {
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-act],[data-univ],[data-cat],[data-menu-univ]');
+    if (!b) return;
+    if (b.dataset.univ) return setUniv(b.dataset.univ);
+    if (b.dataset.cat) return setCat(b.dataset.cat);
+    if (b.dataset.menuUniv) { $('menuSite').close(); setUniv(b.dataset.menuUniv); return scrollTo({ top: 0, behavior: 'smooth' }); }
+    e.preventDefault();
+    const a = b.dataset.act;
+    if (a === 'home') home();
+    else if (a === 'grand') setGrand(!document.body.classList.contains('grand'));
+    else if (a === 'aide') openHelp();
+    else if (a === 'menu') ouvrirMenu();
+    else if (a === 'theme') setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+  });
+})();
 function setKind(k) {
   const premier = !state.kind;
   state.kind = k;
@@ -1084,7 +1106,7 @@ function ouvrirMenu() {
   const lien = (href, t, sub = '') => `<a href="${href}">${t}${sub ? `<small>${sub}</small>` : ''}</a>`;
   dlg.innerHTML = `<div class="dialog-head"><h2>Menu</h2><button type="button" class="btn" onclick="this.closest('dialog').close()">Fermer</button></div>
     <div class="menu-grille">
-      <section><h3>Nos services</h3>${UNIVERS.map(u => `<button type="button" style="--t:${u.couleur}" onclick="$('menuSite').close();setUniv('${u.id}');scrollTo({top:0,behavior:'smooth'})">${ico(u.icon)}<span>${esc(u.nom)}<small>${esc(u.desc)}</small></span></button>`).join('')}</section>
+      <section><h3>Nos services</h3>${UNIVERS.map(u => `<button type="button" style="--t:${u.couleur}" data-menu-univ="${u.id}">${ico(u.icon)}<span>${esc(u.nom)}<small>${esc(u.desc)}</small></span></button>`).join('')}</section>
       <section><h3>Infos et outils</h3>
         ${lien('services.html', 'Tous les services et tarifs')}${lien('boutique.html', 'Boutique IloTech', 'Bientôt : matériel et accessoires')}${lien('installation-starlink-martinique.html', 'Installation Starlink', 'Internet partout en Martinique')}
         ${lien('conseils.html', 'Conseils et guides')}${lien('outils-gratuits.html', 'Outils gratuits', 'QR code, mot de passe…')}
