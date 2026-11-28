@@ -59,7 +59,7 @@ const APP = {
   // 4e lot (sousou4.sql : renouveler, importer, engagement signé) : caché tant que sou_version() < 4
   let versionB = null;   // version de la base Sousou (0 si inconnue) : 4 = renouveler, importer, engagement ; 5 = remplacer un membre, double main
   const versionBase = () => versionB || (versionB = q(sb.rpc('sou_version')).then(v => Number(v) || 0, () => 0));
-  const lot4Pret = () => versionBase().then(v => v >= 4), lot5Pret = () => versionBase().then(v => v >= 5), lot6Pret = () => versionBase().then(v => v >= 6), lot7Pret = () => versionBase().then(v => v >= 7);   // 6 = attestation pour la banque ; 7 = annuler une déclaration, modifier la tontine, retirer un membre
+  const lot4Pret = () => versionBase().then(v => v >= 4), lot5Pret = () => versionBase().then(v => v >= 5), lot6Pret = () => versionBase().then(v => v >= 6), lot7Pret = () => versionBase().then(v => v >= 7), lot8Pret = () => versionBase().then(v => v >= 8);   // 6 = attestation pour la banque ; 7 = annuler une déclaration, modifier la tontine, retirer un membre
 
   let minuteur = null, instantane = '';
   APP.quitter = h => {
@@ -85,6 +85,12 @@ const APP = {
   APP.pageErreur = e => { const hors = navigator.onLine === false;
     return `<div class="wrap sou"><div class="vide-etat" role="alert"><span class="ill">${IC.alerte}</span><h3>${hors ? 'Vous êtes hors connexion' : 'Un instant…'}</h3><p class="muted">${esc(hors ? 'Reconnectez-vous à internet, puis réessayez : vos tontines sont gardées en sécurité.' : erreur(e))}</p><button type="button" class="btn btn-p" data-reessayer>Réessayer</button><a class="btn btn-sec" href="#/">Mes tontines</a></div></div>`; };
   document.addEventListener('click', e => { if (e.target.closest('[data-reessayer]')) location.reload(); });
+  // bandeau « hors connexion » (annoncé aux lecteurs d'écran), retiré dès que le réseau revient
+  const bandeauReseau = () => { let b = document.getElementById('hors'); const hors = navigator.onLine === false;
+    if (hors && !b) { b = document.createElement('div'); b.id = 'hors'; b.className = 'hors'; b.setAttribute('role', 'status'); b.textContent = 'Vous êtes hors connexion : l’écran peut ne pas être à jour, et les actions sont impossibles tant que le réseau est coupé.'; document.body.prepend(b); }
+    else if (!hors && b) b.remove(); };
+  document.addEventListener('click', e => { if (e.target.closest('[data-saut]')) { e.preventDefault(); const m = document.getElementById('app'); if (m) m.focus(); } });   // lien d'évitement : ne touche pas à l'adresse (routage par #)
+  addEventListener('online', bandeauReseau); addEventListener('offline', bandeauReseau); bandeauReseau();
   async function majNotifs() {
     if (!moi) return;
     try { nbNotifs = (await q(sb.from('notifs').select('id').eq('lu', false))).length; nav(); } catch (e) { /* le compteur reste tel quel */ }
@@ -436,16 +442,25 @@ const APP = {
     // objectif vide (seulement « Ajouter un objectif ») : en bas, il ne pousse plus le principal vers le bas (ergonomie 19/11) ;
     // sur ordinateur, objectif, remplacement et engagement vont dans la colonne de droite (classe pg-t, voir theme.css)
     const objBas = objectif && !t.objectif && !decompte;
+    let regl = '';   // règlement de la tontine (sousou8.sql) : accepté par chaque membre, date et heure gardées par la base
+    if (d4 && d4.reg && d4.reg.exige && (t.statut === 'preparation' || t.statut === 'en_cours')) {
+      const r = d4.reg, ok = r.membres.filter(m => m.accepte_at).length, manque = r.membres.filter(m => !m.accepte_at);
+      regl = `<section class="carte carte-regl ${r.moi ? 'ok' : ''}"><h2>Règlement de la tontine</h2>
+        <p class="petit muted" style="margin:0 0 8px">${ok} membre${ok > 1 ? 's' : ''} sur ${r.membres.length} ${ok > 1 ? 'ont' : 'a'} accepté.${manque.length && (orga || !r.moi) ? ' Pas encore : ' + manque.map(m => esc(m.prenom)).join(', ').replace(/\.?$/, '.') : ''}${orga && t.statut === 'preparation' && manque.length ? ' La tontine démarre quand tous ont accepté.' : ''}</p>
+        <details class="plus-options"${r.moi ? '' : ' open'}><summary>Lire le règlement</summary><ul class="regl-l">${r.texte.split('\n').map(l => `<li>${esc(l)}</li>`).join('')}</ul></details>
+        ${r.moi ? `<p class="petit" style="margin:8px 0 0">Vous l’avez accepté le ${esc(jourHeure(r.moi))}.</p>`
+          : `<label class="case-ok"><input type="checkbox" id="reglOk"> <span>J’ai lu et j’accepte le règlement de cette tontine.</span></label><button class="btn btn-p btn-plein" data-act="regl">J’accepte le règlement</button>`}</section>`;
+    }
     const cote = `${t.statut === 'terminee' ? lot4 : ''}${objBas ? '' : objectif}${t.statut === 'en_cours' ? rempl + lot4 : ''}`;
-    return `<div class="wrap sou pg-t">${entete}${agirHaut}${cote.trim() ? `<div class="cote">${cote}</div>` : ''}${corps}${objBas ? `<div class="cote cote-bas">${objectif}</div>` : ''}</div>`;
+    return `<div class="wrap sou pg-t">${entete}${regl && !(d4.reg.moi) ? regl : ''}${agirHaut}${cote.trim() ? `<div class="cote">${cote}</div>` : ''}${corps}${objBas ? `<div class="cote cote-bas">${objectif}</div>` : ''}${regl && d4.reg.moi ? regl : ''}</div>`;
   }
 
   async function tontine(id) {
     if (!exigeCompte()) return;
     attente();
     const M_ID = () => d.moi.id;
-    const avec4 = await lot4Pret(), avec6 = await lot6Pret(), avec7 = await lot7Pret();
-    const lire4 = () => avec4 ? q(sb.rpc('sou_detail4', { t_id: id })).then(x => x && Object.assign(x, { lot6: avec6, lot7: avec7 })).catch(() => null) : Promise.resolve(null);
+    const avec4 = await lot4Pret(), avec6 = await lot6Pret(), avec7 = await lot7Pret(), avec8 = await lot8Pret();
+    const lire4 = () => avec4 ? Promise.all([q(sb.rpc('sou_detail4', { t_id: id })), avec8 ? q(sb.rpc('sou_reglement_etat', { t_id: id })).catch(() => null) : null]).then(([x, r]) => x && Object.assign(x, { lot6: avec6, lot7: avec7, reg: r })).catch(() => null) : Promise.resolve(null);
     let [d, d4] = await Promise.all([q(sb.rpc('sou_detail', { t_id: id })), lire4()]);
     let emoji = '';
     const dessiner = (x, garder = true) => {
@@ -505,6 +520,9 @@ const APP = {
           } else if (act === 'signer') {
             if (!$('#engOk').checked) { b.disabled = false; return toast('Cochez la case pour confirmer votre engagement.', true); }
             await q(sb.rpc('sou_signer', { t_id: id, nom_s: $('#engNom').value })); toast('Engagement signé. Merci pour le groupe !');
+          } else if (act === 'regl') {
+            if (!$('#reglOk').checked) { b.disabled = false; return toast('Cochez la case pour accepter le règlement.', true); }
+            await q(sb.rpc('sou_accepter_reglement', { t_id: id })); toast('Règlement accepté. Merci !');
           } else if (act === 'objectif') { await q(sb.rpc('sou_objectif', { t_id: id, texte_o: $('#objTexte').value, emoji_o: emoji || null })); toast('Objectif enregistré.'); }
           else if (act === 'msg') { await q(sb.rpc('sou_poster', { t_id: id, texte_m: $('#msgTexte').value })); }
           else if (act === 'msg-del') { await q(sb.rpc('sou_effacer_message', { m_id: cible })); toast('Message effacé.'); }
@@ -550,7 +568,7 @@ const APP = {
   // ---------------------------------------------------------------- créer : 3 écrans (combien et quand, avec qui, on vérifie)
   async function creer() {
     if (!exigeCompte()) return;
-    const avec = await lot2Pret(), avec4 = await lot4Pret(), pa = param();
+    const avec = await lot2Pret(), avec4 = await lot4Pret(), avec8 = await lot8Pret(), pa = param();
     const dans = n => { const x = new Date(); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
     const e = { etape: 1, nom: '', per: 'mensuelle', nb: 5, montant: 50, debut: dans(7), majeur: false, objectif: '', emo: '', importe: false, deja: 1 };
     if (pa.nom) e.nom = String(pa.nom).slice(0, 60);   // « Changer quelque chose d'abord » depuis une tontine terminée : mêmes réglages, modifiables
@@ -588,7 +606,8 @@ const APP = {
         <div class="f"><label>${e.importe ? 'Échéance du prochain tour (le premier suivi dans Sousou)' : 'Date du premier tour'}<input class="champ" id="cDebut" type="date" min="${dans(0)}" max="${dans(365)}" value="${esc(e.debut)}"></label>
         ${avec ? `<label>Un objectif ? <span class="aide">(facultatif : rentrée, vacances, projet…)</span><input class="champ" id="cObj" maxlength="60" value="${esc(e.objectif)}" placeholder="Ex. : Les vacances d’été"></label>
         <div class="emojis" role="group" aria-label="Choisir une image">${EMOJIS.map(m => `<button type="button" class="emo ${m === e.emo ? 'sel' : ''}" data-emo="${m}" aria-pressed="${m === e.emo}" aria-label="Image ${m}">${m}</button>`).join('')}</div>` : ''}
-        <label class="case-ok"><input type="checkbox" id="cMajeur" ${e.majeur ? 'checked' : ''}> <span>J’ai 18 ans ou plus et je comprends que Sousou ne touche pas à l’argent : il passe directement entre les membres, chacun s’engage envers le groupe.</span></label></div>
+        <label class="case-ok"><input type="checkbox" id="cMajeur" ${e.majeur ? 'checked' : ''}> <span>J’ai 18 ans ou plus et je comprends que Sousou ne touche pas à l’argent : il passe directement entre les membres, chacun s’engage envers le groupe.${avec8 ? ' J’accepte le règlement ci-dessous, que chaque membre acceptera aussi.' : ''}</span></label>
+        ${avec8 ? `<details class="plus-options"><summary>Lire le règlement</summary><ul class="regl-l">${REGLEMENT.map(l => `<li>${esc(l)}</li>`).join('')}</ul></details>` : ''}</div>
         <div class="avert">${e.importe ? `Au démarrage, vous placerez les membres dans l’ordre réel : ${e.deja > 1 ? 'les ' + e.deja + ' premiers ont' : 'le premier a'} déjà reçu sa cagnotte. Tout le groupe (${e.nb} personnes) doit avoir rejoint avant.` : 'L’ordre des tours sera tiré au sort ou choisi par vous au démarrage, puis il ne bouge plus.'} Ensuite, vous invitez vos proches par WhatsApp.</div>`;
       vue(`<div class="wrap sou">${barre}${c}<div class="btns-bas">${e.etape > 1 ? '<button class="btn btn-sec" data-nav="-1">Retour</button>' : ''}<button class="btn btn-p" data-nav="1" id="suite">${e.etape === 3 ? 'Créer la tontine' : 'Continuer'}</button></div></div>`);
       if (e.suivi) { e.suivi = false; document.querySelector('.creer-q')?.focus({ preventScroll: true }); }   // lecteur d'écran et clavier : on arrive sur le titre de l'étape
@@ -620,13 +639,20 @@ const APP = {
       const m = valider(); if (m) { toast(m[0], true); document.querySelectorAll('#app [aria-invalid]').forEach(x => x.removeAttribute('aria-invalid')); const ch = document.getElementById(m[1]); if (ch) { ch.setAttribute('aria-invalid', 'true'); ch.focus(); } return; }
       if (e.etape < 3) { e.etape++; e.suivi = true; window.scrollTo(0, 0); return dessiner(); }
       n.disabled = true;
-      try { const id = await q(avec4 ? sb.rpc('sou_creer2', { nom_c: e.nom.trim(), montant_c: e.montant, periodicite_c: e.per, nb_c: e.nb, prochaine_c: e.debut, deja_c: e.importe ? e.deja : 0 })
+      try { const id = await q(avec8 ? sb.rpc('sou_creer3', { nom_c: e.nom.trim(), montant_c: e.montant, periodicite_c: e.per, nb_c: e.nb, prochaine_c: e.debut, deja_c: e.importe ? e.deja : 0, reglement_c: true })
+          : avec4 ? sb.rpc('sou_creer2', { nom_c: e.nom.trim(), montant_c: e.montant, periodicite_c: e.per, nb_c: e.nb, prochaine_c: e.debut, deja_c: e.importe ? e.deja : 0 })
           : sb.rpc('sou_creer', { nom_c: e.nom.trim(), montant_c: e.montant, periodicite_c: e.per, nb_c: e.nb, debut_c: e.debut }));
         if (avec && e.objectif.trim()) { try { await q(sb.rpc('sou_objectif', { t_id: id, texte_o: e.objectif, emoji_o: e.emo || null })); } catch (x) { /* l'objectif se refait depuis la page de la tontine */ } }
         oublier(''); toast('Tontine créée ! Invitez maintenant vos proches.'); aller('#/t/' + id); }
       catch (err) { toast(erreur(err), true); n.disabled = false; }
     };
   }
+
+  // règlement affiché à la création (la version complète, avec les chiffres, est écrite par la base : sou_reglement_texte dans sousou8.sql)
+  const REGLEMENT = ['J’ai 18 ans ou plus et je connais les autres membres du groupe.', 'Je verse chaque cotisation à l’échéance, directement au membre qui reçoit, jusqu’au dernier tour, y compris après avoir reçu la cagnotte.',
+    'Sousou est un outil d’organisation : il ne détient pas les fonds, ne garantit aucun paiement et ne peut contraindre personne à payer.', 'Je déclare honnêtement ce que j’ai versé et ce que j’ai reçu.',
+    'L’organisateur invite, démarre la tontine et signale les retards ; il ne garantit pas les autres membres et ne détient pas les fonds.', 'Tant que la tontine n’a pas démarré, je peux la quitter ; ensuite je reste engagé(e) jusqu’au dernier tour.',
+    'Un retard ou un impayé se règle entre membres, selon le droit commun. Je ne cotise que ce que je peux me permettre de perdre.'];
 
   // ---------------------------------------------------------------- rejoindre avec un code
   async function rejoindre() {
@@ -639,7 +665,7 @@ const APP = {
     }
     attente();
     let t;
-    try { t = await q(sb.rpc('sou_apercu', { code_c: code })); t.lot5 = await lot5Pret(); } catch (err) {
+    try { t = await q(sb.rpc('sou_apercu', { code_c: code })); t.lot5 = await lot5Pret(); t.lot8 = await lot8Pret(); if (t.lot8 && t.statut === 'preparation' && !t.deja_membre) t.reglement = (await q(sb.rpc('sou_reglement', { code_c: code }))).texte; } catch (err) {
       vue(`<div class="wrap sou"><div class="vide-etat"><h3>Code inconnu</h3><p class="muted">${esc(erreur(err))}</p><a class="btn btn-p" href="#/rejoindre">Essayer un autre code</a></div></div>`); return;
     }
     const places = t.nb_membres - t.inscrits, ouvert = t.statut === 'preparation' && places > 0 && !t.deja_membre;
@@ -651,12 +677,14 @@ const APP = {
         : places <= 0 ? '<div class="avert"><b>Cette tontine est complète.</b></div><a class="btn btn-sec btn-plein" href="#/">Mes tontines</a>'
         : `<div class="avert"><b>Avant de vous engager.</b> Vous versez ${eur(t.montant)} à chaque échéance directement au membre qui reçoit, jusqu’au dernier tour, y compris après avoir reçu votre tour. Sousou ne touche pas à l’argent.</div>
           ${t.deja ? `<div class="avert"><b>Cette tontine a déjà commencé</b> entre les membres : ${t.deja > 1 ? 'les tours 1 à ' + t.deja + ' sont réglés' : 'le tour 1 est réglé'}. Sousou la suit à partir du tour ${t.deja + 1}.</div>` : ''}
-          <form class="f" id="fJoin">${t.deja ? `<label class="case-ok"><input type="checkbox" required> <span>Je confirme que ${t.deja > 1 ? 'les ' + t.deja + ' premiers tours ont' : 'le premier tour a'} déjà été réglé${t.deja > 1 ? 's' : ''} entre nous.</span></label>` : ''}${t.lot5 && t.places_libres >= 2 ? `<fieldset style="border:0;padding:0;margin:0"><legend style="font-weight:800;margin-bottom:6px">Combien de parts ?</legend><div class="choix-2"><label><input type="radio" name="parts" value="1" checked>1 part<small>${eur(t.montant)} par ${rythme(t.periodicite)}, une cagnotte</small></label><label><input type="radio" name="parts" value="2">2 parts (double main)<small>${eur(t.montant * 2)} par ${rythme(t.periodicite)}, deux cagnottes</small></label></div></fieldset>` : ''}<label class="case-ok"><input type="checkbox" required> <span>J’ai 18 ans ou plus, je connais les membres et je m’engage envers le groupe. <a href="cgu.html" target="_blank">Conditions et risques</a></span></label><button class="btn btn-p btn-gros btn-plein" ${ouvert ? '' : 'disabled'}>Rejoindre la tontine</button></form>`}</div></div>`);
+          <form class="f" id="fJoin">${t.deja ? `<label class="case-ok"><input type="checkbox" required> <span>Je confirme que ${t.deja > 1 ? 'les ' + t.deja + ' premiers tours ont' : 'le premier tour a'} déjà été réglé${t.deja > 1 ? 's' : ''} entre nous.</span></label>` : ''}${t.lot5 && t.places_libres >= 2 ? `<fieldset style="border:0;padding:0;margin:0"><legend style="font-weight:800;margin-bottom:6px">Combien de parts ?</legend><div class="choix-2"><label><input type="radio" name="parts" value="1" checked>1 part<small>${eur(t.montant)} par ${rythme(t.periodicite)}, une cagnotte</small></label><label><input type="radio" name="parts" value="2">2 parts (double main)<small>${eur(t.montant * 2)} par ${rythme(t.periodicite)}, deux cagnottes</small></label></div></fieldset>` : ''}${t.reglement ? `<details class="plus-options"><summary>Lire le règlement de la tontine</summary><ul class="regl-l">${t.reglement.split('\n').map(l => `<li>${esc(l)}</li>`).join('')}</ul></details>` : ''}<label class="case-ok"><input type="checkbox" required> <span>J’ai 18 ans ou plus, je connais les membres et je m’engage envers le groupe.${t.reglement ? ' J’ai lu et j’accepte le règlement de la tontine.' : ''} <a href="cgu.html" target="_blank">Conditions et risques</a></span></label><button class="btn btn-p btn-gros btn-plein" ${ouvert ? '' : 'disabled'}>Rejoindre la tontine</button></form>`}</div></div>`);
     const f = $('#fJoin');
     if (f) f.addEventListener('submit', async ev => {
       ev.preventDefault(); const b = f.querySelector('button'); b.disabled = true;
       const nParts = Number(f.querySelector('[name=parts]:checked')?.value || 1);
-      try { const id = await q(nParts > 1 ? sb.rpc('sou_rejoindre2', { code_c: code, parts_c: nParts }) : sb.rpc('sou_rejoindre', { code_c: code })); oublier(''); toast('Bienvenue dans le groupe !'); aller('#/t/' + id); } catch (err) { toast(erreur(err), true); b.disabled = false; }
+      try { const id = await q(t.lot8 ? sb.rpc('sou_rejoindre3', { code_c: code, parts_c: nParts, reglement_c: true }) : nParts > 1 ? sb.rpc('sou_rejoindre2', { code_c: code, parts_c: nParts }) : sb.rpc('sou_rejoindre', { code_c: code }));
+        if (!id) { toast('Code inconnu : vérifiez-le auprès de l’organisateur.', true); b.disabled = false; return; }
+        oublier(''); toast('Bienvenue dans le groupe !'); aller('#/t/' + id); } catch (err) { toast(erreur(err), true); b.disabled = false; }
     });
   }
 
@@ -688,8 +716,20 @@ const APP = {
       <div class="avert"><b>Les risques, sans détour.</b> Si un membre ne verse plus après avoir reçu la cagnotte, le groupe perd cet argent : Sousou ne peut ni le rembourser ni le récupérer. Ce n’est ni un placement ni un crédit, et rien n’est garanti. Ne rejoignez que des personnes de confiance et ne cotisez que ce que vous pouvez vous permettre de perdre.</div>
       <p class="petit"><a href="cgu.html">Conditions d’utilisation et risques</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="#/verifier">Vérifier une attestation (banques)</a></p></div>`);
   }
+  // « Mes données » : export et suppression du compte (RGPD). sp = ce que dit sou_suppression_possible()
+  const donneesPerso = sp => {
+    const enc = sp && sp.en_cours || [], prep = sp && sp.preparation || [];
+    const sup = !sp ? '<p class="petit muted">Impossible de vérifier pour l’instant : réessayez dans un moment.</p>'
+      : enc.length ? `<div class="avert"><b>Suppression impossible pour l’instant.</b> Vous participez à une tontine en cours : ${enc.map(x => `« ${esc(x.nom)} » (${pluriel(x.a_verser, 'cotisation à verser', 'cotisations à verser')}, ${pluriel(x.tours_a_venir, 'tour à recevoir', 'tours à recevoir')}, d’autres à venir)`).join(', ')}. Chacun reste engagé envers le groupe jusqu’au dernier tour : terminez-la ou faites-vous remplacer, puis revenez ici.</div>`
+      : `<ul class="petit"><li>Votre nom, vos messages et vos attestations sont effacés ; les montants et les dates des tontines terminées restent, sans votre nom.</li>${prep.length ? `<li>${prep.filter(x => x.organisateur).length ? 'Les tontines que vous organisez et qui n’ont pas démarré sont annulées ; ' : ''}vous quittez les autres tontines en préparation.</li>` : ''}<li>Le compte est commun à Sousou, Woulib, EventPass et Kaz An Nou : tout est effacé partout. <b>C’est définitif.</b></li></ul>
+        <label class="champ-l">Pourquoi partez-vous ? <span class="aide">(facultatif)</span><textarea class="champ" id="supMotif" maxlength="500" rows="2"></textarea></label><button type="button" class="btn btn-sec btn-plein" data-act="supprimer">Supprimer mon compte</button>`;
+    return `<section class="carte" id="rgpd"><h2>Mes données</h2><p class="petit muted" style="margin:0 0 8px">Récupérez tout ce que Sousou garde sur vous, dans un fichier lisible (JSON). <a href="confidentialite.html">Voir la politique de confidentialité</a>.</p>
+      <button type="button" class="btn btn-sec btn-plein" data-act="export">Télécharger mes données</button>
+      <details class="plus-options"><summary>Supprimer mon compte</summary>${sup}</details></section>`;
+  };
   async function compte() {
     if (!moi) return aller('#/connexion');
+    const avec8 = await lot8Pret(), sp = avec8 ? await q(sb.rpc('sou_suppression_possible')).catch(() => null) : null;   // données personnelles (sousou8.sql) : cachées tant que la base n'a pas le lot 8
     vue(`<div class="wrap sou"><h1>Profil</h1><section class="carte profil-l"><div style="display:flex;gap:12px;align-items:center"><span class="pastille" aria-hidden="true">${esc(ini(profil?.prenom))}</span><div><b>${esc(((profil?.prenom || '') + ' ' + (profil?.nom || '')).trim() || 'Votre compte')}</b><br><span class="muted petit">${esc(moi.phone ? telLisible(moi.phone) : moi.email || '')}</span></div></div>
       <p class="petit muted" style="margin:0">Votre compte est le même pour Sousou, Woulib, EventPass et Kaz An Nou : nom, téléphone et mot de passe se changent dans le compte commun.</p>
       <a class="btn btn-sec btn-plein" href="https://ilo-tech.com/pass/#/compte">Gérer mon compte commun</a></section>
@@ -697,8 +737,30 @@ const APP = {
         <label>Nom <span class="aide">(facultatif : seule l’initiale est montrée)</span><input class="champ" name="nom" maxlength="60" autocomplete="family-name" value="${esc(profil?.nom || '')}"></label><button class="btn btn-sec">Enregistrer</button></form></section>
       <section class="carte"><h2>Apparence</h2><div class="theme-choix" role="group" aria-label="Thème">${[['auto', 'Automatique'], ['clair', 'Clair'], ['sombre', 'Sombre']].map(([k, n]) => `<button type="button" class="btn btn-sec btn-s" data-theme-set="${k}" aria-pressed="${lireTheme() === k}">${n}</button>`).join('')}</div></section>
       <section class="carte"><h2>Confort de lecture</h2>${reglages()}<p class="muted petit" style="margin:8px 0 0">Gardé sur cet appareil seulement.</p></section>
-      <section class="carte"><ul class="menu-liens"><li><a href="#/aide">Comment ça marche et les risques <span aria-hidden="true">›</span></a></li><li><a href="cgu.html">Conditions d’utilisation <span aria-hidden="true">›</span></a></li><li><a href="confidentialite.html">Confidentialité <span aria-hidden="true">›</span></a></li></ul></section>
+      ${avec8 ? donneesPerso(sp) : ''}
+      <section class="carte"><ul class="menu-liens"><li><a href="#/aide">Comment ça marche et les risques <span aria-hidden="true">›</span></a></li><li><a href="cgu.html">Conditions d’utilisation <span aria-hidden="true">›</span></a></li><li><a href="confidentialite.html">Confidentialité <span aria-hidden="true">›</span></a></li><li><a href="mentions-legales.html">Mentions légales <span aria-hidden="true">›</span></a></li></ul></section>
       <a class="btn btn-sec btn-plein" href="#/deconnexion">Se déconnecter</a></div>`);
+    $('#app').onclick = async ev => {
+      const b = ev.target.closest('[data-act]'); if (!b || b.disabled) return;
+      if (b.dataset.act === 'export') {   // export JSON de mes données : la base ne renvoie que celles de auth.uid()
+        b.disabled = true;
+        try {
+          const j = await q(sb.rpc('sou_mes_donnees')), u = URL.createObjectURL(new Blob([JSON.stringify(j, null, 2)], { type: 'application/json' })), a = document.createElement('a');
+          a.href = u; a.download = 'mes-donnees-sousou-' + aujourdhui() + '.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); toast('Fichier téléchargé.');
+        } catch (err) { toast(erreur(err), true); }
+        b.disabled = false;
+      }
+      if (b.dataset.act === 'supprimer') {   // action irréversible : deux appuis, le second dit « définitivement »
+        if (!b.dataset.sur) { b.dataset.sur = '1'; b.textContent = 'Confirmer : supprimer définitivement'; return; }
+        b.disabled = true;
+        try {
+          const r = await q(sb.rpc('sou_supprimer_compte', { motif_s: ($('#supMotif').value || '').trim() || null }));
+          try { await sb.auth.signOut(); } catch (x) { /* la session est déjà fermée côté serveur */ }
+          await chargerMoi(); nav(); oublier('');
+          vue(`<div class="wrap sou"><div class="vide-etat"><span class="ill">${IC.coche}</span><h1>Votre compte est supprimé</h1><p class="muted">${r === 'faite' ? 'Vos informations personnelles sont effacées.' : 'Vos informations sont effacées ; l’équipe termine l’effacement de votre email sous un mois au plus.'} Merci d’avoir utilisé Sousou.</p><a class="btn btn-p" href="#/">Accueil</a></div></div>`);
+        } catch (err) { toast(erreur(err).replace(/^(EN_COURS|COMPTE_PRO)\s+/, ''), true); b.disabled = false; delete b.dataset.sur; b.textContent = 'Supprimer mon compte'; }
+      }
+    };
     $('#app').onsubmit = async ev => {
       ev.preventDefault(); const d = Object.fromEntries(new FormData(ev.target)), b = ev.target.querySelector('button'), prenom = (d.prenom || '').trim(), nom = (d.nom || '').trim();
       if (!prenom) return toast('Entrez votre prénom.', true);
@@ -721,7 +783,8 @@ const APP = {
   async function recap(id) {
     if (!exigeCompte()) return;
     attente();
-    const [d, h, mes] = await Promise.all([q(sb.rpc('sou_detail', { t_id: id })), q(sb.rpc('sou_historique', { t_id: id })), q(sb.rpc('sou_mes_cotisations', { t_id: id }))]);
+    const avec8 = await lot8Pret();
+    const [d, h, mes, jr] = await Promise.all([q(sb.rpc('sou_detail', { t_id: id })), q(sb.rpc('sou_historique', { t_id: id })), q(sb.rpc('sou_mes_cotisations', { t_id: id })), avec8 ? q(sb.rpc('sou_journal', { t_id: id })).catch(() => []) : []]);
     const t = d.tontine, nomDe = i => (d.membres.find(x => x.id === i) || {}).prenom || '?', versesN = d.tours.filter(x => x.statut === 'verse').length;
     vue(`<div class="wrap sou recap"><div class="no-print"><a href="#/t/${t.id}">‹ Retour à la tontine</a></div>
       <section class="carte"><h1>${t.objectif_emoji ? `<span aria-hidden="true">${esc(t.objectif_emoji)}</span> ` : ''}${esc(t.nom)}</h1>
@@ -730,7 +793,8 @@ const APP = {
       <section class="carte"><h2>Les tours</h2><table class="tab-r"><thead><tr><th>Tour</th><th>Bénéficiaire</th><th>Échéance</th><th>État</th></tr></thead><tbody>${d.tours.map(x => `<tr><td>${x.numero}</td><td>${esc(nomDe(x.beneficiaire))}</td><td>${esc(jjmmaaaa(x.echeance + 'T12:00:00'))}</td><td>${x.statut === 'verse' ? 'Versé' : x.statut === 'en_cours' ? 'En cours' : 'À venir'}</td></tr>`).join('')}</tbody></table></section>
       <section class="carte"><h2>Le groupe</h2><table class="tab-r"><thead><tr><th>Membre</th><th>À l’heure</th><th>En retard</th></tr></thead><tbody>${d.membres.map(m => `<tr><td>${esc(m.prenom)}</td><td>${m.fiab ? m.fiab.a_l_heure : 0}</td><td>${m.fiab ? m.fiab.retards : 0}</td></tr>`).join('')}</tbody></table>
         <p class="muted petit">Compté sur cette tontine seulement. Le versement de la cagnotte et les cotisations passent directement entre les membres : Sousou n’en garde que la trace.</p></section>
-      <section class="carte"><h2>Chronologie</h2>${h.length ? `<ol class="chrono">${h.map(x => `<li class="${esc(x.type)}"><time>${esc(jourHeure(x.quand))}</time><span>${esc(x.texte)}</span></li>`).join('')}</ol>` : '<div class="vide-mini"><b>Rien pour l’instant</b><span>Les arrivées, déclarations et versements s’afficheront ici au fil des jours.</span></div>'}</section></div>`);
+      <section class="carte"><h2>Chronologie</h2>${h.length ? `<ol class="chrono">${h.map(x => `<li class="${esc(x.type)}"><time>${esc(jourHeure(x.quand))}</time><span>${esc(x.texte)}</span></li>`).join('')}</ol>` : '<div class="vide-mini"><b>Rien pour l’instant</b><span>Les arrivées, déclarations et versements s’afficheront ici au fil des jours.</span></div>'}</section>
+      ${jr.length ? `<section class="carte no-print"><details class="plus-options"><summary>Journal des actions (${jr.length})</summary><p class="muted petit">Tout ce qui a été fait dans la tontine, par qui et quand : la trace que garde la base.</p><ol class="chrono">${jr.map(x => `<li><time>${esc(jourHeure(x.quand))}</time><span>${esc(x.texte)}</span></li>`).join('')}</ol></details></section>` : ''}</div>`);
     $('#app').onclick = ev => {
       const b = ev.target.closest('[data-act]'); if (!b) return;
       if (b.dataset.act === 'imprimer') window.print();

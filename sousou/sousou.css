@@ -527,3 +527,9 @@ html[data-contraste] .btn-sec{border-width:2px}
   .sou.pg-t:has(.sou-2)>.cote,.sou.pg-t:has(.sou-2)>.sou-2>div:last-child{grid-column:2}
 }
 .creer-q:focus{outline:none}.champ[aria-invalid=true]{border-color:var(--erreur);box-shadow:0 0 0 3px color-mix(in srgb,var(--erreur) 20%,transparent)}.vide-etat .btn+.btn{margin-top:0}
+/* lot 8 : règlement de la tontine, mes données */
+.carte-regl h2{margin-top:0}.carte-regl.ok{border-color:var(--action)}.regl-l{margin:8px 0;padding-left:20px}.regl-l li{margin:6px 0}
+#rgpd details.plus-options{margin-top:12px}#rgpd .champ-l{display:grid;gap:6px;margin:10px 0;font-weight:700}
+.hors{position:sticky;top:0;z-index:60;background:#7a4b00;color:#fff;padding:8px 14px;text-align:center;font-weight:700;font-size:14px}
+.saut{position:absolute;left:8px;top:-60px;z-index:100;background:var(--action);color:#fff;padding:10px 16px;border-radius:10px;font-weight:800;text-decoration:none}.saut:focus{top:8px}
+#app:focus{outline:none}
