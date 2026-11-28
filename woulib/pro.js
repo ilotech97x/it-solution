@@ -6,6 +6,7 @@ APP.pages.pro = async (sous, id) => {
   if (!exigeCompte()) return;
   await chargerRegistre();
   if (sous === 'resto') return formResto(id === 'nouveau' ? null : id);
+  if (sous === 'maison') return formResto(id === 'nouveau' ? null : id, 'maison');   // cuisinier du coin (Food 2) : la base refuse la fiche sans food2.sql
   if (sous === 'boutique') return BOUTIQUES ? formResto(id === 'nouveau' ? null : id, 'boutique') : vue('<div class="wrap vide-etat" style="margin-top:30px"><div class="ico">🛒</div><h3>Les boutiques ouvrent très bientôt</h3><a class="btn btn-p" href="#/pro">Mon espace</a></div>');
   if (sous === 'menu') return pageMenu(id);
   if (sous === 'commandes') return pageCommandesPro(id);
@@ -36,13 +37,14 @@ APP.pages.pro = async (sous, id) => {
   };
 };
 async function formResto(id, genre) {
-  const neuf = { nom: genre === 'boutique' ? `${profil?.prenom || ''} Dépannage`.trim() : '', cuisine: genre === 'boutique' ? 'boissons' : 'creole', ...(genre === 'boutique' ? { frais_livraison: 2, minimum: 5, genre } : {}) };
+  const neuf = { nom: genre === 'boutique' ? `${profil?.prenom || ''} Dépannage`.trim() : '', cuisine: genre === 'boutique' ? 'boissons' : 'creole', ...(genre === 'boutique' ? { frais_livraison: 2, minimum: 5, genre } : {}), ...(genre === 'maison' ? { frais_livraison: 2, minimum: 5, rubrique: 'maison', cuisinier: profil?.prenom || '' } : {}) };
   const r = id ? await q(sb.from('restaurants').select('*').eq('id', id).single()) : { description: '', territoire: profil?.territoire || terrPrefere() || 'Martinique', commune: profil?.commune || '', adresse: '', telephone: contact?.telephone || '', horaires: '', livraison: true, frais_livraison: 3, minimum: 10, communes_livrees: [], emporter: true, delai_min: 30, photo: null, statut: 'brouillon', ...neuf };
-  let ph = r.photo; const bq = estBoutique(r);
+  let ph = r.photo; const bq = estBoutique(r), maison = genre === 'maison' || estMaison(r);
   const types = Object.entries(CUISINES).filter(([k]) => bq ? TYPES_BOUTIQUE.includes(k) : !['boissons', 'epicerie'].includes(k) || k === r.cuisine);
-  vue(`<div class="wrap page-pro" style="max-width:960px">${id ? enteteResto(r, 'horaires') : '<a href="#/pro" class="retour-l" style="display:inline-flex">Espace pro</a>'}<h1>${bq ? (id ? 'Ma boutique : horaires et infos' : 'Ouvrir ma boutique') : id ? 'Horaires et infos' : 'Inscrire mon restaurant'}</h1>
+  vue(`<div class="wrap page-pro" style="max-width:960px">${id ? enteteResto(r, 'horaires') : '<a href="#/pro" class="retour-l" style="display:inline-flex">Espace pro</a>'}<h1>${bq ? (id ? 'Ma boutique : horaires et infos' : 'Ouvrir ma boutique') : id ? 'Horaires et infos' : maison ? 'Proposer mes plats maison' : 'Inscrire mon restaurant'}</h1>
     ${bq && !id ? '<p class="muted">Boissons fraîches, glaçons, apéro, petite épicerie, dépannage : les clients remplissent leur panier dans Woulib, vous livrez (ou ils passent prendre). Vous gérez vos articles, vos prix et votre stock.</p>' : ''}
     <form class="f" id="fR"><div class="ligne2"><label>Nom<input name="nom" required minlength="2" maxlength="80" value="${esc(r.nom)}"></label><label>${bq ? 'Type' : 'Cuisine'}<select name="cuisine">${types.map(([k, [i, t]]) => `<option value="${k}" ${k === r.cuisine ? 'selected' : ''}>${i} ${esc(t)}</option>`).join('')}</select></label></div>
+      ${maison ? `<div class="ligne2"><label>Votre nom de cuisinier<input name="cuisinier" maxlength="60" required value="${esc(r.cuisinier || '')}" placeholder="Man Ninotte"></label><label>Retrait et livraison<input name="retrait_info" maxlength="200" value="${esc(r.retrait_info || '')}" placeholder="Retrait de 11 h 30 à 13 h 30"></label></div>` : ''}
       <label>Présentation<textarea name="description" maxlength="1500" placeholder="${bq ? 'Boissons bien fraîches, glaçons, apéro… livrés en 30 minutes' : 'Votre histoire, vos spécialités, vos produits…'}">${esc(r.description)}</textarea></label>
       <div class="ligne3"><label>Territoire<select name="territoire" data-villes="villesR">${optsTerritoires(r.territoire)}</select></label><label>Ville<input name="commune" required maxlength="60" list="villesR" value="${esc(r.commune)}">${listeVilles('villesR', r.territoire)}</label><label>Adresse<input name="adresse" maxlength="200" value="${esc(r.adresse || '')}"></label></div>
       <label>Téléphone du restaurant<input name="telephone" type="tel" pattern="[0-9 +]{6,20}" value="${esc(r.telephone || '')}"></label>
@@ -81,7 +83,7 @@ async function formResto(id, genre) {
     }
     const l = { nom: d.nom.trim(), cuisine: d.cuisine, description: d.description.trim(), territoire: d.territoire, commune: d.commune.trim(), adresse: d.adresse.trim() || null, telephone: d.telephone.trim() || null,
       ...(BASE_V2 ? { horaires: Object.keys(sem).length ? null : r.horaires || null, horaires_sem: Object.keys(sem).length ? sem : null } : { horaires: d.horaires?.trim() || null }), livraison: !!d.livraison, emporter: !!d.emporter, delai_min: +d.delai_min, frais_livraison: +d.frais_livraison || 0, minimum: +d.minimum || 0,
-      communes_livrees: d.villes.split(',').map(x => x.trim()).filter(Boolean).slice(0, 40), photo: ph, livreurs_kivora: !!(d.livreurs_kivora && d.livraison), ...(bq && !id ? { genre: 'boutique' } : {}),
+      communes_livrees: d.villes.split(',').map(x => x.trim()).filter(Boolean).slice(0, 40), photo: ph, livreurs_kivora: !!(d.livreurs_kivora && d.livraison), ...(bq && !id ? { genre: 'boutique' } : {}), ...(maison ? { rubrique: 'maison', cuisinier: d.cuisinier.trim(), retrait_info: d.retrait_info.trim() || null } : {}),
       ...(bq && alcoolV2() ? { licence_alcool: d.licence_alcool.trim() || null, permis_nuit: d.permis_nuit.trim() || null } : {}) };
     // position du restaurant (pour envoyer les livreurs les plus proches), recalculée si l'adresse change
     if (r.lat == null || l.adresse !== r.adresse || l.commune !== r.commune) {
@@ -114,7 +116,7 @@ const DEPART = [['frais', 'Eau minérale 1,5 L', 1.5], ['frais', 'Eau gazeuse 1 
 async function pageMenu(rid, edite) {
   const [r, plats] = await Promise.all([q(sb.from('restaurants').select('*').eq('id', rid).single()), q(sb.from('plats').select('*').eq('restaurant_id', rid).order('ordre').order('created_at'))]);
   // sans licence déclarée, la base refuse les articles 18+ en vente : le catalogue de départ ne les propose pas encore
-  const bq = estBoutique(r), CATS = bq ? CATS_BOUTIQUE : CATS_PLAT, licence = !sansLicence(r);
+  const bq = estBoutique(r), maison = estMaison(r), CATS = bq ? CATS_BOUTIQUE : CATS_PLAT, licence = !sansLicence(r);
   const depart = DEPART.filter(([c, nom]) => (licence || c !== 'alcool') && !plats.some(p => p.nom.toLowerCase() === nom.toLowerCase()));
   const lienLicence = `<a href="#/pro/resto/${r.id}">Horaires et infos</a>`;
   const p0 = plats.find(p => p.id === edite) || { nom: '', prix: '', categorie: bq ? 'frais' : 'plat', description: '', options: [], stock: null };
@@ -127,12 +129,14 @@ async function pageMenu(rid, edite) {
     ${plats.length ? plats.map(p => `<div class="ligne-l">${p.photo ? `<img class="mini" style="height:72px" src="${esc(photo(p.photo))}" alt="">` : `<div class="mini" style="height:72px;display:grid;place-items:center;font-size:28px">${(LIB_CAT[p.categorie] || '🍽️').split(' ')[0]}</div>`}
       <div><b>${esc(p.nom)}</b> · <span class="prix">${eur(p.prix)}</span> ${p.dispo ? '' : tag(['gris', 'Épuisé'])}${p.majeur ? ' ' + tag(['att', '🔞 18+']) : ''}${p.majeur && !licence ? ' ' + tag(['ko', 'Hors vente : licence à déclarer']) : ''}<div class="muted petit">${esc(CATS[p.categorie] || LIB_CAT[p.categorie] || '')}${p.description ? ' · ' + esc(p.description) : ''}</div>
         ${BOUTIQUES ? (p.allergenes ? `<div class="allerg">${esc(texteAllergenes(p))}</div>` : tag(['att', '⚠️ Allergènes à renseigner'])) : ''}
-        ${bq ? `<label class="stock-l">Stock <input type="number" min="0" max="9999" data-stock="${p.id}" value="${p.stock ?? ''}" placeholder="non suivi" aria-label="Stock de ${esc(p.nom)}">${p.stock === 0 ? ' <b style="color:var(--rouge)">épuisé</b>' : ''}</label>` : ''}
+        ${maison ? `<label class="stock-l">Quantité <input type="number" min="0" max="9999" data-stock="${p.id}" value="${p.stock ?? ''}" placeholder="non limitée" aria-label="Quantité de ${esc(p.nom)}">${p.stock === 0 ? ' <b style="color:var(--rouge)">épuisé</b>' : ''}</label>${p.plat_du_jour ? ' <span class="tag ok">Plat du jour</span>' : ''}` : ''}${bq ? `<label class="stock-l">Stock <input type="number" min="0" max="9999" data-stock="${p.id}" value="${p.stock ?? ''}" placeholder="non suivi" aria-label="Stock de ${esc(p.nom)}">${p.stock === 0 ? ' <b style="color:var(--rouge)">épuisé</b>' : ''}</label>` : ''}
         ${p.options?.length ? `<div class="petit">${p.options.map(g => `<b>${esc(g.nom)}</b> : ${esc(g.choix.map(c => c.nom + (Number(c.prix) ? ' +' + eur(c.prix) : '')).join(', '))}`).join(' · ')}</div>` : ''}</div>
       <div class="actions"><button class="btn btn-s" data-modif="${p.id}">✏️ Modifier</button><button class="btn btn-s ${p.dispo ? '' : 'btn-ok'}" data-dispo="${p.id}" data-v="${!p.dispo}">${p.dispo ? 'Épuisé' : 'Disponible'}</button><button class="btn btn-s btn-ko" data-suppr="${p.id}" aria-label="Retirer ${esc(p.nom)}">×</button></div></div>`).join('') : `<p class="muted">${bq ? 'Aucun article pour l’instant.' : 'Aucun plat pour l’instant.'}</p>`}
     <form class="f panneau" id="fP" style="margin-top:16px"><h2 style="margin:0">${edite ? 'Modifier · ' + esc(p0.nom) : bq ? 'Ajouter un article' : 'Ajouter un plat'}</h2>
       <div class="ligne3"><label>Nom<input name="nom" required minlength="2" maxlength="80" placeholder="${bq ? 'Eau 1,5 L' : 'Colombo de poulet'}" value="${esc(p0.nom)}"></label><label>Prix (€)<input name="prix" type="number" min="0.5" max="500" step="${bq ? '0.1' : '0.5'}" required value="${esc(p0.prix)}"></label><label>${bq ? 'Rayon' : 'Catégorie'}<select name="categorie">${Object.entries(CATS).map(([k, t]) => `<option value="${k}" ${k === p0.categorie ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
       <label>Description <span class="aide">(facultatif)</span><input name="description" maxlength="400" placeholder="${bq ? 'Bien fraîche' : 'Riz, légumes pays, sauce chien'}" value="${esc(p0.description || '')}"></label>
+      ${maison ? `<label>Quantité du jour <span class="aide">(facultatif : vide = non limitée ; chaque commande la fait baisser, à 0 le plat est épuisé)</span><input name="stock" type="number" min="0" max="9999" value="${p0.stock ?? ''}"></label>
+        <label class="coche"><input type="checkbox" name="plat_du_jour" ${p0.plat_du_jour ? 'checked' : ''}> C’est mon plat du jour (en vitrine de « Plats maison », un seul à la fois)</label>` : ''}
       ${bq ? `<label>Stock <span class="aide">(facultatif : vide = pas de suivi ; à 0, l’article s’affiche épuisé)</span><input name="stock" type="number" min="0" max="9999" value="${p0.stock ?? ''}"></label><p class="aide" style="margin:0">🔞 Les articles du rayon « Bières et alcools » sont réservés aux majeurs : âge contrôlé à la remise.${licence ? '' : ` Pour en vendre, indiquez d’abord votre numéro de licence dans ${lienLicence}.`}
         Interdits sur Woulib : tabac, cigarettes (y compris électroniques), produits à la nicotine.</p>` : ''}
       ${BOUTIQUES ? `<fieldset class="allerg-f"><legend><b>Allergènes présents</b> <span class="aide">(obligatoire pour vendre à distance : les 14 allergènes majeurs)</span></legend>
@@ -159,7 +163,7 @@ async function pageMenu(rid, edite) {
     try {
       const al = Object.keys(ALLERGENES).filter(k => d['al_' + k]);
       if (BOUTIQUES && al.length && d.al_aucun) { b.disabled = false; return toast('Choisissez des allergènes ou « Aucun », pas les deux.', true); }
-      const l = { nom: d.nom.trim(), prix: +d.prix, categorie: d.categorie, description: d.description.trim() || null, ...(BASE_V2 ? { options } : {}), ...(bq ? { stock: d.stock === '' ? null : +d.stock } : {}),
+      const l = { nom: d.nom.trim(), prix: +d.prix, categorie: d.categorie, description: d.description.trim() || null, ...(BASE_V2 ? { options } : {}), ...(bq || maison ? { stock: d.stock === '' ? null : +d.stock } : {}), ...(maison ? { plat_du_jour: !!d.plat_du_jour } : {}),
         ...(BOUTIQUES ? { allergenes: al.length ? al : d.al_aucun ? [] : null } : {}) };
       if (f.fichier.files[0]) l.photo = await envoyerPhoto(f.fichier.files[0]);
       if (edite) await q(sb.from('plats').update(l).eq('id', edite)); else await q(sb.from('plats').insert({ ...l, restaurant_id: rid, ordre: plats.length }));

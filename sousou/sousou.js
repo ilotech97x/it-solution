@@ -223,7 +223,7 @@ const APP = {
 
   // ---------------------------------------------------------------- accueil
   async function accueilVisiteur() {
-    const tel = await smsPret(), go = tel ? '#/connexion' : '#/inscription';
+    const go = '#/inscription', pret = smsPret();   // l'accueil s'affiche tout de suite ; le lien « Commencer » se corrige quand Supabase répond (inscription renvoie déjà vers la connexion par numéro, 27/11 : performance)
     vue(`<div class="wrap sou"><section class="hero-s"><span class="rond">${IC.piece}</span><h1>Votre tontine, sans cahier ni prise de tête</h1>
       <p>Un groupe de proches cotise à chaque échéance et chacun reçoit la cagnotte à son tour. Sousou garde l’ordre, les comptes et les rappels.</p>
       <div class="actions-h"><a class="btn btn-p btn-gros btn-plein" href="${go}">Commencer, c’est gratuit</a><a class="btn btn-sec btn-plein" href="#/connexion">J’ai déjà un compte</a></div></section>
@@ -232,6 +232,7 @@ const APP = {
         <li><span><b>Un membre reçoit la cagnotte</b><span>À chaque tour, jusqu’à ce que tout le monde ait reçu la sienne. Rien n’est gagné ni perdu en intérêts.</span></span></li></ol>
         <p style="margin:12px 0 0"><a href="#/aide">Voir un exemple et les risques</a></p></section>
       <div class="avert"><b>Sousou ne touche jamais à l’argent</b> : il passe directement entre vous. Une tontine repose sur la confiance : ne vous engagez qu’avec des personnes que vous connaissez.</div></div>`);
+    pret.then(tel => { const l = $('.hero-s .btn-p'); if (tel && l) l.setAttribute('href', '#/connexion'); });
   }
   async function accueil() {
     if (!moi) return accueilVisiteur();

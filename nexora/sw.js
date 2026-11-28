@@ -1,11 +1,11 @@
 /* NEXORA — service worker (PWA) : l'appli s'installe sur l'écran d'accueil et s'ouvre même sans réseau.
    Installation : seulement la page d'accueil (rapide, le service worker est actif dès la première visite) ; les fichiers que la page a
    chargés sont rangés ensuite (message « coquille » envoyé par pwa.js, servi par le cache HTTP : aucun téléchargement en double).
-   Pages (HTML) : réseau d'abord (version à jour), copie locale si le réseau échoue ou dépasse 4 s, sinon page « hors connexion ».
+   Page d'accueil : copie locale d'abord (ouverture immédiate), mise à jour en arrière-plan. Autres pages (HTML) : réseau d'abord, copie locale si le réseau échoue ou dépasse 4 s, sinon page « hors connexion ».
    Fichiers versionnés (?v=) : cache d'abord (l'adresse change avec le contenu). Autres fichiers : cache puis mise à jour en arrière-plan.
    Jamais les données (Supabase), ni les cartes, ni les vidéos. CACHE à monter à chaque publication. */
 const PREFIXE = 'nexora-';
-const CACHE = PREFIXE + 'v10';
+const CACHE = PREFIXE + 'v11';
 const PORTEE = new URL('./', self.registration.scope).pathname;
 const MAX = 220;   // nombre maximal de fichiers gardés
 const API = /\/(rest|auth|storage|functions|realtime)\/v1\//;   // données : jamais gardées, même si l'API est sur la même adresse (tests locaux)
@@ -36,6 +36,10 @@ const page = (e, r, u) => {
   reseau.catch(() => {});
   const trop_long = new Promise((_, non) => setTimeout(non, 4000));
   const accueil = /\/(index\.html)?$/.test(u.pathname);
+  // page d'accueil de l'appli : la copie locale s'ouvre tout de suite (aucune attente du réseau), la nouvelle version est rangée en arrière-plan pour l'ouverture suivante (27/11 : performance)
+  if (accueil) apres(e, reseau.then(() => {}, () => {}));   // garde le service worker en vie jusqu à la fin de la mise à jour
+  if (accueil) return caches.match(r, { ignoreSearch: true }).then(x => x || caches.match('./')).then(x => x || Promise.race([reseau, trop_long]))
+    .catch(() => caches.match(r, { ignoreSearch: true }).then(x => x || reseau).catch(() => new Response(SECOURS, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } })));
   return Promise.race([reseau, trop_long]).catch(() => caches.match(r, { ignoreSearch: true })
     .then(x => x || (accueil ? caches.match('./') : null))
     .then(x => x || reseau)

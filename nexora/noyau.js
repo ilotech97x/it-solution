@@ -255,8 +255,9 @@ function demarrer() {
   (async () => {
     if (PRET) {
       const existe = t => sb.from(t).select('id').limit(1).then(r => !r.error, () => false);   // modules installés dans la base
-      [ERP, COMM, PORTAIL, EQ, REC] = await Promise.all(['nx_fournisseurs', 'nx_modeles_email', 'nx_echeances', 'nx_creneaux', 'nx_offres'].map(existe));
-      ABO = await sb.rpc('nx_abonnement_version').then(r => !r.error, () => false);   // nx_plans est fermée (revoke) : on teste la fonction, pas la table
+      // les six tests partent ensemble (un seul aller-retour réseau au démarrage, 27/11 : performance)
+      [ERP, COMM, PORTAIL, EQ, REC, ABO] = await Promise.all([...['nx_fournisseurs', 'nx_modeles_email', 'nx_echeances', 'nx_creneaux', 'nx_offres'].map(existe),
+        sb.rpc('nx_abonnement_version').then(r => !r.error, () => false)]);   // nx_plans est fermée (revoke) : on teste la fonction, pas la table
       sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') { moi = null; ORG = null; } }); await chargerSession().catch(e => console.error(e));
     }
     rendre();

@@ -89,7 +89,7 @@ const APP = {
     const t = territoireActif(); b.innerHTML = `${ICO.pin}<span>${esc(t)}</span>${ICO.bas}`; b.setAttribute('aria-label', `Choisir le territoire, actuellement ${t}`);
   },
   icones: () => ICO,
-  differes: { gps: 'gps.js?v=7', projets: 'projets.js?v=4', projet: 'projets.js?v=4', assistance: 'compte.js?v=4', recherche: 'recherche.js?v=2', pro: 'pro.js?v=2' },   // chargés à la première ouverture
+  differes: { gps: 'gps.js?v=7', projets: 'projets.js?v=4', projet: 'projets.js?v=4', assistance: 'compte.js?v=4', recherche: 'recherche.js?v=2', pro: 'pro.js?v=3' },   // chargés à la première ouverture
   // bouton retour d'une page ouverte directement (lien partagé) : l'accueil de son univers
   parent: h => Object.values(MODULES).find(m => m.routes.test(h.split('?')[0]))?.accueil || '#/',
   // à chaque changement de page : arrêter les rafraîchissements, couper le GPS hors des pages qui guident, couleurs de l'univers visité
