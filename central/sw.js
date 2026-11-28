@@ -5,7 +5,7 @@
    Fichiers versionnés (?v=) : cache d'abord (l'adresse change avec le contenu). Autres fichiers : cache puis mise à jour en arrière-plan.
    Jamais les données (Supabase), ni les cartes, ni les vidéos, ni /gestion/. CACHE à monter à chaque publication. */
 const PREFIXE = 'central-';
-const CACHE = PREFIXE + 'v12';
+const CACHE = PREFIXE + 'v13';
 const PORTEE = new URL('./', self.registration.scope).pathname;
 const GESTION = PORTEE + 'gestion/', OUTILS = PORTEE + 'outils/';   // la gestion privée (/central/gestion/) a son propre fonctionnement, sans service worker : jamais servie ni gardée ici
 const MAX = 220;   // nombre maximal de fichiers gardés

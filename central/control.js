@@ -8,7 +8,7 @@
 const svg = d => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
 const ICO = { retour: svg('M15 6l-6 6 6 6'), cloche: svg('M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 21h4') };
 // code de la page, titre, ouvert aux modérateurs
-const MODULES = [['', 'Tableau de bord', true], ['audience', 'Audience'], ['finances', 'Finances'], ['commissions', 'Commissions'],
+const MODULES = [['', 'Tableau de bord', true], ['activite', 'Activité'], ['audience', 'Audience'], ['finances', 'Finances'], ['commissions', 'Commissions'],
   ['assistant', 'Demandes clients'], ['entreprises', 'Mes entreprises'], ['reseaux', 'Réseaux'],
   ['applications', 'Applications'], ['abonnes', 'Abonnés NEXORA'], ['connexions', 'Connexions et robots'], ['territoires', 'Territoires'], ['configuration', 'Configuration'],
   ['partenaires', 'Partenaires', true], ['utilisateurs', 'Utilisateurs'], ['moderation', 'Modération', true], ['assistance', 'Assistance', true],
@@ -19,7 +19,7 @@ let mesModerations = [], compteurs = {}, auth2 = null;   // auth2 : niveau de co
 // 26/11 : outils internes venus du site public (pages à part, /central/outils/, réservées à l'administrateur par outils/garde.js)
 const OUTILS = [['./outils/prospection.html', '', 'Prospection', 0], ['./outils/rendez-vous.html', '', 'Rendez-vous', 0], ['./outils/visibilite.html', '', 'Être trouvé', 0]];
 const estAdmin = () => profil?.role === 'admin';
-const visibles = () => MODULES.filter(([, , m]) => estAdmin() || (m && mesModerations.length > 0));
+const visibles = () => MODULES.filter(([k, , m]) => (estAdmin() || (m && mesModerations.length > 0)) && (k !== 'activite' || window.ACTIVITE?.dispo));   // « Activité » : seulement si commun/central_activite.sql est en base
 
 const APP = {
   nom: 'ILO Central', titre: 'ILO Central', accueilConnecte: '#/', sansInscription: true,
@@ -37,6 +37,7 @@ const APP = {
   apresConnexion: async () => {
     mesModerations = (await q(sb.from('moderateurs_univers').select('univers').eq('user_id', moi.id)).catch(() => [])).map(x => x.univers);
     try { auth2 = (await sb.auth.mfa.getAuthenticatorAssuranceLevel()).data || null; } catch (e) { auth2 = null; }
+    if (estAdmin() && window.ACTIVITE) await ACTIVITE.sonder();
   },
   quitter: () => { const a = $('#app'); if (a) a.oninput = a.onsubmit = a.onclick = a.onchange = a.onpointermove = a.onpointerdown = a.onpointerleave = null; },
   pages: {}
