@@ -983,7 +983,7 @@ fs.writeFileSync(svcHtml, sh);
 // sitemap : pages principales, pages service, guides
 const jour = new Date().toISOString().slice(0, 10);
 const urls = [['', '1.0', 'weekly'], ['services.html', '0.9', 'weekly'], ...PAGES.map(p => [lien(p), p.nouveau ? '0.9' : '0.8', 'monthly']),
-  ['conseils.html', '0.7', 'monthly'], ['outils-gratuits.html', '0.6', 'monthly'], ...GUIDES.map(g => [g.slug + '.html', '0.7', 'monthly']), ['plaquette.html', '0.6', 'monthly'], ['fiche-tarifs.html', '0.5', 'monthly'], ['digital/', '0.9', 'weekly'], ['boutique.html', '0.8', 'weekly'], ['evenements/', '0.6', 'weekly'], ['pass/', '0.8', 'daily']];
+  ['conseils.html', '0.7', 'monthly'], ['outils-gratuits.html', '0.6', 'monthly'], ...GUIDES.map(g => [g.slug + '.html', '0.7', 'monthly']), ['plaquette.html', '0.6', 'monthly'], ['fiche-tarifs.html', '0.5', 'monthly'], ['digital/', '0.9', 'weekly'], ['boutique.html', '0.8', 'weekly'], ['evenements/', '0.6', 'weekly'], ['pass/', '0.8', 'daily'], ['espace-client.html', '0.5', 'monthly'], ['woulib/', '0.8', 'daily'], ['sousou/', '0.6', 'weekly'], ['nexora/', '0.7', 'weekly']];
 fs.writeFileSync(path.join(dir, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map(([u, pr, f]) => `  <url><loc>${SITE}${u}</loc><lastmod>${jour}</lastmod><changefreq>${f}</changefreq><priority>${pr}</priority></url>`).join('\n')}
